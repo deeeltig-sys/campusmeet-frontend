@@ -1,0 +1,47 @@
+:root {
+  /* Color */
+  --maroon: #6B1530;
+  --maroon-deep: #4A0E21;
+  --maroon-light: #F3E1E6;   /* reserved: verified-student surface */
+  --gold: #D4AF37;
+  --gold-bright: #E8C766;
+  --bronze: #A67C27;
+  --ivory: #FAF6EF;
+  --ivory-dim: #F1EAE0;
+  --ink: #1A1210;
+  --ink-soft: #4A3F3B;
+  --line: rgba(107, 21, 48, 0.16);
+  --success: #2E6B44;
+  --danger: #A6272C;
+
+  /* Type */
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;
+  --fs-3xl: 2.75rem;
+
+  /* Space */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-seal: 999px;
+
+  --shadow-card: 0 2px 14px rgba(74, 14, 33, 0.08);
+  --shadow-raised: 0 8px 28px rgba(74, 14, 33, 0.16);
+}
