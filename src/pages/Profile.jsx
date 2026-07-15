@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from '../components/VerifiedBadge';
+import GoldSparkle from '../components/GoldSparkle';
 import campmeetLogo from '../assets/campmeet-logo.png';
 
 export default function Profile() {
@@ -20,8 +21,10 @@ export default function Profile() {
           borderColor: user.verified ? 'var(--gold)' : 'var(--line)',
           textAlign: 'center',
           marginBottom: 'var(--sp-4)',
+          position: 'relative',
         }}
       >
+        {user.verified && <GoldSparkle count={4} />}
         <div
           style={{
             width: 72, height: 72, borderRadius: '999px', margin: '0 auto var(--sp-3)',

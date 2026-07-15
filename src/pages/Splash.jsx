@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import campmeetLogo from '../assets/campmeet-logo.png';
+import GoldSparkle from '../components/GoldSparkle';
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -22,11 +23,14 @@ export default function Splash() {
         gap: 'var(--sp-5)',
       }}
     >
-      <img
-        src={campmeetLogo}
-        alt="CampMEET"
-        style={{ width: 180, animation: 'fadeIn 0.6s ease' }}
-      />
+      <div style={{ position: 'relative', width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <GoldSparkle count={5} />
+        <img
+          src={campmeetLogo}
+          alt="CampMEET"
+          style={{ width: 180, animation: 'fadeIn 0.6s ease', position: 'relative', zIndex: 1 }}
+        />
+      </div>
       <p
         style={{
           fontFamily: 'var(--font-mono)',

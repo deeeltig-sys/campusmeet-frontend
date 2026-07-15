@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import campmeetLogo from '../assets/campmeet-logo.png';
 import ustedLogo from '../assets/usted-logo.png';
+import GoldSparkle from '../components/GoldSparkle';
 
 const slides = [
   {
@@ -29,11 +30,14 @@ export default function Onboarding() {
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 'var(--sp-5)' }}>
-        <img
-          src={slide.logo}
-          alt={slide.title}
-          style={{ width: slide.key === 'usted' ? 140 : 200, transition: 'opacity 0.25s ease' }}
-        />
+        <div style={{ position: 'relative', width: slide.key === 'usted' ? 140 : 200, height: slide.key === 'usted' ? 140 : 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {slide.key === 'usted' && <GoldSparkle count={4} />}
+          <img
+            src={slide.logo}
+            alt={slide.title}
+            style={{ width: slide.key === 'usted' ? 140 : 200, transition: 'opacity 0.25s ease', position: 'relative', zIndex: 1 }}
+          />
+        </div>
         <div>
           <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>{slide.eyebrow}</p>
           <h1 className="h-display" style={{ fontSize: 'var(--fs-2xl)', marginBottom: 'var(--sp-3)' }}>{slide.title}</h1>

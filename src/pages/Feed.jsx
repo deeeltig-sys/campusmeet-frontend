@@ -1,11 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import PostCard from '../components/PostCard';
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setError('');
@@ -27,11 +31,6 @@ export default function Feed() {
 
     const wasSame = current.user_reaction === type;
     const hadAny = current.user_reaction != null;
-
-    // Tapping the active reaction again clears it. Tapping a different one
-    // switches (one live reaction per person per post, per the backend's
-    // unique constraint) — the total count only moves when a reaction is
-    // added or cleared, not when it switches type.
     const nextReaction = wasSame ? null : type;
     const countDelta = wasSame ? -1 : hadAny ? 0 : 1;
 
@@ -50,15 +49,26 @@ export default function Feed() {
         await PostsAPI.react(postId, type);
       }
     } catch {
-      load(); // resync on failure
+      load();
     }
   }
 
   return (
     <div className="screen">
-      <header style={{ marginBottom: 'var(--sp-5)' }}>
-        <p className="eyebrow">The Feed</p>
-        <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's happening on campus</h1>
+      <header className="feed-header">
+        <div>
+          <p className="eyebrow">The Feed</p>
+          <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's happening on campus</h1>
+        </div>
+
+        {user?.role === 'admin' && (
+          <button type="button" className="admin-pill" onClick={() => navigate('/admin')}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2l7 3v6c0 5-3 8.5-7 11-4-2.5-7-6-7-11V5l7-3z" fill="var(--gold)" />
+            </svg>
+            Admin
+          </button>
+        )}
       </header>
 
       {error && <div className="banner-error">{error}</div>}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AdminAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
+import GoldSparkle from '../components/GoldSparkle';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -86,18 +87,19 @@ function VerifyPanel() {
         </div>
       ) : (
         pending.map((u) => (
-          <div key={u.id} className="card" style={{ marginBottom: 'var(--sp-3)' }}>
+          <div key={u.id} className="card" style={{ marginBottom: 'var(--sp-3)', position: 'relative' }}>
             <strong>{u.full_name}</strong>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', margin: '4px 0 var(--sp-3)' }}>
               {u.student_id_number}
             </p>
             <button
               className="btn btn-gold btn-block"
-              style={{ padding: '10px' }}
+              style={{ padding: '10px', position: 'relative' }}
               disabled={actioning === u.id}
               onClick={() => handleVerify(u.id)}
             >
               {actioning === u.id ? 'Verifying…' : 'Verify USTED student'}
+              {actioning !== u.id && <GoldSparkle count={3} />}
             </button>
           </div>
         ))

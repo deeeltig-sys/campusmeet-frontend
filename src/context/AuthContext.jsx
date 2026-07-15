@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { AuthAPI, getToken, setToken, clearToken } from '../api/client';
+import { AuthAPI, getToken, setSession, clearSession } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -14,14 +14,13 @@ export function AuthProvider({ children }) {
       return;
     }
     try {
+      // AuthAPI.me() already retries once through a silent token
+      // refresh if the access token has expired (see api/client.js) —
+      // by the time this rejects, the session is genuinely gone.
       const profile = await AuthAPI.me();
-      // /api/auth/me returns the raw users row (select "*"), so it has
-      // verified_at (a timestamp or null) rather than a "verified" boolean.
-      // Normalize it here once so every screen can just read user.verified.
       setUser({ ...profile, verified: profile?.verified_at != null });
     } catch {
-      // token invalid/expired
-      clearToken();
+      clearSession();
       setUser(null);
     } finally {
       setLoading(false);
@@ -34,7 +33,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const data = await AuthAPI.login({ email, password });
-    if (data?.access_token) setToken(data.access_token);
+    setSession(data);
     await loadProfile();
     return data;
   }, [loadProfile]);
@@ -42,14 +41,14 @@ export function AuthProvider({ children }) {
   const signup = useCallback(async (payload) => {
     const data = await AuthAPI.signup(payload);
     if (data?.access_token) {
-      setToken(data.access_token);
+      setSession(data);
       await loadProfile();
     }
     return data;
   }, [loadProfile]);
 
   const logout = useCallback(() => {
-    clearToken();
+    clearSession();
     setUser(null);
   }, []);
 

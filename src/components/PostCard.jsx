@@ -45,6 +45,12 @@ export default function PostCard({ post, onReact }) {
 
       <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>{content}</p>
 
+      {post.image_url && (
+        <div className="post-image-wrap">
+          <img className="post-image" src={post.image_url} alt="" loading="lazy" />
+        </div>
+      )}
+
       <footer className="reaction-footer">
         <div className="reaction-bar" role="group" aria-label="React to this post">
           {REACTIONS.map(({ type, emoji, label }) => {

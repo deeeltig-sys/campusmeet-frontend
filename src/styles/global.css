@@ -70,7 +70,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--gold-bright);
   box-shadow: var(--shadow-card);
 }
-.btn-primary:hover { background: var(--maroon-deep); }
+.btn-primary:hover { background: var(--maroon-deep); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.28); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-ghost {
   background: transparent;
@@ -80,7 +80,9 @@ a { color: inherit; text-decoration: none; }
 .btn-gold {
   background: linear-gradient(180deg, var(--gold-bright), var(--gold));
   color: var(--maroon-deep);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
 }
+.btn-gold:hover { box-shadow: 0 6px 22px rgba(212, 175, 55, 0.5); }
 .btn-block { width: 100%; }
 
 .field {
@@ -131,8 +133,17 @@ a { color: inherit; text-decoration: none; }
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--maroon), var(--gold) 55%, var(--bronze));
-  opacity: 0.55;
+  background: linear-gradient(
+    90deg,
+    var(--maroon) 0%,
+    var(--gold) 35%,
+    var(--gold-bright) 50%,
+    var(--gold) 65%,
+    var(--bronze) 100%
+  );
+  background-size: 220% 100%;
+  opacity: 0.6;
+  animation: shimmer-sweep 6s ease-in-out infinite;
 }
 
 .post-card {
@@ -241,3 +252,170 @@ a { color: inherit; text-decoration: none; }
 }
 
 ::selection { background: var(--gold); color: var(--maroon-deep); }
+
+/* ============================================================
+   Gold sparkle motif — the signature differentiator. Used only
+   on the handful of moments that should read as premium: splash,
+   the USTED seal, verified badges, the admin verify action.
+   ============================================================ */
+
+@keyframes shimmer-sweep {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.sparkle-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.sparkle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  filter: drop-shadow(0 0 3px rgba(232, 199, 102, 0.7));
+  animation: sparkle-twinkle 2.6s ease-in-out infinite;
+}
+.sparkle--0 { top: 6%;  left: 12%; width: 14px; height: 14px; animation-delay: 0s; }
+.sparkle--1 { top: 62%; left: 84%; width: 9px;  height: 9px;  animation-delay: 0.6s; }
+.sparkle--2 { top: 78%; left: 18%; width: 7px;  height: 7px;  animation-delay: 1.2s; }
+.sparkle--3 { top: 14%; left: 88%; width: 11px; height: 11px; animation-delay: 1.8s; }
+.sparkle--4 { top: 46%; left: 6%;  width: 6px;  height: 6px;  animation-delay: 0.3s; }
+
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50%      { opacity: 1; transform: scale(1) rotate(25deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkle, .card::before { animation: none !important; }
+}
+
+/* ============================================================
+   Admin access — a header pill on the Feed screen (staff only),
+   replacing a floating button so it reads as part of the page
+   chrome rather than an overlay competing with the compose FAB.
+   ============================================================ */
+
+.feed-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-seal);
+  border: 1.5px solid var(--gold);
+  background: linear-gradient(180deg, rgba(232, 199, 102, 0.16), rgba(212, 175, 55, 0.06));
+  color: var(--maroon-deep);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+.admin-pill:hover { box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3); }
+.admin-pill:active { transform: scale(0.96); }
+
+/* ============================================================
+   Image posts
+   ============================================================ */
+
+.post-image-wrap {
+  margin-top: var(--sp-3);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--ivory-dim);
+}
+.post-image {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+
+.image-picker {
+  margin-bottom: var(--sp-4);
+}
+.image-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.image-picker-trigger:hover { border-color: var(--gold); color: var(--maroon-deep); }
+
+.image-preview {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+.image-preview-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(26, 18, 16, 0.65);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Mobile back/forward affordances — visible tap feedback so the
+   on-screen back arrow and swipe-back always feel responsive,
+   matching the hardware back button behaviour on Android.
+   ============================================================ */
+
+.screen {
+  animation: screen-enter 0.18s ease;
+}
+@keyframes screen-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sparkle-field--badge {
+  inset: -6px;
+}
+.sparkle-field--badge .sparkle {
+  width: 5px !important;
+  height: 5px !important;
+}

@@ -3,18 +3,68 @@
 export const API_BASE = 'https://campus-backend-tz9q.onrender.com';
 
 const TOKEN_KEY = 'campmeet_token';
+const REFRESH_KEY = 'campmeet_refresh';
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
-export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY);
 }
-export function clearToken() {
+// Stores both halves of a Supabase session together — a screen that only
+// has an access_token (nothing calls this without also having the
+// refresh_token from the same signup/login/refresh response) should
+// still pass null explicitly rather than silently wiping the other key.
+export function setSession({ access_token, refresh_token } = {}) {
+  if (access_token) localStorage.setItem(TOKEN_KEY, access_token);
+  if (refresh_token) localStorage.setItem(REFRESH_KEY, refresh_token);
+}
+export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
 }
 
-async function request(path, { method = 'GET', body, auth = false } = {}) {
+// Kept for compatibility with any older call sites; setSession is the
+// real entry point since a lone access token can't renew itself later.
+export function setToken(token) {
+  setSession({ access_token: token });
+}
+export function clearToken() {
+  clearSession();
+}
+
+let refreshInFlight = null;
+
+// Access tokens expire in ~1hr; rather than let that log a student out
+// mid-session, this exchanges the refresh token for a new pair the moment
+// a request comes back 401. Concurrent 401s share one refresh call
+// (refreshInFlight) instead of racing separate refresh requests.
+async function renewSession() {
+  const refresh_token = getRefreshToken();
+  if (!refresh_token) return false;
+
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${API_BASE}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token }),
+    })
+      .then(async (res) => {
+        if (!res.ok) return false;
+        const data = await res.json().catch(() => null);
+        if (!data?.access_token) return false;
+        setSession(data);
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
+async function request(path, { method = 'GET', body, auth = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = getToken();
@@ -30,6 +80,14 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     });
   } catch {
     throw new Error('Could not reach the server. Check your connection and try again.');
+  }
+
+  if (res.status === 401 && auth && !_retried) {
+    const renewed = await renewSession();
+    if (renewed) {
+      return request(path, { method, body, auth, _retried: true });
+    }
+    clearSession();
   }
 
   const isJson = res.headers.get('content-type')?.includes('application/json');
@@ -48,43 +106,68 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
 export const REACTION_TYPES = ['fire', 'cosign', 'doubt', 'yawa'];
 
 // ---- Auth ----
-// Signup/login field names confirmed against the live deployed route.
 export const AuthAPI = {
   signup: (payload) => request('/api/auth/signup', { method: 'POST', body: payload }),
   login: (payload) => request('/api/auth/login', { method: 'POST', body: payload }),
-  // GET /api/auth/me — NOT /api/profile/me (that one's PATCH-only, for edits).
-  // Returns the full raw users row (select "*"), so it includes columns like
-  // student_id_number and verified_at that public_user_fields() would normally hide.
+  refresh: (refresh_token) => request('/api/auth/refresh', { method: 'POST', body: { refresh_token } }),
   me: () => request('/api/auth/me', { auth: true }),
 };
 
 // ---- Posts / Feed ----
 export const PostsAPI = {
-  // Public — reads the `feed` view (active posts, ranked). No auth needed.
   feed: (limit = 30, offset = 0) => request(`/api/posts/feed?limit=${limit}&offset=${offset}`),
   create: (payload) => request('/api/posts', { method: 'POST', body: payload, auth: true }),
   get: (postId) => request(`/api/posts/${postId}`),
   update: (postId, payload) => request(`/api/posts/${postId}`, { method: 'PATCH', body: payload, auth: true }),
   softDelete: (postId) => request(`/api/posts/${postId}`, { method: 'PATCH', body: { delete: true }, auth: true }),
   registerView: (postId) => request(`/api/posts/${postId}/view`, { method: 'POST', auth: true }),
-  // type must be one of REACTION_TYPES above — the feed's "reaction" isn't a generic like,
-  // it's one of these four. The UI treats "fire" as the default one-tap reaction.
   react: (postId, type = 'fire') =>
     request(`/api/posts/${postId}/reactions`, { method: 'POST', body: { type }, auth: true }),
   unreact: (postId) => request(`/api/posts/${postId}/reactions`, { method: 'DELETE', auth: true }),
+
+  // Image posts. This bypasses the generic request() helper since it's
+  // multipart, not JSON — the browser sets its own Content-Type boundary,
+  // so nothing here should set Content-Type manually.
+  uploadImage: async (file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('image', file);
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/posts/upload-image`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) {
+        return PostsAPI.uploadImage(file);
+      }
+      clearSession();
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || 'Image upload failed. Try again.');
+    }
+    return data.url;
+  },
 };
 
 // ---- Profile ----
 export const ProfileAPI = {
-  // Public view of anyone's profile (shaped by public_user_fields — no email/student ID).
   get: (userId) => request(`/api/profile/${userId}`),
-  // Only full_name and avatar_url are editable per the backend's allowed_fields.
   updateMe: (payload) => request('/api/profile/me', { method: 'PATCH', body: payload, auth: true }),
 };
 
 // ---- Admin (Verify USTED flow) ----
 export const AdminAPI = {
-  // ?verified=false is the pending queue this app's admin panel needs.
   listUsers: (verified) =>
     request(`/api/admin/users${verified !== undefined ? `?verified=${verified}` : ''}`, { auth: true }),
   verify: (userId) => request(`/api/admin/users/${userId}/verify`, { method: 'POST', auth: true }),
@@ -92,8 +175,6 @@ export const AdminAPI = {
   reports: () => request('/api/admin/reports', { auth: true }),
   updateReport: (reportId, status) =>
     request(`/api/admin/reports/${reportId}`, { method: 'PATCH', body: { status }, auth: true }),
-  // Monitoring only — nothing here changes ranking or visibility.
-  // Backend route: GET /api/admin/reactions/velocity
   yawaVelocity: (windowHours = 6) =>
     request(`/api/admin/reactions/velocity?window_hours=${windowHours}`, { auth: true }),
 };

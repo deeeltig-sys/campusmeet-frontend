@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BottomNav from './components/BottomNav';
-import AdminFAB from './components/AdminFAB';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
 
 import Splash from './pages/Splash';
@@ -26,7 +25,6 @@ function ProtectedLayout({ children }) {
   return (
     <>
       {children}
-      <AdminFAB />
       <BottomNav />
     </>
   );
