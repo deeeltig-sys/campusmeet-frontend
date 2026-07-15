@@ -50,19 +50,19 @@ export default function Signup() {
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor="full_name">Full name</label>
-          <input id="full_name" required autoComplete="name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Prince Osei Owusu" />
+          <input id="full_name" required value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Prince Osei Owusu" />
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input id="email" type="email" required autoComplete="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@example.com" />
+          <input id="email" type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@example.com" />
         </div>
         <div className="field">
           <label htmlFor="student_id">USTED student ID</label>
-          <input id="student_id" required autoComplete="off" value={form.student_id_number} onChange={(e) => update('student_id_number', e.target.value)} placeholder="52XXXXXXXX" />
+          <input id="student_id" required value={form.student_id_number} onChange={(e) => update('student_id_number', e.target.value)} placeholder="52XXXXXXXX" />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" required minLength={8} autoComplete="new-password" value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="At least 8 characters" />
+          <input id="password" type="password" required minLength={8} value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="At least 8 characters" />
         </div>
         <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
           {busy ? 'Creating account…' : 'Create account'}

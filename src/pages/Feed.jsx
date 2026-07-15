@@ -21,21 +21,33 @@ export default function Feed() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleReact(postId) {
-    // optimistic update
+  async function handleReact(postId, type) {
+    const current = posts.find((p) => p.id === postId);
+    if (!current) return;
+
+    const wasSame = current.user_reaction === type;
+    const hadAny = current.user_reaction != null;
+
+    // Tapping the active reaction again clears it. Tapping a different one
+    // switches (one live reaction per person per post, per the backend's
+    // unique constraint) — the total count only moves when a reaction is
+    // added or cleared, not when it switches type.
+    const nextReaction = wasSame ? null : type;
+    const countDelta = wasSame ? -1 : hadAny ? 0 : 1;
+
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
-          ? { ...p, user_reacted: !p.user_reacted, reaction_count: p.reaction_count + (p.user_reacted ? -1 : 1) }
+          ? { ...p, user_reaction: nextReaction, reaction_count: p.reaction_count + countDelta }
           : p
       )
     );
+
     try {
-      const post = posts.find((p) => p.id === postId);
-      if (post?.user_reacted) {
+      if (wasSame) {
         await PostsAPI.unreact(postId);
       } else {
-        await PostsAPI.react(postId, 'fire'); // one-tap default reaction
+        await PostsAPI.react(postId, type);
       }
     } catch {
       load(); // resync on failure

@@ -92,4 +92,8 @@ export const AdminAPI = {
   reports: () => request('/api/admin/reports', { auth: true }),
   updateReport: (reportId, status) =>
     request(`/api/admin/reports/${reportId}`, { method: 'PATCH', body: { status }, auth: true }),
+  // Monitoring only — nothing here changes ranking or visibility.
+  // Backend route: GET /api/admin/reactions/velocity
+  yawaVelocity: (windowHours = 6) =>
+    request(`/api/admin/reactions/velocity?window_hours=${windowHours}`, { auth: true }),
 };

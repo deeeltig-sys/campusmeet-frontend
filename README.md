@@ -80,12 +80,24 @@ after adding your source icon to `assets/icon.png` (1024×1024) — copy `src/as
 | Edit own profile | `PATCH /api/profile/me` | only `full_name`, `avatar_url` accepted |
 | Pending verifications | `GET /api/admin/users?verified=false` | staff only |
 | Verify | `POST /api/admin/users/:id/verify` | sets `verified_at` server-side via RPC |
+| Yawa activity (new) | `GET /api/admin/reactions/velocity?window_hours=6` | staff only — **not yet on the deployed backend**, see below |
 
 One open question I couldn't resolve without `db/schema.sql`: the `feed` view may or may not join in each post's author name/verified status directly. `PostCard.jsx` handles a couple of likely shapes (`author.full_name` or flattened `author_full_name`/`author_verified_at`), but if names don't show up on the feed, that's the first thing to check — share `db/schema.sql`'s `feed` view definition and I'll match it exactly.
 
-## Admin access
+## Reactions
 
-Any user whose `role` comes back as `"admin"` from `/api/auth/me` sees a small gold shield button floating above the bottom nav, on every screen except the admin panel itself. Tapping it opens `/admin` — a list of pending USTED verifications with a one-tap Verify button, calling the real `verify_student` RPC through your backend. This is exactly the account you promoted via SQL earlier.
+The feed footer now shows all four reactions — 🔥 fire, 🤝 cosign, 👎 doubt, 🚫 yawa — as one button group per post, matching the one-live-reaction-per-person-per-post rule already enforced by the backend's unique constraint. Tapping a new one switches; tapping the active one clears it. The number next to the buttons is the total `reaction_count`, all four types summed with equal weight — that's how `feed_score()` already works on the backend, and nothing in this build changes that. There's no per-type breakdown or contested/pile-on state anywhere in the UI, on purpose: a post's reach and ranking don't move because of which reaction it's collecting.
+
+One limitation worth knowing: `/api/auth/me` and the feed don't currently return which reaction (if any) a given user has on a post, so the highlighted/active button is tracked client-side after an action, not restored on page reload. If you want that to persist across reloads, the feed view or `/api/posts/:id` would need to return the caller's own `type` from `reactions`.
+
+## Admin panel
+
+Any user whose `role` comes back as `"admin"` from `/api/auth/me` sees a small gold shield button floating above the bottom nav, on every screen except the admin panel itself. Tapping it opens `/admin`, which now has two tabs:
+
+- **Verify students** — same as before: pending USTED verifications, one-tap Verify, calling `verify_student` through your backend.
+- **Yawa activity** — a monitoring view, not a moderation one. It lists posts picking up yawa reactions fastest in a selected window (last hour / 6 hours / 24 hours), so staff can look at what's moving without the platform doing anything automatically to it. Feed ranking and visibility are untouched either way.
+
+This second tab needs a route that doesn't exist on the backend yet: `GET /api/admin/reactions/velocity`. A drop-in `routes/admin.py` with that route added is included alongside this frontend — copy it over your existing one, redeploy, and the tab will start returning real data instead of erroring.
 
 ---
 

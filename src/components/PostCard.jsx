@@ -1,11 +1,19 @@
 import VerifiedBadge from './VerifiedBadge';
+import { REACTION_TYPES } from '../api/client';
+
+const REACTIONS = [
+  { type: 'fire', emoji: '🔥', label: 'Fire' },
+  { type: 'cosign', emoji: '🤝', label: 'Cosign' },
+  { type: 'doubt', emoji: '👎', label: 'Doubt' },
+  { type: 'yawa', emoji: '🚫', label: 'Yawa' },
+];
 
 export default function PostCard({ post, onReact }) {
-  // reaction_count (singular) matches models/post.py's public_post_fields exactly.
-  // user_reacted isn't part of that shape today — if your `feed` view doesn't add it,
-  // the reaction button will still work (fire/unreact), it just won't show as
-  // pre-toggled on load.
-  const { content, created_at, reaction_count = 0, user_reacted } = post;
+  // reaction_count is the aggregate across all four types — fire, cosign,
+  // doubt and yawa all count the same toward it and toward feed ranking.
+  // There's no separate suppressed or "contested" state for high-yawa posts;
+  // a post's reach doesn't change because of which reaction it's getting.
+  const { content, created_at, reaction_count = 0, user_reaction } = post;
 
   // public_post_fields() only returns author_id (no nested author object), so the
   // `feed` DB view is what would actually join in name/verified — its exact column
@@ -17,16 +25,9 @@ export default function PostCard({ post, onReact }) {
   };
 
   return (
-    <article className="card" style={{ marginBottom: 'var(--sp-4)' }}>
+    <article className="card post-card">
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-        <div
-          style={{
-            width: 36, height: 36, borderRadius: '999px',
-            background: 'var(--maroon-light)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-display)', color: 'var(--maroon-deep)', fontWeight: 600,
-          }}
-        >
+        <div className="avatar-circle">
           {author.full_name ? author.full_name.charAt(0) : '?'}
         </div>
         <div style={{ flex: 1 }}>
@@ -44,20 +45,27 @@ export default function PostCard({ post, onReact }) {
 
       <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>{content}</p>
 
-      <footer style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', marginTop: 'var(--sp-4)' }}>
-        <button
-          onClick={() => onReact?.(post.id)}
-          className="btn"
-          style={{
-            padding: '6px 14px',
-            background: user_reacted ? 'var(--maroon-light)' : 'transparent',
-            border: '1.5px solid var(--line)',
-            color: 'var(--maroon-deep)',
-            fontSize: 'var(--fs-sm)',
-          }}
-        >
-          ♦ {reaction_count}
-        </button>
+      <footer className="reaction-footer">
+        <div className="reaction-bar" role="group" aria-label="React to this post">
+          {REACTIONS.map(({ type, emoji, label }) => {
+            const active = user_reaction === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                className={`reaction-btn${active ? ' active' : ''}`}
+                aria-pressed={active}
+                aria-label={label}
+                title={label}
+                onClick={() => onReact?.(post.id, type)}
+                disabled={!REACTION_TYPES.includes(type)}
+              >
+                <span aria-hidden="true">{emoji}</span>
+              </button>
+            );
+          })}
+        </div>
+        <span className="reaction-count">{reaction_count}</span>
       </footer>
     </article>
   );
