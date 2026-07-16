@@ -22,13 +22,18 @@ export default function PostCard({ post, onReact }) {
   const author = post.author || {
     full_name: post.author_full_name,
     verified: post.author_verified_at != null || post.author_verified,
+    avatar_url: post.author_avatar_url,
   };
 
   return (
     <article className="card post-card">
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
         <div className="avatar-circle">
-          {author.full_name ? author.full_name.charAt(0) : '?'}
+          {author.avatar_url ? (
+            <img src={author.avatar_url} alt="" />
+          ) : (
+            author.full_name ? author.full_name.charAt(0) : '?'
+          )}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

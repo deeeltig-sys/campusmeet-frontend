@@ -164,6 +164,39 @@ export const PostsAPI = {
 export const ProfileAPI = {
   get: (userId) => request(`/api/profile/${userId}`),
   updateMe: (payload) => request('/api/profile/me', { method: 'PATCH', body: payload, auth: true }),
+
+  // Same multipart pattern as PostsAPI.uploadImage — bypasses the
+  // generic JSON request() helper on purpose.
+  uploadAvatar: async (file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('avatar', file);
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/profile/upload-avatar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) {
+        return ProfileAPI.uploadAvatar(file);
+      }
+      clearSession();
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || 'Avatar upload failed. Try again.');
+    }
+    return data; // updated user row, includes the new avatar_url
+  },
 };
 
 // ---- Admin (Verify USTED flow) ----
