@@ -7,7 +7,6 @@ import Splash from './pages/Splash';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Download from './pages/Download';
 import Feed from './pages/Feed';
 import Search from './pages/Search';
 import CreatePost from './pages/CreatePost';
@@ -41,7 +40,6 @@ function AppRoutes() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/download" element={<Download />} />
 
         <Route path="/feed" element={<ProtectedLayout><Feed /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><Search /></ProtectedLayout>} />
