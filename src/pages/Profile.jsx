@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -13,6 +13,15 @@ export default function Profile() {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  // The session's user object is loaded once at app boot. If an admin
+  // verifies this student while the app is already open, that change
+  // wouldn't otherwise show up until the app is fully relaunched — so
+  // pull a fresh copy every time this screen is visited.
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) return null;
 
