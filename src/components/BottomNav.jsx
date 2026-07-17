@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
+  { to: '/search', label: 'Search', icon: SearchIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
   { to: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
@@ -36,6 +37,14 @@ function FeedIcon({ active }) {
       <rect x="3" y="4" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} />
       <rect x="3" y="10" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} opacity="0.7" />
       <rect x="3" y="16" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} opacity="0.45" />
+    </svg>
+  );
+}
+function SearchIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" />
+      <path d="M20 20l-4.35-4.35" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

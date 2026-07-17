@@ -21,11 +21,18 @@ const slides = [
   },
 ];
 
+const ONBOARDED_KEY = 'campmeet_onboarded';
+
 export default function Onboarding() {
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
   const slide = slides[index];
   const isLast = index === slides.length - 1;
+
+  function finishOnboarding() {
+    localStorage.setItem(ONBOARDED_KEY, 'true');
+    navigate('/login');
+  }
 
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -62,13 +69,13 @@ export default function Onboarding() {
 
       <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
         {!isLast && (
-          <button className="btn btn-ghost btn-block" onClick={() => navigate('/login')}>
+          <button className="btn btn-ghost btn-block" onClick={finishOnboarding}>
             Skip
           </button>
         )}
         <button
           className="btn btn-primary btn-block"
-          onClick={() => (isLast ? navigate('/login') : setIndex(index + 1))}
+          onClick={() => (isLast ? finishOnboarding() : setIndex(index + 1))}
         >
           {isLast ? 'Get started' : 'Next'}
         </button>

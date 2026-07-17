@@ -2,12 +2,29 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import campmeetLogo from '../assets/campmeet-logo.png';
 import GoldSparkle from '../components/GoldSparkle';
+import { getToken } from '../api/client';
+
+const ONBOARDED_KEY = 'campmeet_onboarded';
 
 export default function Splash() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const t = setTimeout(() => navigate('/onboarding'), 1800);
+    const t = setTimeout(() => {
+      // A stored session on this device wins over everything else —
+      // straight to the feed. If that token's actually expired,
+      // AuthContext/ProtectedLayout quietly falls back to /login on
+      // its own; Splash doesn't need to know the difference.
+      if (getToken()) {
+        navigate('/feed', { replace: true });
+        return;
+      }
+      // No session, but this device has already been walked through
+      // the CampMEET/USTED intro before — a real new user only sees
+      // it once, ever, not on every relaunch.
+      const seenOnboarding = localStorage.getItem(ONBOARDED_KEY) === 'true';
+      navigate(seenOnboarding ? '/login' : '/onboarding', { replace: true });
+    }, 1800);
     return () => clearTimeout(t);
   }, [navigate]);
 
