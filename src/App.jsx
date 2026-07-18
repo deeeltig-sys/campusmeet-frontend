@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BottomNav from './components/BottomNav';
+import UpdateBanner from './components/UpdateBanner';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
 
 import Splash from './pages/Splash';
@@ -35,6 +36,7 @@ function AppRoutes() {
   useHardwareBackButton();
   return (
     <div className="app-shell">
+      <UpdateBanner />
       <Routes>
         <Route path="/" element={<Splash />} />
         <Route path="/onboarding" element={<Onboarding />} />

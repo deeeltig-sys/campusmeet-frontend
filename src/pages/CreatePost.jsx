@@ -2,8 +2,12 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
+import { compressImage } from '../utils/compressImage';
 
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+// Raw pre-compression cap — generous, since compression brings the final
+// upload size down regardless. This just guards against absurd files
+// (e.g. a 40MB RAW export) before we spend time processing them.
+const MAX_RAW_IMAGE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function CreatePost() {
@@ -13,10 +17,11 @@ export default function CreatePost() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
+  const [optimizing, setOptimizing] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -24,14 +29,26 @@ export default function CreatePost() {
       setError('Only JPEG, PNG, or WEBP images are supported.');
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setError('Image must be under 6MB.');
+    if (file.size > MAX_RAW_IMAGE_BYTES) {
+      setError('Image is too large. Please pick a smaller photo.');
       return;
     }
 
     setError('');
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setOptimizing(true);
+    try {
+      const compressed = await compressImage(file);
+      setImageFile(compressed);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch {
+      // If compression fails for any reason, fall back to the original file
+      // rather than blocking the post — the backend's 6MB cap is still the
+      // real safety net.
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    } finally {
+      setOptimizing(false);
+    }
   }
 
   function removeImage() {
@@ -100,13 +117,20 @@ export default function CreatePost() {
               type="button"
               className="image-picker-trigger"
               onClick={() => fileInputRef.current?.click()}
+              disabled={optimizing}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2" stroke="var(--maroon)" strokeWidth="1.6" />
-                <circle cx="8.5" cy="10" r="1.6" fill="var(--gold)" />
-                <path d="M4 17l5-5 4 4 3-3 4 4" stroke="var(--maroon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Add a photo
+              {optimizing ? (
+                'Optimizing image…'
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2" stroke="var(--maroon)" strokeWidth="1.6" />
+                    <circle cx="8.5" cy="10" r="1.6" fill="var(--gold)" />
+                    <path d="M4 17l5-5 4 4 3-3 4 4" stroke="var(--maroon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Add a photo
+                </>
+              )}
             </button>
           )}
           <input
@@ -121,7 +145,7 @@ export default function CreatePost() {
         <button
           type="submit"
           className="btn btn-primary btn-block"
-          disabled={busy || (!content.trim() && !imageFile)}
+          disabled={busy || optimizing || (!content.trim() && !imageFile)}
         >
           {busy ? uploadStage || 'Publishing…' : 'Publish'}
         </button>

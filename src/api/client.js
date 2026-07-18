@@ -126,6 +126,7 @@ export const PostsAPI = {
   react: (postId, type = 'fire') =>
     request(`/api/posts/${postId}/reactions`, { method: 'POST', body: { type }, auth: true }),
   unreact: (postId) => request(`/api/posts/${postId}/reactions`, { method: 'DELETE', auth: true }),
+  reactors: (postId) => request(`/api/posts/${postId}/reactions`),
 
   // Image posts. This bypasses the generic request() helper since it's
   // multipart, not JSON — the browser sets its own Content-Type boundary,
@@ -199,6 +200,22 @@ export const ProfileAPI = {
     }
     return data; // updated user row, includes the new avatar_url
   },
+};
+
+// ---- Comments ----
+export const CommentsAPI = {
+  list: (postId) => request(`/api/posts/${postId}/comments`),
+  create: (postId, content) =>
+    request(`/api/posts/${postId}/comments`, { method: 'POST', body: { content }, auth: true }),
+  update: (postId, commentId, content) =>
+    request(`/api/posts/${postId}/comments/${commentId}`, { method: 'PATCH', body: { content }, auth: true }),
+  softDelete: (postId, commentId) =>
+    request(`/api/posts/${postId}/comments/${commentId}`, { method: 'PATCH', body: { delete: true }, auth: true }),
+};
+
+// ---- App meta (in-app update check) ----
+export const AppAPI = {
+  version: () => request('/api/app/version'),
 };
 
 // ---- Admin (Verify USTED flow) ----

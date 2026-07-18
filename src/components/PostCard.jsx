@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import VerifiedBadge from './VerifiedBadge';
 import { REACTION_TYPES } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const REACTIONS = [
   { type: 'fire', emoji: '🔥', label: 'Fire' },
@@ -8,12 +10,14 @@ const REACTIONS = [
   { type: 'yawa', emoji: '🚫', label: 'Yawa' },
 ];
 
-export default function PostCard({ post, onReact }) {
+export default function PostCard({ post, onReact, onEditSave, onDeletePost, onShowReactors, onShowComments }) {
+  const { user } = useAuth();
+
   // reaction_count is the aggregate across all four types — fire, cosign,
   // doubt and yawa all count the same toward it and toward feed ranking.
   // There's no separate suppressed or "contested" state for high-yawa posts;
   // a post's reach doesn't change because of which reaction it's getting.
-  const { content, created_at, reaction_count = 0, user_reaction } = post;
+  const { content, created_at, reaction_count = 0, comment_count = 0, user_reaction } = post;
 
   // public_post_fields() only returns author_id (no nested author object), so the
   // `feed` DB view is what would actually join in name/verified — its exact column
@@ -24,6 +28,41 @@ export default function PostCard({ post, onReact }) {
     verified: post.author_verified_at != null || post.author_verified,
     avatar_url: post.author_avatar_url,
   };
+
+  const isOwn = user?.id === post.author_id;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState(content);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  function startEdit() {
+    setEditDraft(content);
+    setEditError('');
+    setIsEditing(true);
+  }
+
+  async function saveEdit() {
+    const trimmed = editDraft.trim();
+    if (!trimmed) {
+      setEditError('Post cannot be empty.');
+      return;
+    }
+    setSaving(true);
+    setEditError('');
+    try {
+      await onEditSave?.(post.id, trimmed);
+      setIsEditing(false);
+    } catch (err) {
+      setEditError(err.message || 'Could not save your edit.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleDelete() {
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    onDeletePost?.(post.id);
+  }
 
   return (
     <article className="card post-card">
@@ -48,11 +87,43 @@ export default function PostCard({ post, onReact }) {
         </div>
       </header>
 
-      <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>{content}</p>
+      {isEditing ? (
+        <>
+          <textarea
+            value={editDraft}
+            onChange={(e) => setEditDraft(e.target.value)}
+            rows={4}
+            maxLength={2000}
+            style={{
+              width: '100%', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-base)',
+              borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: 'var(--sp-3)',
+              resize: 'vertical',
+            }}
+          />
+          {editError && <div className="banner-error" style={{ marginTop: 'var(--sp-2)' }}>{editError}</div>}
+          <div className="post-actions">
+            <button type="button" className="post-action-link" onClick={saveEdit} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" className="post-action-link" onClick={() => setIsEditing(false)} disabled={saving}>
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>{content}</p>
+      )}
 
       {post.image_url && (
         <div className="post-image-wrap">
           <img className="post-image" src={post.image_url} alt="" loading="lazy" />
+        </div>
+      )}
+
+      {isOwn && !isEditing && (
+        <div className="post-actions">
+          <button type="button" className="post-action-link" onClick={startEdit}>Edit</button>
+          <button type="button" className="post-action-link" onClick={handleDelete}>Delete</button>
         </div>
       )}
 
@@ -76,7 +147,23 @@ export default function PostCard({ post, onReact }) {
             );
           })}
         </div>
-        <span className="reaction-count">{reaction_count}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+          <button
+            type="button"
+            className="reaction-count-btn"
+            onClick={() => onShowReactors?.(post.id)}
+            disabled={reaction_count === 0}
+          >
+            {reaction_count} {reaction_count === 1 ? 'reaction' : 'reactions'}
+          </button>
+          <button
+            type="button"
+            className="reaction-count-btn"
+            onClick={() => onShowComments?.(post.id)}
+          >
+            {comment_count} {comment_count === 1 ? 'comment' : 'comments'}
+          </button>
+        </div>
       </footer>
     </article>
   );

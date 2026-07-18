@@ -8,11 +8,77 @@ import campmeetLogo from '../assets/campmeet-logo.png';
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+// Matches PLATFORM_URL_TEMPLATES on the backend exactly — keys here are
+// what gets sent in the social_links PATCH payload.
+const DEFAULT_PLATFORMS = ['facebook', 'instagram', 'whatsapp', 'snapchat'];
+const MORE_PLATFORMS = ['tiktok', 'x', 'linkedin', 'telegram', 'youtube', 'threads', 'discord'];
+const PLATFORM_LABELS = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+  snapchat: 'Snapchat',
+  tiktok: 'TikTok',
+  x: 'X (Twitter)',
+  linkedin: 'LinkedIn',
+  telegram: 'Telegram',
+  youtube: 'YouTube',
+  threads: 'Threads',
+  discord: 'Discord',
+};
+const PLATFORM_PLACEHOLDERS = {
+  facebook: 'username',
+  instagram: 'username',
+  whatsapp: '233241234567 (no + or spaces)',
+  snapchat: 'username',
+  tiktok: 'username',
+  x: 'username',
+  linkedin: 'username',
+  telegram: 'username',
+  youtube: 'channelhandle',
+  threads: 'username',
+  discord: 'username',
+};
+
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  const [socialLinks, setSocialLinks] = useState({});
+  const [showMorePlatforms, setShowMorePlatforms] = useState(false);
+  const [savingLinks, setSavingLinks] = useState(false);
+  const [linksSaved, setLinksSaved] = useState(false);
+
+  // Keep local editing state in sync whenever a fresh user object arrives
+  // (initial load, or after refresh() following a save elsewhere).
+  useEffect(() => {
+    if (user?.social_links) setSocialLinks(user.social_links);
+  }, [user?.social_links]);
+
+  function handleLinkChange(platform, value) {
+    setLinksSaved(false);
+    setSocialLinks((prev) => ({ ...prev, [platform]: value }));
+  }
+
+  async function handleSaveLinks() {
+    setSavingLinks(true);
+    setError('');
+    try {
+      // Strip empty values so we don't send blank strings for platforms
+      // the person never filled in.
+      const cleaned = Object.fromEntries(
+        Object.entries(socialLinks).filter(([, v]) => v && v.trim())
+      );
+      await ProfileAPI.updateMe({ social_links: cleaned });
+      await refresh();
+      setLinksSaved(true);
+    } catch (err) {
+      setError(err.message || 'Could not save your social links.');
+    } finally {
+      setSavingLinks(false);
+    }
+  }
 
   // The session's user object is loaded once at app boot. If an admin
   // verifies this student while the app is already open, that change
@@ -168,6 +234,60 @@ export default function Profile() {
       </div>
 
       {error && <div className="banner-error">{error}</div>}
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Social links</p>
+        <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', marginBottom: 'var(--sp-3)' }}>
+          Add your handles so other students can find you elsewhere.
+        </p>
+
+        {DEFAULT_PLATFORMS.map((platform) => (
+          <div className="field" key={platform} style={{ marginBottom: 'var(--sp-2)' }}>
+            <label htmlFor={`social-${platform}`}>{PLATFORM_LABELS[platform]}</label>
+            <input
+              id={`social-${platform}`}
+              type="text"
+              value={socialLinks[platform] || ''}
+              onChange={(e) => handleLinkChange(platform, e.target.value)}
+              placeholder={PLATFORM_PLACEHOLDERS[platform]}
+            />
+          </div>
+        ))}
+
+        {showMorePlatforms && MORE_PLATFORMS.map((platform) => (
+          <div className="field" key={platform} style={{ marginBottom: 'var(--sp-2)' }}>
+            <label htmlFor={`social-${platform}`}>{PLATFORM_LABELS[platform]}</label>
+            <input
+              id={`social-${platform}`}
+              type="text"
+              value={socialLinks[platform] || ''}
+              onChange={(e) => handleLinkChange(platform, e.target.value)}
+              placeholder={PLATFORM_PLACEHOLDERS[platform]}
+            />
+          </div>
+        ))}
+
+        {!showMorePlatforms && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-block"
+            style={{ marginTop: 'var(--sp-2)' }}
+            onClick={() => setShowMorePlatforms(true)}
+          >
+            Add more platforms
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          style={{ marginTop: 'var(--sp-3)' }}
+          onClick={handleSaveLinks}
+          disabled={savingLinks}
+        >
+          {savingLinks ? 'Saving…' : linksSaved ? 'Saved ✓' : 'Save social links'}
+        </button>
+      </div>
 
       <button className="btn btn-ghost btn-block" onClick={logout}>
         Sign out
