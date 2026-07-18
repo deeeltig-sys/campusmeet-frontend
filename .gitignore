@@ -6,3 +6,4 @@ dist-ssr
 android
 ios
 .DS_Store
+*.zip
