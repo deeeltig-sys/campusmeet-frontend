@@ -55,7 +55,7 @@ export default function UpdateBanner() {
           </div>
           <div className="modal-sheet-body">
             <p style={{ color: 'var(--ink-soft)', marginBottom: 'var(--sp-4)' }}>
-              This version of CampMEET is no longer supported. Please install the latest version to continue.
+              This version of CampusMEET is no longer supported. Please install the latest version to continue.
             </p>
             <a href={status.apkUrl} className="btn btn-primary btn-block" target="_blank" rel="noreferrer">
               Download latest version
@@ -68,7 +68,7 @@ export default function UpdateBanner() {
 
   return (
     <div className="update-banner">
-      <span>A newer version of CampMEET is available.</span>
+      <span>A newer version of CampusMEET is available.</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
         <a href={status.apkUrl} className="update-banner-btn" target="_blank" rel="noreferrer">
           Update

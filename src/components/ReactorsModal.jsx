@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PostsAPI } from '../api/client';
 import VerifiedBadge from './VerifiedBadge';
-
-const REACTION_EMOJI = { fire: '🔥', cosign: '🤝', doubt: '👎', yawa: '🚫' };
+import { REACTION_ICONS } from './icons';
 
 export default function ReactorsModal({ postId, onClose }) {
   const [reactors, setReactors] = useState([]);
@@ -37,18 +36,21 @@ export default function ReactorsModal({ postId, onClose }) {
           ) : reactors.length === 0 ? (
             <p style={{ color: 'var(--ink-soft)' }}>No reactions yet.</p>
           ) : (
-            reactors.map((r, i) => (
-              <div className="reactor-row" key={`${r.user_id || i}-${r.type}`}>
-                <div className="avatar-circle" style={{ width: 30, height: 30, fontSize: '0.8rem' }}>
-                  {r.avatar_url ? <img src={r.avatar_url} alt="" /> : (r.full_name ? r.full_name.charAt(0) : '?')}
+            reactors.map((r, i) => {
+              const Icon = REACTION_ICONS[r.type];
+              return (
+                <div className="reactor-row" key={`${r.user_id || i}-${r.type}`}>
+                  <div className="avatar-circle" style={{ width: 30, height: 30, fontSize: '0.8rem' }}>
+                    {r.avatar_url ? <img src={r.avatar_url} alt="" /> : (r.full_name ? r.full_name.charAt(0) : '?')}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 'var(--fs-sm)' }}>{r.full_name || 'Student'}</span>
+                    <VerifiedBadge verified={r.verified} size={13} />
+                  </div>
+                  {Icon && <Icon size={17} color="var(--maroon)" />}
                 </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 'var(--fs-sm)' }}>{r.full_name || 'Student'}</span>
-                  <VerifiedBadge verified={r.verified} size={13} />
-                </div>
-                <span className="reactor-emoji" aria-hidden="true">{REACTION_EMOJI[r.type] || '•'}</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

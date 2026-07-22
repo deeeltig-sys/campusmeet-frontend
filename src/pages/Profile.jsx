@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ProfileAPI } from '../api/client';
+import { ProfileAPI, AuthAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
 import campmeetLogo from '../assets/campmeet-logo.png';
@@ -50,15 +50,47 @@ export default function Profile() {
   const [savingLinks, setSavingLinks] = useState(false);
   const [linksSaved, setLinksSaved] = useState(false);
 
+  const MAX_BIO_LENGTH = 280; // matches sanitize_bio() in backend/models/user.py
+  const [bio, setBio] = useState('');
+  const [savingBio, setSavingBio] = useState(false);
+  const [bioSaved, setBioSaved] = useState(false);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   // Keep local editing state in sync whenever a fresh user object arrives
   // (initial load, or after refresh() following a save elsewhere).
   useEffect(() => {
     if (user?.social_links) setSocialLinks(user.social_links);
   }, [user?.social_links]);
 
+  useEffect(() => {
+    setBio(user?.bio || '');
+  }, [user?.bio]);
+
   function handleLinkChange(platform, value) {
     setLinksSaved(false);
     setSocialLinks((prev) => ({ ...prev, [platform]: value }));
+  }
+
+  function handleBioChange(value) {
+    setBioSaved(false);
+    setBio(value.slice(0, MAX_BIO_LENGTH));
+  }
+
+  async function handleSaveBio() {
+    setSavingBio(true);
+    setError('');
+    try {
+      await ProfileAPI.updateMe({ bio: bio.trim() });
+      await refresh();
+      setBioSaved(true);
+    } catch (err) {
+      setError(err.message || 'Could not save your bio.');
+    } finally {
+      setSavingBio(false);
+    }
   }
 
   async function handleSaveLinks() {
@@ -77,6 +109,18 @@ export default function Profile() {
       setError(err.message || 'Could not save your social links.');
     } finally {
       setSavingLinks(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setError('');
+    try {
+      await AuthAPI.deleteAccount();
+      logout();
+    } catch (err) {
+      setError(err.message || 'Could not delete your account. Please try again.');
+      setDeleting(false);
     }
   }
 
@@ -226,14 +270,44 @@ export default function Profile() {
           <VerifiedBadge verified={user.verified} />
         </div>
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
-          {user.student_id_number}
+          {user.university_name}
         </p>
         <p style={{ fontSize: 'var(--fs-sm)', marginTop: 'var(--sp-2)', color: user.verified ? 'var(--maroon-deep)' : 'var(--ink-soft)' }}>
-          {user.verified ? 'Verified USTED student' : 'Verification pending — an admin will confirm your student ID.'}
+          {user.verified ? 'Verified student' : 'Verification pending — an admin will confirm your account.'}
         </p>
       </div>
 
       {error && <div className="banner-error">{error}</div>}
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Bio</p>
+        <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', marginBottom: 'var(--sp-3)' }}>
+          A line or two about you — shows up on your public profile.
+        </p>
+        <textarea
+          value={bio}
+          onChange={(e) => handleBioChange(e.target.value)}
+          placeholder="Second-year IT student. Into gaming and music."
+          rows={3}
+          style={{
+            width: '100%', resize: 'vertical', padding: '10px 12px',
+            border: '1px solid var(--line)', borderRadius: 10, fontFamily: 'inherit',
+            fontSize: 'var(--fs-sm)', boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--sp-2)' }}>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)' }}>{bio.length}/{MAX_BIO_LENGTH}</span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '8px 18px' }}
+            onClick={handleSaveBio}
+            disabled={savingBio || bio === (user.bio || '')}
+          >
+            {savingBio ? 'Saving…' : bioSaved ? 'Saved' : 'Save bio'}
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Social links</p>
@@ -293,8 +367,59 @@ export default function Profile() {
         Sign out
       </button>
 
+      <div style={{ marginTop: 'var(--sp-6)' }}>
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            className="post-action-link"
+            style={{ display: 'block', margin: '0 auto', color: 'var(--maroon-deep)' }}
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            Delete account
+          </button>
+        ) : (
+          <div className="card" style={{ borderColor: 'var(--maroon)' }}>
+            <p style={{ fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-2)' }}>
+              This permanently deletes your account, posts, comments, and messages. This cannot be undone.
+            </p>
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', marginBottom: 'var(--sp-2)' }}>
+              Type <strong>DELETE</strong> to confirm.
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              style={{
+                width: '100%', marginBottom: 'var(--sp-3)', padding: 'var(--sp-2) var(--sp-3)',
+                border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 1, background: 'var(--maroon)' }}
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || deleting}
+              >
+                {deleting ? 'Deleting…' : 'Delete forever'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <footer style={{ textAlign: 'center', marginTop: 'var(--sp-7)' }}>
-        <img src={campmeetLogo} alt="CampMEET" style={{ width: 56, opacity: 0.85, marginBottom: 'var(--sp-2)' }} />
+        <img src={campmeetLogo} alt="CampusMEET" style={{ width: 56, opacity: 0.85, marginBottom: 'var(--sp-2)' }} />
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)', letterSpacing: '0.04em' }}>
           Created by Makaveli X<br />Founder &amp; Lead Developer, ProjectX Web Development
         </p>

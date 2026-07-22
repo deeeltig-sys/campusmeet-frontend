@@ -22,7 +22,7 @@ export default function VerifiedBadge({ verified, size = 18 }) {
         height={size}
         viewBox="0 0 24 24"
         role="img"
-        aria-label="Verified USTED student"
+        aria-label="Verified student"
       >
         <circle cx="12" cy="12" r="11" fill="var(--maroon-light)" stroke="var(--gold)" strokeWidth="1.5" />
         <path

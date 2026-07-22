@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { CommentsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from './VerifiedBadge';
+import ReportModal from './ReportModal';
 
 export default function CommentsSheet({ postId, onClose, onCommentCountChange }) {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
   const [posting, setPosting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState('');
+  const [reportingId, setReportingId] = useState(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -130,12 +132,16 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
                   ) : (
                     <>
                       <p style={{ margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 1.5 }}>{c.content}</p>
-                      {isOwn && (
-                        <div className="comment-actions">
-                          <button type="button" className="post-action-link" onClick={() => startEdit(c)}>Edit</button>
-                          <button type="button" className="post-action-link" onClick={() => handleDelete(c.id)}>Delete</button>
-                        </div>
-                      )}
+                      <div className="comment-actions">
+                        {isOwn ? (
+                          <>
+                            <button type="button" className="post-action-link" onClick={() => startEdit(c)}>Edit</button>
+                            <button type="button" className="post-action-link" onClick={() => handleDelete(c.id)}>Delete</button>
+                          </>
+                        ) : (
+                          <button type="button" className="post-action-link" onClick={() => setReportingId(c.id)}>Report</button>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -163,6 +169,10 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
           </button>
         </div>
       </div>
+
+      {reportingId && (
+        <ReportModal targetType="comment" targetId={reportingId} onClose={() => setReportingId(null)} />
+      )}
     </div>
   );
 }

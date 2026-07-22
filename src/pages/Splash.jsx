@@ -44,7 +44,7 @@ export default function Splash() {
         <GoldSparkle count={5} />
         <img
           src={campmeetLogo}
-          alt="CampMEET"
+          alt="CampusMEET"
           style={{ width: 180, animation: 'fadeIn 0.6s ease', position: 'relative', zIndex: 1 }}
         />
       </div>

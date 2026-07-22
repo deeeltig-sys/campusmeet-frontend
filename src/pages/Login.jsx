@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--sp-6)' }}>
-        <img src={campmeetLogo} alt="CampMEET" style={{ width: 96, marginBottom: 'var(--sp-4)' }} />
+        <img src={campmeetLogo} alt="CampusMEET" style={{ width: 96, marginBottom: 'var(--sp-4)' }} />
         <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>Welcome back</h1>
       </div>
 
@@ -48,8 +48,12 @@ export default function Login() {
         </button>
       </form>
 
+      <p style={{ textAlign: 'center', marginTop: 'var(--sp-3)' }}>
+        <Link to="/forgot-password" style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Forgot password?</Link>
+      </p>
+
       <p style={{ textAlign: 'center', marginTop: 'var(--sp-5)', color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>
-        New to CampMEET? <Link to="/signup" style={{ color: 'var(--maroon)', fontWeight: 600 }}>Create an account</Link>
+        New to CampusMEET? <Link to="/signup" style={{ color: 'var(--maroon)', fontWeight: 600 }}>Create an account</Link>
       </p>
     </div>
   );

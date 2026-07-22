@@ -1,8 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import VerifiedBadge from './VerifiedBadge';
+import ReportModal from './ReportModal';
 import { REACTION_TYPES } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { ReactionIcon, CommentIcon } from './icons';
 
+// Reaction buttons use plain emoji (not the custom line-icon SVGs from
+// icons.jsx) — only these 4 buttons. The reaction-count/comment-count
+// icons in the footer below still use the SVG icon set untouched.
 const REACTIONS = [
   { type: 'fire', emoji: '🔥', label: 'Fire' },
   { type: 'cosign', emoji: '🤝', label: 'Cosign' },
@@ -34,6 +40,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [editDraft, setEditDraft] = useState(content);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [showReport, setShowReport] = useState(false);
 
   function startEdit() {
     setEditDraft(content);
@@ -67,16 +74,18 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   return (
     <article className="card post-card">
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-        <div className="avatar-circle">
+        <Link to={`/profile/${post.author_id}`} className="avatar-circle">
           {author.avatar_url ? (
             <img src={author.avatar_url} alt="" />
           ) : (
             author.full_name ? author.full_name.charAt(0) : '?'
           )}
-        </div>
+        </Link>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <strong style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+            <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <strong style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+            </Link>
             <VerifiedBadge verified={author.verified} size={15} />
           </div>
           {created_at && (
@@ -127,9 +136,20 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         </div>
       )}
 
+      {!isOwn && (
+        <div className="post-actions">
+          <button type="button" className="post-action-link" onClick={() => setShowReport(true)}>Report</button>
+        </div>
+      )}
+
       <footer className="reaction-footer">
         <div className="reaction-bar" role="group" aria-label="React to this post">
           {REACTIONS.map(({ type, emoji, label }) => {
+            // `active` is derived straight from the post's own user_reaction field,
+            // which Feed.jsx / Search.jsx update optimistically on tap — so whichever
+            // button matches the user's current reaction stays visibly marked (maroon
+            // fill + gold ring) until they tap it again to un-react. Never just a
+            // hover/press flash.
             const active = user_reaction === type;
             return (
               <button
@@ -137,12 +157,12 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
                 type="button"
                 className={`reaction-btn${active ? ' active' : ''}`}
                 aria-pressed={active}
-                aria-label={label}
+                aria-label={active ? `${label} (your reaction)` : label}
                 title={label}
                 onClick={() => onReact?.(post.id, type)}
                 disabled={!REACTION_TYPES.includes(type)}
               >
-                <span aria-hidden="true">{emoji}</span>
+                <span className="reaction-emoji" aria-hidden="true">{emoji}</span>
               </button>
             );
           })}
@@ -154,17 +174,21 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             onClick={() => onShowReactors?.(post.id)}
             disabled={reaction_count === 0}
           >
-            {reaction_count} {reaction_count === 1 ? 'reaction' : 'reactions'}
+            <ReactionIcon size={15} /> {reaction_count}
           </button>
           <button
             type="button"
             className="reaction-count-btn"
             onClick={() => onShowComments?.(post.id)}
           >
-            {comment_count} {comment_count === 1 ? 'comment' : 'comments'}
+            <CommentIcon size={15} /> {comment_count}
           </button>
         </div>
       </footer>
+
+      {showReport && (
+        <ReportModal targetType="post" targetId={post.id} onClose={() => setShowReport(false)} />
+      )}
     </article>
   );
 }

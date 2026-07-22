@@ -111,6 +111,10 @@ export const AuthAPI = {
   login: (payload) => request('/api/auth/login', { method: 'POST', body: payload }),
   refresh: (refresh_token) => request('/api/auth/refresh', { method: 'POST', body: { refresh_token } }),
   me: () => request('/api/auth/me', { auth: true }),
+  forgotPassword: (email) => request('/api/auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (access_token, new_password) =>
+    request('/api/auth/reset-password', { method: 'POST', body: { access_token, new_password } }),
+  deleteAccount: () => request('/api/auth/me', { method: 'DELETE', auth: true }),
 };
 
 // ---- Posts / Feed ----
@@ -216,6 +220,60 @@ export const CommentsAPI = {
 // ---- App meta (in-app update check) ----
 export const AppAPI = {
   version: () => request('/api/app/version'),
+};
+
+// ---- Universities (signup dropdown) ----
+export const UniversitiesAPI = {
+  list: () => request('/api/universities'),
+};
+
+// ---- Follows ----
+export const FollowsAPI = {
+  follow: (userId) => request(`/api/users/${userId}/follow`, { method: 'POST', auth: true }),
+  unfollow: (userId) => request(`/api/users/${userId}/follow`, { method: 'DELETE', auth: true }),
+  followers: (userId) => request(`/api/users/${userId}/followers`),
+  following: (userId) => request(`/api/users/${userId}/following`),
+};
+
+// ---- Users (search + public profile) ----
+export const UsersAPI = {
+  search: (q) => request(`/api/users/search?q=${encodeURIComponent(q)}`),
+  profile: (userId) => request(`/api/profile/${userId}`, { auth: true }),
+};
+
+// ---- Notifications ----
+export const NotificationsAPI = {
+  list: () => request('/api/notifications', { auth: true }),
+  unreadCount: () => request('/api/notifications/unread-count', { auth: true }),
+  markRead: (id) => request(`/api/notifications/${id}/read`, { method: 'PATCH', auth: true }),
+  markAllRead: () => request('/api/notifications/read-all', { method: 'POST', auth: true }),
+};
+
+// ---- Conversations / DMs ----
+export const ConversationsAPI = {
+  list: () => request('/api/conversations', { auth: true }),
+  start: (userId) => request('/api/conversations', { method: 'POST', body: { user_id: userId }, auth: true }),
+  accept: (conversationId) => request(`/api/conversations/${conversationId}/accept`, { method: 'POST', auth: true }),
+  messages: (conversationId) => request(`/api/conversations/${conversationId}/messages`, { auth: true }),
+  sendMessage: (conversationId, content) =>
+    request(`/api/conversations/${conversationId}/messages`, { method: 'POST', body: { content }, auth: true }),
+};
+
+// ---- Blocks ----
+export const BlocksAPI = {
+  block: (userId) => request(`/api/users/${userId}/block`, { method: 'POST', auth: true }),
+  unblock: (userId) => request(`/api/users/${userId}/block`, { method: 'DELETE', auth: true }),
+};
+
+// ---- Reports ----
+export const ReportsAPI = {
+  create: (target_type, target_id, reason) =>
+    request('/api/reports', { method: 'POST', body: { target_type, target_id, reason }, auth: true }),
+};
+
+// ---- Stats ----
+export const StatsAPI = {
+  public: () => request('/api/stats/public'),
 };
 
 // ---- Admin (Verify USTED flow) ----

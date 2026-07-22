@@ -1,23 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import campmeetLogo from '../assets/campmeet-logo.png';
-import ustedLogo from '../assets/usted-logo.png';
 import GoldSparkle from '../components/GoldSparkle';
 
 const slides = [
   {
     key: 'campmeet',
-    logo: campmeetLogo,
     eyebrow: 'Connect · Engage · Elevate',
-    title: 'CampMEET',
+    title: 'CampusMEET',
     body: "Ghana's premier social space for university students — built for real campus life, not just scrolling.",
   },
   {
-    key: 'usted',
-    logo: ustedLogo,
-    eyebrow: 'Built in partnership with',
-    title: 'USTED',
-    body: 'Verified USTED students get a distinct maroon seal on their profile — proof this is really you, on a platform that knows your campus.',
+    key: 'verified',
+    eyebrow: 'Real students, real campuses',
+    title: 'Get verified',
+    body: 'Verified students get a distinct maroon seal on their profile — proof this is really you, on a platform that knows your campus.',
   },
 ];
 
@@ -28,6 +25,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const slide = slides[index];
   const isLast = index === slides.length - 1;
+  const isSeal = slide.key === 'verified';
 
   function finishOnboarding() {
     localStorage.setItem(ONBOARDED_KEY, 'true');
@@ -37,13 +35,22 @@ export default function Onboarding() {
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 'var(--sp-5)' }}>
-        <div style={{ position: 'relative', width: slide.key === 'usted' ? 140 : 200, height: slide.key === 'usted' ? 140 : 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {slide.key === 'usted' && <GoldSparkle count={4} />}
-          <img
-            src={slide.logo}
-            alt={slide.title}
-            style={{ width: slide.key === 'usted' ? 140 : 200, transition: 'opacity 0.25s ease', position: 'relative', zIndex: 1 }}
-          />
+        <div style={{ position: 'relative', width: isSeal ? 140 : 200, height: isSeal ? 140 : 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isSeal ? (
+            <>
+              <GoldSparkle count={4} />
+              <svg width="120" height="120" viewBox="0 0 24 24" style={{ position: 'relative', zIndex: 1 }}>
+                <circle cx="12" cy="12" r="11" fill="var(--maroon-light)" stroke="var(--gold)" strokeWidth="1.2" />
+                <path
+                  d="M8 12.5l2.6 2.6L16.5 9"
+                  fill="none" stroke="var(--maroon-deep)" strokeWidth="1.8"
+                  strokeLinecap="round" strokeLinejoin="round"
+                />
+              </svg>
+            </>
+          ) : (
+            <img src={campmeetLogo} alt={slide.title} style={{ width: 200, transition: 'opacity 0.25s ease' }} />
+          )}
         </div>
         <div>
           <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>{slide.eyebrow}</p>

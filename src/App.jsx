@@ -8,10 +8,14 @@ import Splash from './pages/Splash';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 import Feed from './pages/Feed';
 import Search from './pages/Search';
 import CreatePost from './pages/CreatePost';
 import Profile from './pages/Profile';
+import PublicProfile from './pages/PublicProfile';
+import Inbox from './pages/Inbox';
+import Conversation from './pages/Conversation';
 import Admin from './pages/Admin';
 
 function ProtectedLayout({ children }) {
@@ -42,11 +46,15 @@ function AppRoutes() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/feed" element={<ProtectedLayout><Feed /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><Search /></ProtectedLayout>} />
         <Route path="/create" element={<ProtectedLayout><CreatePost /></ProtectedLayout>} />
         <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
+        <Route path="/profile/:userId" element={<ProtectedLayout><PublicProfile /></ProtectedLayout>} />
+        <Route path="/inbox" element={<ProtectedLayout><Inbox /></ProtectedLayout>} />
+        <Route path="/inbox/messages/:conversationId" element={<ProtectedLayout><Conversation /></ProtectedLayout>} />
         <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />

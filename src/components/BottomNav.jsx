@@ -1,16 +1,36 @@
 import { NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NotificationsAPI } from '../api/client';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
   { to: '/search', label: 'Search', icon: SearchIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
+  { to: '/inbox', label: 'Inbox', icon: InboxIcon, badge: true },
   { to: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
 export default function BottomNav() {
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    function poll() {
+      // No push notifications yet (that needs FCM set up separately) —
+      // this is just a lightweight poll while the app is open, enough
+      // to surface new activity without a real-time connection.
+      NotificationsAPI.unreadCount()
+        .then((data) => { if (!cancelled) setUnread(data?.count || 0); })
+        .catch(() => {});
+    }
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   return (
     <nav style={styles.nav}>
-      {tabs.map(({ to, label, icon: Icon }) => (
+      {tabs.map(({ to, label, icon: Icon, badge }) => (
         <NavLink
           key={to}
           to={to}
@@ -21,7 +41,10 @@ export default function BottomNav() {
         >
           {({ isActive }) => (
             <>
-              <Icon active={isActive} />
+              <div style={{ position: 'relative' }}>
+                <Icon active={isActive} />
+                {badge && unread > 0 && <span style={styles.badge}>{unread > 9 ? '9+' : unread}</span>}
+              </div>
               <span style={styles.label}>{label}</span>
             </>
           )}
@@ -56,6 +79,14 @@ function PlusIcon({ active }) {
     </svg>
   );
 }
+function InboxIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M4 6h16v12H4z" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M4 7l8 6 8-6" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function ProfileIcon({ active }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -86,5 +117,22 @@ const styles = {
     fontSize: '0.6875rem',
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    padding: '0 4px',
+    borderRadius: 8,
+    background: 'var(--maroon)',
+    color: '#fff',
+    fontSize: '0.625rem',
+    fontFamily: 'var(--font-mono)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
   },
 };

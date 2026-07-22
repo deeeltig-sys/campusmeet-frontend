@@ -207,10 +207,24 @@ a { color: inherit; text-decoration: none; }
 .reaction-btn:hover { transform: translateY(-1px); border-color: var(--gold); }
 .reaction-btn:active { transform: scale(0.94); }
 .reaction-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.reaction-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+  transform: translateY(-0.5px); /* optical centering inside the round button */
+}
+/* Persistent "you reacted with this" state — stays on until the user taps
+   the same button again to un-react (see PostCard.jsx `active` logic).
+   Gold ring + maroon fill + light scale-up so it reads clearly at a glance,
+   distinct from the plain :hover/:active transient states above. */
 .reaction-btn.active {
   background: linear-gradient(180deg, var(--maroon), var(--maroon-deep));
-  border-color: var(--maroon-deep);
-  box-shadow: 0 3px 10px rgba(74, 14, 33, 0.28);
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 0 0 2px var(--ivory), 0 3px 10px rgba(74, 14, 33, 0.32);
+  transform: scale(1.06);
+}
+.reaction-btn.active:hover { transform: scale(1.06) translateY(-1px); }
+.reaction-btn.active .reaction-emoji {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.25));
 }
 
 .reaction-count {
@@ -229,10 +243,18 @@ a { color: inherit; text-decoration: none; }
   border: none;
   padding: 4px 2px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
-.reaction-count-btn:hover { color: var(--maroon-deep); text-decoration: underline; }
+.reaction-count-btn svg { flex-shrink: 0; }
+.reaction-count-btn:hover { color: var(--maroon-deep); }
+.reaction-count-btn:hover svg path,
+.reaction-count-btn:hover svg circle { stroke: var(--maroon-deep); }
 .reaction-count-btn:disabled { cursor: default; }
-.reaction-count-btn:disabled:hover { color: var(--ink-soft); text-decoration: none; }
+.reaction-count-btn:disabled:hover { color: var(--ink-soft); }
+.reaction-count-btn:disabled:hover svg path,
+.reaction-count-btn:disabled:hover svg circle { stroke: var(--ink-soft); }
 
 .post-actions {
   display: flex;

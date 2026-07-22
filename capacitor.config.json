@@ -1,6 +1,6 @@
 {
-  "appId": "com.projectxwebdev.campmeet",
-  "appName": "CampMEET",
+  "appId": "com.projectxwebdev.campusmeet",
+  "appName": "CampusMEET",
   "webDir": "dist",
   "backgroundColor": "#4A0E21",
   "server": {
@@ -11,6 +11,10 @@
       "launchShowDuration": 1200,
       "backgroundColor": "#4A0E21",
       "showSpinner": false
+    },
+    "OtaKit": {
+      "appId": "584a9a5e-f6c2-457e-9655-3fe573e59263",
+      "appReadyTimeout": 10000
     }
   }
 }
