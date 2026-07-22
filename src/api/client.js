@@ -239,6 +239,7 @@ export const FollowsAPI = {
 export const UsersAPI = {
   search: (q) => request(`/api/users/search?q=${encodeURIComponent(q)}`),
   profile: (userId) => request(`/api/profile/${userId}`, { auth: true }),
+  suggested: (limit = 10) => request(`/api/users/suggested?limit=${limit}`, { auth: true }),
 };
 
 // ---- Notifications ----

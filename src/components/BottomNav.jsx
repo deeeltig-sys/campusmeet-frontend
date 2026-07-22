@@ -34,6 +34,15 @@ export default function BottomNav() {
         <NavLink
           key={to}
           to={to}
+          onClick={(e) => {
+            // Tapping Feed while already ON Feed is a dead click by
+            // default (react-router won't re-navigate to the same
+            // route) — that's what the CTO flagged. This makes it act
+            // like Instagram/X: tapping home again refreshes.
+            if (to === '/feed' && window.location.pathname === '/feed') {
+              window.dispatchEvent(new CustomEvent('campusmeet:refresh-feed'));
+            }
+          }}
           style={({ isActive }) => ({
             ...styles.tab,
             color: isActive ? 'var(--maroon-deep)' : 'var(--ink-soft)',

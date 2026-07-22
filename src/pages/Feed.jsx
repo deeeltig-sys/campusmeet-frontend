@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import PostCard from '../components/PostCard';
+import SuggestedPeople from '../components/SuggestedPeople';
 import ReactorsModal from '../components/ReactorsModal';
 import CommentsSheet from '../components/CommentsSheet';
 
@@ -45,6 +46,18 @@ export default function Feed() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Tapping the Feed nav tab while already on /feed fires this — reuses
+  // the exact same refresh path as pull-to-refresh so there's only one
+  // place that logic lives.
+  useEffect(() => {
+    function onRefreshEvent() {
+      handleRefresh();
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.addEventListener('campusmeet:refresh-feed', onRefreshEvent);
+    return () => window.removeEventListener('campusmeet:refresh-feed', onRefreshEvent);
+  }, []);
 
   // ---- Pull to refresh ----
   async function handleRefresh() {
@@ -219,16 +232,20 @@ export default function Feed() {
         </div>
       ) : (
         <>
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onReact={handleReact}
-              onEditSave={handleEditSave}
-              onDeletePost={handleDeletePost}
-              onShowReactors={setReactorsPostId}
-              onShowComments={setCommentsPostId}
-            />
+          {posts.map((post, index) => (
+            <Fragment key={post.id}>
+              <PostCard
+                post={post}
+                onReact={handleReact}
+                onEditSave={handleEditSave}
+                onDeletePost={handleDeletePost}
+                onShowReactors={setReactorsPostId}
+                onShowComments={setCommentsPostId}
+              />
+              {/* After the 3rd post — early enough that new users actually
+                  see it, not buried past a scroll they might not make. */}
+              {index === 2 && <SuggestedPeople />}
+            </Fragment>
           ))}
           <div ref={sentinelRef} className="infinite-scroll-sentinel" />
           {loadingMore && <p style={{ textAlign: 'center', color: 'var(--ink-soft)' }}>Loading more…</p>}
