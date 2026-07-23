@@ -5,23 +5,22 @@ import { UniversitiesAPI } from '../api/client';
 import campmeetLogo from '../assets/campmeet-logo.png';
 import BackHeader from '../components/BackHeader';
 
-const OTHER_VALUE = '__other__';
-
 export default function Signup() {
   const [form, setForm] = useState({ full_name: '', email: '', password: '' });
   const [universities, setUniversities] = useState([]);
-  const [universitiesError, setUniversitiesError] = useState('');
-  const [selectedUniversity, setSelectedUniversity] = useState('');
-  const [otherUniversityName, setOtherUniversityName] = useState('');
+  const [universityName, setUniversityName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Still fetched for the autocomplete suggestions — typing "K" should
+    // surface KNUST, Knutsford, etc. — but no longer required to load
+    // for signup to work, since any typed name is valid now.
     UniversitiesAPI.list()
       .then((data) => setUniversities(Array.isArray(data) ? data : []))
-      .catch(() => setUniversitiesError('Could not load the university list — you can still type yours in below.'));
+      .catch(() => {});
   }, []);
 
   function update(key, value) {
@@ -32,24 +31,20 @@ export default function Signup() {
     e.preventDefault();
     setError('');
 
-    const isOther = selectedUniversity === OTHER_VALUE;
-    if (!selectedUniversity) {
-      setError('Please select your university.');
-      return;
-    }
-    if (isOther && !otherUniversityName.trim()) {
-      setError('Please enter your university name.');
+    const trimmed = universityName.trim();
+    if (trimmed.length < 3) {
+      setError('Please enter your university or institution name.');
       return;
     }
 
     setBusy(true);
     try {
-      const payload = {
-        ...form,
-        ...(isOther
-          ? { university_name: otherUniversityName.trim() }
-          : { university_id: selectedUniversity }),
-      };
+      // Always sent as a name now — get_or_create_university() on the
+      // backend matches it against existing schools (any country, not
+      // just Ghana) or creates a new one if it's genuinely new. This is
+      // what makes signing up from outside Ghana possible without us
+      // pre-seeding every institution on earth.
+      const payload = { ...form, university_name: trimmed };
       const res = await signup(payload);
       if (res?.access_token) {
         navigate('/feed');
@@ -76,7 +71,6 @@ export default function Signup() {
       </div>
 
       {error && <div className="banner-error">{error}</div>}
-      {universitiesError && <div className="banner-error">{universitiesError}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="field">
@@ -88,32 +82,26 @@ export default function Signup() {
           <input id="email" type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@example.com" />
         </div>
         <div className="field">
-          <label htmlFor="university">University</label>
-          <select
+          <label htmlFor="university">University / institution</label>
+          <input
             id="university"
             required
-            value={selectedUniversity}
-            onChange={(e) => setSelectedUniversity(e.target.value)}
-          >
-            <option value="" disabled>Select your university</option>
+            list="university-suggestions"
+            value={universityName}
+            onChange={(e) => setUniversityName(e.target.value)}
+            placeholder="e.g. KNUST, University of Lagos…"
+            autoComplete="off"
+          />
+          {/* Suggestions only — typing anything not in this list still
+              works fine, it just creates a new campus on submit. This is
+              what makes signup work outside Ghana without us having to
+              pre-load every institution in advance. */}
+          <datalist id="university-suggestions">
             {universities.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
+              <option key={u.id} value={u.name} />
             ))}
-            <option value={OTHER_VALUE}>Other — my school isn't listed</option>
-          </select>
+          </datalist>
         </div>
-        {selectedUniversity === OTHER_VALUE && (
-          <div className="field">
-            <label htmlFor="other_university">University name</label>
-            <input
-              id="other_university"
-              required
-              value={otherUniversityName}
-              onChange={(e) => setOtherUniversityName(e.target.value)}
-              placeholder="e.g. Accra Nursing College"
-            />
-          </div>
-        )}
         <div className="field">
           <label htmlFor="password">Password</label>
           <input id="password" type="password" required minLength={8} value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="At least 8 characters" />

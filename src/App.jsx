@@ -15,6 +15,7 @@ import CreatePost from './pages/CreatePost';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
 import Inbox from './pages/Inbox';
+import Notifications from './pages/Notifications';
 import Conversation from './pages/Conversation';
 import Admin from './pages/Admin';
 
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
         <Route path="/profile/:userId" element={<ProtectedLayout><PublicProfile /></ProtectedLayout>} />
         <Route path="/inbox" element={<ProtectedLayout><Inbox /></ProtectedLayout>} />
+        <Route path="/notifications" element={<ProtectedLayout><Notifications /></ProtectedLayout>} />
         <Route path="/inbox/messages/:conversationId" element={<ProtectedLayout><Conversation /></ProtectedLayout>} />
         <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
 

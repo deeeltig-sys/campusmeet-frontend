@@ -6,6 +6,7 @@ import VerifiedBadge from '../components/VerifiedBadge';
 import FollowButton from '../components/FollowButton';
 import ReportModal from '../components/ReportModal';
 import BackHeader from '../components/BackHeader';
+import PostGrid from '../components/PostGrid';
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaSnapchat, FaTiktok, FaXTwitter,
   FaLinkedin, FaTelegram, FaYoutube, FaThreads, FaDiscord,
@@ -185,6 +186,11 @@ export default function PublicProfile() {
               </div>
             </div>
           )}
+
+          <div style={{ marginBottom: 'var(--sp-4)' }}>
+            <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Posts</p>
+            <PostGrid userId={userId} />
+          </div>
 
           <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'center' }}>
             {!blocked && (

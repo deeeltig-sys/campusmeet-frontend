@@ -120,6 +120,8 @@ export const AuthAPI = {
 // ---- Posts / Feed ----
 export const PostsAPI = {
   feed: (limit = 30, offset = 0) => request(`/api/posts/feed?limit=${limit}&offset=${offset}`),
+  byUser: (userId, limit = 60, offset = 0) =>
+    request(`/api/posts/by-user/${userId}?limit=${limit}&offset=${offset}`),
   search: (query, limit = 30) => request(`/api/posts/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   registerSearchHit: (postId) => request(`/api/posts/${postId}/search-hit`, { method: 'POST' }),
   create: (payload) => request('/api/posts', { method: 'POST', body: payload, auth: true }),

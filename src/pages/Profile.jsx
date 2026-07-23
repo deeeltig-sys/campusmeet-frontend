@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PostGrid from '../components/PostGrid';
 import { ProfileAPI, AuthAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -361,6 +362,11 @@ export default function Profile() {
         >
           {savingLinks ? 'Saving…' : linksSaved ? 'Saved ✓' : 'Save social links'}
         </button>
+      </div>
+
+      <div style={{ marginBottom: 'var(--sp-4)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Your posts</p>
+        {user?.id && <PostGrid userId={user.id} />}
       </div>
 
       <button className="btn btn-ghost btn-block" onClick={logout}>

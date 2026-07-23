@@ -6,7 +6,8 @@ const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
   { to: '/search', label: 'Search', icon: SearchIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
-  { to: '/inbox', label: 'Inbox', icon: InboxIcon, badge: true },
+  { to: '/notifications', label: 'Alerts', icon: BellIcon, badge: true },
+  { to: '/inbox', label: 'Chats', icon: InboxIcon },
   { to: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
@@ -88,6 +89,17 @@ function PlusIcon({ active }) {
     </svg>
   );
 }
+function BellIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 4a5 5 0 0 0-5 5v2.6c0 .6-.2 1.2-.6 1.7L5 15.5a1 1 0 0 0 .8 1.6h12.4a1 1 0 0 0 .8-1.6l-1.4-2.2a2.8 2.8 0 0 1-.6-1.7V9a5 5 0 0 0-5-5z"
+        stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinejoin="round"
+      />
+      <path d="M10 19.5a2 2 0 0 0 4 0" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 function InboxIcon({ active }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -123,8 +135,8 @@ const styles = {
   },
   label: {
     fontFamily: 'var(--font-mono)',
-    fontSize: '0.6875rem',
-    letterSpacing: '0.04em',
+    fontSize: '0.625rem',
+    letterSpacing: '0.02em',
     textTransform: 'uppercase',
   },
   badge: {
