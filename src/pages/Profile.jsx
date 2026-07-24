@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PostGrid from '../components/PostGrid';
 import SocialLinksModal from '../components/SocialLinksModal';
+import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 import { ProfileAPI, AuthAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -18,6 +19,7 @@ export default function Profile() {
   const [error, setError] = useState('');
 
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
 
   const MAX_BIO_LENGTH = 280; // matches sanitize_bio() in backend/models/user.py
   const [bio, setBio] = useState('');
@@ -322,6 +324,39 @@ export default function Profile() {
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Your posts</p>
         {user?.id && <PostGrid userId={user.id} />}
       </div>
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Settings</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, margin: 0 }}>Default chat wallpaper</p>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>
+              Used for any chat that hasn't set its own
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              width: 22, height: 22, borderRadius: '50%',
+              background: (WALLPAPER_PRESETS[user?.default_wallpaper] || WALLPAPER_PRESETS.system).bg,
+              border: '1px solid var(--line)',
+              ...(user?.default_wallpaper === 'custom' && user?.default_wallpaper_url
+                ? { backgroundImage: `url(${user.default_wallpaper_url})`, backgroundSize: 'cover' } : {}),
+            }} />
+            <button type="button" className="btn btn-ghost" style={{ padding: '6px 14px' }} onClick={() => setShowSettingsWallpaper(true)}>
+              Change
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showSettingsWallpaper && (
+        <WallpaperModal
+          mode="default"
+          currentWallpaper={user?.default_wallpaper || 'system'}
+          onClose={() => setShowSettingsWallpaper(false)}
+          onSaved={() => refresh()}
+        />
+      )}
 
       <button className="btn btn-ghost btn-block" onClick={logout}>
         Sign out

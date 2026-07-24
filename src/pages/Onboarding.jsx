@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import campmeetLogo from '../assets/campmeet-logo.png';
 import GoldSparkle from '../components/GoldSparkle';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 
 const slides = [
   {
@@ -19,13 +20,9 @@ const slides = [
 ];
 
 const ONBOARDED_KEY = 'campmeet_onboarded';
-const SWIPE_THRESHOLD = 50; // px — below this, a touch is a tap/scroll, not a swipe
 
 export default function Onboarding() {
   const [index, setIndex] = useState(0);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const touchStartX = useRef(0);
   const navigate = useNavigate();
   const isLast = index === slides.length - 1;
 
@@ -43,41 +40,14 @@ export default function Onboarding() {
     setIndex(nextIndex);
   }
 
-  // Touch handlers — this is the actual swipe-to-navigate gesture.
-  // Pointer events instead of separate touch/mouse listeners so it
-  // also works with a mouse when testing in a desktop browser.
-  function handlePointerDown(e) {
-    touchStartX.current = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
-    setDragging(true);
-  }
-  function handlePointerMove(e) {
-    if (!dragging) return;
-    const x = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
-    setDragOffset(x - touchStartX.current);
-  }
-  function handlePointerUp() {
-    if (!dragging) return;
-    setDragging(false);
-    if (dragOffset <= -SWIPE_THRESHOLD) {
-      goTo(index + 1); // swiped left → next
-    } else if (dragOffset >= SWIPE_THRESHOLD) {
-      goTo(index - 1); // swiped right → back
-    }
-    setDragOffset(0);
-  }
+  const { dragOffset, dragging, handlers } = useSwipeNavigation({
+    onSwipeLeft: () => goTo(index + 1),
+    onSwipeRight: () => goTo(index - 1),
+  });
 
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div
-        style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onTouchStart={handlePointerDown}
-        onTouchMove={handlePointerMove}
-        onTouchEnd={handlePointerUp}
-      >
+      <div style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }} {...handlers}>
         <div
           style={{
             display: 'flex',
@@ -126,7 +96,6 @@ export default function Onboarding() {
         </div>
       </div>
 
-      {/* Dots double as tap targets — jump straight to a slide, not just swipe */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, margin: 'var(--sp-5) 0' }}>
         {slides.map((s, i) => (
           <button
@@ -135,14 +104,8 @@ export default function Onboarding() {
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => goTo(i)}
             style={{
-              width: i === index ? 22 : 8,
-              height: 8,
-              padding: 0,
-              border: 'none',
-              borderRadius: 999,
-              background: i === index ? 'var(--maroon)' : 'var(--line)',
-              transition: 'all 0.2s ease',
-              cursor: 'pointer',
+              width: i === index ? 22 : 8, height: 8, padding: 0, border: 'none', borderRadius: 999,
+              background: i === index ? 'var(--maroon)' : 'var(--line)', transition: 'all 0.2s ease', cursor: 'pointer',
             }}
           />
         ))}
@@ -150,14 +113,9 @@ export default function Onboarding() {
 
       <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
         {!isLast && (
-          <button className="btn btn-ghost btn-block" onClick={finishOnboarding}>
-            Skip
-          </button>
+          <button className="btn btn-ghost btn-block" onClick={finishOnboarding}>Skip</button>
         )}
-        <button
-          className="btn btn-primary btn-block"
-          onClick={() => (isLast ? finishOnboarding() : goTo(index + 1))}
-        >
+        <button className="btn btn-primary btn-block" onClick={() => (isLast ? finishOnboarding() : goTo(index + 1))}>
           {isLast ? 'Get started' : 'Next'}
         </button>
       </div>

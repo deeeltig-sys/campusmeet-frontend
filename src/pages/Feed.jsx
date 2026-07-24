@@ -7,6 +7,7 @@ import SuggestedPeople from '../components/SuggestedPeople';
 import ReactorsModal from '../components/ReactorsModal';
 import CommentsSheet from '../components/CommentsSheet';
 import campmeetLogo from '../assets/campmeet-logo.png';
+import StatusStrip from '../components/StatusStrip';
 
 const PAGE_SIZE = 20;
 const PULL_THRESHOLD = 70; // px of downward drag before a release triggers refresh
@@ -212,14 +213,11 @@ export default function Feed() {
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('campusmeet:refresh-feed'))}
           aria-label="Refresh feed"
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}
         >
           <img src={campmeetLogo} alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />
+          <span className="h-display" style={{ fontSize: 'var(--fs-lg)', color: 'var(--maroon-deep)' }}>CampusMEET</span>
         </button>
-        <div style={{ flex: 1 }}>
-          <p className="eyebrow">The Feed</p>
-          <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's happening on campus</h1>
-        </div>
 
         {user?.role === 'admin' && (
           <button type="button" className="admin-pill" onClick={() => navigate('/admin')}>
@@ -230,6 +228,8 @@ export default function Feed() {
           </button>
         )}
       </header>
+
+      <StatusStrip />
 
       {/* Facebook/IG-style quick composer — tapping it (not typing here
           directly) jumps to the full post screen, which already handles

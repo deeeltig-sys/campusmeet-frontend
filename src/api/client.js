@@ -254,12 +254,22 @@ export const NotificationsAPI = {
 
 // ---- Conversations / DMs ----
 export const ConversationsAPI = {
-  list: () => request('/api/conversations', { auth: true }),
+  list: (filter = 'active') => request(`/api/conversations?filter=${filter}`, { auth: true }),
+  activeContacts: (limit = 12) => request(`/api/conversations/active-contacts?limit=${limit}`, { auth: true }),
   start: (userId) => request('/api/conversations', { method: 'POST', body: { user_id: userId }, auth: true }),
   accept: (conversationId) => request(`/api/conversations/${conversationId}/accept`, { method: 'POST', auth: true }),
   messages: (conversationId) => request(`/api/conversations/${conversationId}/messages`, { auth: true }),
   sendMessage: (conversationId, content) =>
     request(`/api/conversations/${conversationId}/messages`, { method: 'POST', body: { content }, auth: true }),
+  hide: (conversationId) => request(`/api/conversations/${conversationId}/hide`, { method: 'POST', auth: true }),
+  unhide: (conversationId) => request(`/api/conversations/${conversationId}/unhide`, { method: 'POST', auth: true }),
+  softDelete: (conversationId) => request(`/api/conversations/${conversationId}/delete`, { method: 'POST', auth: true }),
+  restore: (conversationId) => request(`/api/conversations/${conversationId}/restore`, { method: 'POST', auth: true }),
+  clear: (conversationId) => request(`/api/conversations/${conversationId}/clear`, { method: 'POST', auth: true }),
+  setWallpaper: (conversationId, wallpaper, customUrl = null) =>
+    request(`/api/conversations/${conversationId}/wallpaper`, {
+      method: 'PATCH', body: { wallpaper, custom_wallpaper_url: customUrl }, auth: true,
+    }),
 };
 
 // ---- Blocks ----
@@ -290,4 +300,38 @@ export const AdminAPI = {
     request(`/api/admin/reports/${reportId}`, { method: 'PATCH', body: { status }, auth: true }),
   yawaVelocity: (windowHours = 6) =>
     request(`/api/admin/reactions/velocity?window_hours=${windowHours}`, { auth: true }),
+};
+
+// ---- Statuses (24hr Stories) ----
+export const StatusesAPI = {
+  list: () => request('/api/statuses', { auth: true }),
+  create: (payload) => request('/api/statuses', { method: 'POST', body: payload, auth: true }),
+  markViewed: (statusId) => request(`/api/statuses/${statusId}/view`, { method: 'POST', auth: true }),
+  viewers: (statusId) => request(`/api/statuses/${statusId}/viewers`, { auth: true }),
+  delete: (statusId) => request(`/api/statuses/${statusId}`, { method: 'DELETE', auth: true }),
+  // multipart, same pattern as PostsAPI.uploadImage.
+  uploadImage: async (file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('image', file);
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/statuses/upload-image`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) return StatusesAPI.uploadImage(file);
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data;
+  },
 };
