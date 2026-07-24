@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PostGrid from '../components/PostGrid';
+import SocialLinksModal from '../components/SocialLinksModal';
 import { ProfileAPI, AuthAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -8,37 +9,7 @@ import campmeetLogo from '../assets/campmeet-logo.png';
 
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-// Matches PLATFORM_URL_TEMPLATES on the backend exactly — keys here are
-// what gets sent in the social_links PATCH payload.
-const DEFAULT_PLATFORMS = ['facebook', 'instagram', 'whatsapp', 'snapchat'];
-const MORE_PLATFORMS = ['tiktok', 'x', 'linkedin', 'telegram', 'youtube', 'threads', 'discord'];
-const PLATFORM_LABELS = {
-  facebook: 'Facebook',
-  instagram: 'Instagram',
-  whatsapp: 'WhatsApp',
-  snapchat: 'Snapchat',
-  tiktok: 'TikTok',
-  x: 'X (Twitter)',
-  linkedin: 'LinkedIn',
-  telegram: 'Telegram',
-  youtube: 'YouTube',
-  threads: 'Threads',
-  discord: 'Discord',
-};
-const PLATFORM_PLACEHOLDERS = {
-  facebook: 'username',
-  instagram: 'username',
-  whatsapp: '233241234567 (no + or spaces)',
-  snapchat: 'username',
-  tiktok: 'username',
-  x: 'username',
-  linkedin: 'username',
-  telegram: 'username',
-  youtube: 'channelhandle',
-  threads: 'username',
-  discord: 'username',
-};
+const LEVEL_OPTIONS = ['Level 100', 'Level 200', 'Level 300', 'Level 400', 'Graduate', 'Alumni'];
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
@@ -46,34 +17,28 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  const [socialLinks, setSocialLinks] = useState({});
-  const [showMorePlatforms, setShowMorePlatforms] = useState(false);
-  const [savingLinks, setSavingLinks] = useState(false);
-  const [linksSaved, setLinksSaved] = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
 
   const MAX_BIO_LENGTH = 280; // matches sanitize_bio() in backend/models/user.py
   const [bio, setBio] = useState('');
   const [savingBio, setSavingBio] = useState(false);
   const [bioSaved, setBioSaved] = useState(false);
 
+  const [level, setLevel] = useState('');
+  const [savingLevel, setSavingLevel] = useState(false);
+  const [levelSaved, setLevelSaved] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // Keep local editing state in sync whenever a fresh user object arrives
-  // (initial load, or after refresh() following a save elsewhere).
-  useEffect(() => {
-    if (user?.social_links) setSocialLinks(user.social_links);
-  }, [user?.social_links]);
 
   useEffect(() => {
     setBio(user?.bio || '');
   }, [user?.bio]);
 
-  function handleLinkChange(platform, value) {
-    setLinksSaved(false);
-    setSocialLinks((prev) => ({ ...prev, [platform]: value }));
-  }
+  useEffect(() => {
+    setLevel(user?.level_of_study || '');
+  }, [user?.level_of_study]);
 
   function handleBioChange(value) {
     setBioSaved(false);
@@ -94,22 +59,19 @@ export default function Profile() {
     }
   }
 
-  async function handleSaveLinks() {
-    setSavingLinks(true);
+  async function handleSaveLevel(nextLevel) {
+    setLevel(nextLevel);
+    setLevelSaved(false);
+    setSavingLevel(true);
     setError('');
     try {
-      // Strip empty values so we don't send blank strings for platforms
-      // the person never filled in.
-      const cleaned = Object.fromEntries(
-        Object.entries(socialLinks).filter(([, v]) => v && v.trim())
-      );
-      await ProfileAPI.updateMe({ social_links: cleaned });
+      await ProfileAPI.updateMe({ level_of_study: nextLevel });
       await refresh();
-      setLinksSaved(true);
+      setLevelSaved(true);
     } catch (err) {
-      setError(err.message || 'Could not save your social links.');
+      setError(err.message || 'Could not save your level.');
     } finally {
-      setSavingLinks(false);
+      setSavingLevel(false);
     }
   }
 
@@ -311,58 +273,50 @@ export default function Profile() {
       </div>
 
       <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
-        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Social links</p>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Level of study</p>
         <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', marginBottom: 'var(--sp-3)' }}>
-          Add your handles so other students can find you elsewhere.
+          Shows next to your school on your profile.
         </p>
-
-        {DEFAULT_PLATFORMS.map((platform) => (
-          <div className="field" key={platform} style={{ marginBottom: 'var(--sp-2)' }}>
-            <label htmlFor={`social-${platform}`}>{PLATFORM_LABELS[platform]}</label>
-            <input
-              id={`social-${platform}`}
-              type="text"
-              value={socialLinks[platform] || ''}
-              onChange={(e) => handleLinkChange(platform, e.target.value)}
-              placeholder={PLATFORM_PLACEHOLDERS[platform]}
-            />
-          </div>
-        ))}
-
-        {showMorePlatforms && MORE_PLATFORMS.map((platform) => (
-          <div className="field" key={platform} style={{ marginBottom: 'var(--sp-2)' }}>
-            <label htmlFor={`social-${platform}`}>{PLATFORM_LABELS[platform]}</label>
-            <input
-              id={`social-${platform}`}
-              type="text"
-              value={socialLinks[platform] || ''}
-              onChange={(e) => handleLinkChange(platform, e.target.value)}
-              placeholder={PLATFORM_PLACEHOLDERS[platform]}
-            />
-          </div>
-        ))}
-
-        {!showMorePlatforms && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-block"
-            style={{ marginTop: 'var(--sp-2)' }}
-            onClick={() => setShowMorePlatforms(true)}
-          >
-            Add more platforms
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          style={{ marginTop: 'var(--sp-3)' }}
-          onClick={handleSaveLinks}
-          disabled={savingLinks}
+        <select
+          value={level}
+          onChange={(e) => handleSaveLevel(e.target.value)}
+          disabled={savingLevel}
+          style={{
+            width: '100%', padding: '10px 12px', border: '1px solid var(--line)',
+            borderRadius: 10, fontFamily: 'inherit', fontSize: 'var(--fs-sm)', background: '#fff',
+          }}
         >
-          {savingLinks ? 'Saving…' : linksSaved ? 'Saved ✓' : 'Save social links'}
+          <option value="">Not set</option>
+          {LEVEL_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+        {(savingLevel || levelSaved) && (
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', marginTop: 'var(--sp-2)' }}>
+            {savingLevel ? 'Saving…' : 'Saved ✓'}
+          </p>
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <p className="eyebrow" style={{ marginBottom: 4 }}>Social links</p>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)' }}>
+            {Object.values(user?.social_links || {}).filter(Boolean).length > 0
+              ? `${Object.values(user.social_links).filter(Boolean).length} platform${Object.values(user.social_links).filter(Boolean).length === 1 ? '' : 's'} added`
+              : 'None added yet'}
+          </p>
+        </div>
+        <button type="button" className="btn btn-primary" style={{ padding: '8px 18px' }} onClick={() => setShowSocialModal(true)}>
+          Edit
         </button>
       </div>
+
+      {showSocialModal && (
+        <SocialLinksModal
+          initialLinks={user?.social_links || {}}
+          onClose={() => setShowSocialModal(false)}
+          onSaved={() => { refresh(); setShowSocialModal(false); }}
+        />
+      )}
 
       <div style={{ marginBottom: 'var(--sp-4)' }}>
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Your posts</p>

@@ -119,7 +119,9 @@ export default function PublicProfile() {
               <VerifiedBadge verified={profile.verified} size={18} />
             </div>
             {profile.university_name && (
-              <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>{profile.university_name}</p>
+              <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>
+                {profile.university_name}{profile.level_of_study ? ` · ${profile.level_of_study}` : ''}
+              </p>
             )}
             {profile.bio && (
               <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink)', marginTop: 'var(--sp-2)', maxWidth: 320, marginLeft: 'auto', marginRight: 'auto' }}>
