@@ -39,9 +39,9 @@ export default function Notifications() {
       navigate(`/profile/${n.actor_id}`);
     } else if (n.type === 'message' && n.target_id) {
       navigate(`/inbox/messages/${n.target_id}`);
+    } else if ((n.type === 'comment' || n.type === 'reaction') && n.target_id) {
+      navigate(`/post/${n.target_id}`);
     }
-    // comment/reaction notifications target a post — no single-post
-    // view page exists yet, so those aren't tappable-through for now.
   }
 
   return (

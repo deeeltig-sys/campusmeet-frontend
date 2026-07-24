@@ -37,7 +37,7 @@ export default function PostGrid({ userId }) {
         <button
           key={post.id}
           type="button"
-          onClick={() => navigate(`/feed?post=${post.id}`)}
+          onClick={() => navigate(`/post/${post.id}`)}
           style={{
             aspectRatio: '1 / 1', border: 'none', padding: 0, cursor: 'pointer',
             background: post.image_url ? `center / cover no-repeat url(${post.image_url})` : 'var(--maroon-light)',
