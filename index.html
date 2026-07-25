@@ -22,24 +22,75 @@
       * {
         box-sizing: border-box;
       }
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
       html {
         font-size: clamp(14px, 2vw, 16px);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
       body {
-        margin: 0;
-        padding: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         background: #ffffff;
         color: #1a1a1a;
-      }
-      #root {
-        width: 100%;
-        min-height: 100vh;
-        display: flex;
+        overflow: hidden;
       }
       
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+      }
+
+      /* Desktop redirect screen */
+      .desktop-redirect {
+        display: none;
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .desktop-redirect.active {
+        display: flex;
+      }
+
+      .desktop-redirect h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #4A0E21;
+        margin: 0 0 1rem;
+      }
+
+      .desktop-redirect p {
+        font-size: 1.05rem;
+        color: #666;
+        margin: 0 0 2rem;
+        max-width: 400px;
+      }
+
+      .desktop-redirect a {
+        display: inline-block;
+        background: #4A0E21;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      .desktop-redirect a:hover {
+        background: #3a0815;
+      }
+
       /* Safe area support for notched devices */
       @supports (padding: max(0px)) {
         body {
@@ -55,6 +106,49 @@
   </head>
   <body>
     <div id="root"></div>
+    
+    <div class="desktop-redirect" id="desktopRedirect">
+      <h1>CampMEET</h1>
+      <p>Best experienced on mobile. Log in to your account on desktop.</p>
+      <a href="/login">Go to Login</a>
+    </div>
+
+    <script>
+      // Detect if device is likely desktop
+      function isDesktopDevice() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        const screenWidth = window.innerWidth;
+        
+        // Show desktop redirect if:
+        // Screen width > 768px AND no mobile user agent
+        return screenWidth > 768 && !isMobile;
+      }
+
+      function handleDeviceDetection() {
+        const redirectDiv = document.getElementById('desktopRedirect');
+        const rootDiv = document.getElementById('root');
+        
+        if (isDesktopDevice()) {
+          redirectDiv.classList.add('active');
+          rootDiv.style.display = 'none';
+        } else {
+          redirectDiv.classList.remove('active');
+          rootDiv.style.display = 'flex';
+        }
+      }
+
+      // Check on load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', handleDeviceDetection);
+      } else {
+        handleDeviceDetection();
+      }
+
+      // Re-check on resize
+      window.addEventListener('resize', handleDeviceDetection);
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
