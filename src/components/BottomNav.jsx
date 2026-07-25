@@ -4,7 +4,7 @@ import { NotificationsAPI } from '../api/client';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
-  { to: '/search', label: 'Search', icon: SearchIcon },
+  { to: '/friends', label: 'Friends', icon: FriendsIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
   { to: '/notifications', label: 'Alerts', icon: BellIcon, badge: true },
   { to: '/inbox', label: 'Chats', icon: InboxIcon },
@@ -78,6 +78,17 @@ function SearchIcon({ active }) {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
       <circle cx="10.5" cy="10.5" r="6.5" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" />
       <path d="M20 20l-4.35-4.35" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+function FriendsIcon({ active }) {
+  const c = active ? 'var(--maroon)' : 'var(--ink-soft)';
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="9" cy="8" r="3" stroke={c} strokeWidth="2" />
+      <path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke={c} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="17" cy="8.5" r="2.4" stroke={c} strokeWidth="1.8" />
+      <path d="M15 13.3c2.2.3 3.9 2.1 4 4.4" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

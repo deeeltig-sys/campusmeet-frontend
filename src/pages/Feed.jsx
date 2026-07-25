@@ -22,6 +22,7 @@ export default function Feed() {
   const [refreshing, setRefreshing] = useState(false);
   const [reactorsPostId, setReactorsPostId] = useState(null);
   const [commentsPostId, setCommentsPostId] = useState(null);
+  const [scope, setScope] = useState('campus'); // 'campus' | 'national'
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function Feed() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const data = await PostsAPI.feed(PAGE_SIZE, 0);
+      const data = await PostsAPI.feed(PAGE_SIZE, 0, scope);
       const list = Array.isArray(data) ? data : data?.posts || [];
       setPosts(list);
       setOffset(list.length);
@@ -45,9 +46,9 @@ export default function Feed() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scope]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setLoading(true); load(); }, [load]);
 
   // Tapping the Feed nav tab while already on /feed fires this — reuses
   // the exact same refresh path as pull-to-refresh so there's only one
@@ -67,7 +68,7 @@ export default function Feed() {
     setRefreshing(true);
     setError('');
     try {
-      const data = await PostsAPI.feed(PAGE_SIZE, 0);
+      const data = await PostsAPI.feed(PAGE_SIZE, 0, scope);
       const list = Array.isArray(data) ? data : data?.posts || [];
       setPosts(list);
       setOffset(list.length);
@@ -115,7 +116,7 @@ export default function Feed() {
     if (loadingMore || !hasMore || refreshing) return;
     setLoadingMore(true);
     try {
-      const data = await PostsAPI.feed(PAGE_SIZE, offset);
+      const data = await PostsAPI.feed(PAGE_SIZE, offset, scope);
       const list = Array.isArray(data) ? data : data?.posts || [];
       setPosts((prev) => [...prev, ...list]);
       setOffset((prev) => prev + list.length);
@@ -126,7 +127,7 @@ export default function Feed() {
     } finally {
       setLoadingMore(false);
     }
-  }, [offset, hasMore, loadingMore, refreshing]);
+  }, [offset, hasMore, loadingMore, refreshing, scope]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -227,7 +228,45 @@ export default function Feed() {
             Admin
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => navigate('/search')}
+          aria-label="Search"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginLeft: 'auto' }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink)" strokeWidth="2" />
+            <path d="M20 20l-4.35-4.35" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
       </header>
+
+      {/* Campus/National scope toggle — the actual multi-university
+          architecture decision made visible: defaults to your own
+          campus so a new university's feed doesn't open into a wall
+          of strangers from wherever onboarded first. */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-3)' }}>
+        {[
+          { key: 'campus', label: 'My Campus' },
+          { key: 'national', label: 'All Campuses' },
+        ].map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => setScope(opt.key)}
+            style={{
+              padding: '5px 14px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600,
+              border: scope === opt.key ? 'none' : '1px solid var(--line)',
+              background: scope === opt.key ? 'var(--maroon)' : 'transparent',
+              color: scope === opt.key ? '#fff' : 'var(--ink-soft)',
+              cursor: 'pointer',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       <StatusStrip />
 

@@ -17,6 +17,7 @@ import PublicProfile from './pages/PublicProfile';
 import Inbox from './pages/Inbox';
 import Notifications from './pages/Notifications';
 import PostView from './pages/PostView';
+import Friends from './pages/Friends';
 import Conversation from './pages/Conversation';
 import Admin from './pages/Admin';
 
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="/inbox" element={<ProtectedLayout><Inbox /></ProtectedLayout>} />
         <Route path="/notifications" element={<ProtectedLayout><Notifications /></ProtectedLayout>} />
         <Route path="/post/:postId" element={<ProtectedLayout><PostView /></ProtectedLayout>} />
+        <Route path="/friends" element={<ProtectedLayout><Friends /></ProtectedLayout>} />
         <Route path="/inbox/messages/:conversationId" element={<ProtectedLayout><Conversation /></ProtectedLayout>} />
         <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
 

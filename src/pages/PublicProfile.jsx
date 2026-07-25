@@ -4,6 +4,7 @@ import { UsersAPI, ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from '../components/VerifiedBadge';
 import FollowButton from '../components/FollowButton';
+import FriendButton from '../components/FriendButton';
 import ReportModal from '../components/ReportModal';
 import BackHeader from '../components/BackHeader';
 import PostGrid from '../components/PostGrid';
@@ -135,7 +136,13 @@ export default function PublicProfile() {
           </div>
 
           {!blocked && (
-            <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)' }}>
+            <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
+              <FriendButton
+                userId={userId}
+                initialStatus={profile.friend_status}
+                initialRequestId={profile.friend_request_id}
+                onChange={() => UsersAPI.profile(userId).then(setProfile).catch(() => {})}
+              />
               <FollowButton userId={userId} initialFollowing={profile.is_following} />
               <button type="button" className="btn btn-ghost" style={{ padding: '8px 18px' }} onClick={handleMessage} disabled={messaging}>
                 {messaging ? 'Starting…' : 'Message'}

@@ -31,6 +31,19 @@ export function AuthProvider({ children }) {
     loadProfile();
   }, [loadProfile]);
 
+  // A request anywhere in the app can discover the session is dead
+  // (expired token + failed refresh) independently of this initial
+  // load — this is what makes that actually redirect to /login
+  // instead of leaving stale `user` state around while individual
+  // pages fail one at a time with generic error banners.
+  useEffect(() => {
+    function handleSessionExpired() {
+      setUser(null);
+    }
+    window.addEventListener('campusmeet:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('campusmeet:session-expired', handleSessionExpired);
+  }, []);
+
   const login = useCallback(async (email, password) => {
     const data = await AuthAPI.login({ email, password });
     setSession(data);

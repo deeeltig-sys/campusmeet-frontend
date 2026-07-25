@@ -64,6 +64,17 @@ async function renewSession() {
   return refreshInFlight;
 }
 
+// Fired whenever a failed refresh clears the session — AuthContext
+// listens for this to immediately null out `user`, which is what
+// actually makes ProtectedLayout redirect to /login. Without this,
+// each authenticated fetch was failing independently while the app's
+// global auth state stayed stale, showing broken "could not load X"
+// banners instead of sending the person back to log in again.
+function announceSessionExpired() {
+  clearSession();
+  window.dispatchEvent(new CustomEvent('campusmeet:session-expired'));
+}
+
 async function request(path, { method = 'GET', body, auth = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
@@ -87,7 +98,7 @@ async function request(path, { method = 'GET', body, auth = false, _retried = fa
     if (renewed) {
       return request(path, { method, body, auth, _retried: true });
     }
-    clearSession();
+    announceSessionExpired();
   }
 
   const isJson = res.headers.get('content-type')?.includes('application/json');
@@ -119,7 +130,8 @@ export const AuthAPI = {
 
 // ---- Posts / Feed ----
 export const PostsAPI = {
-  feed: (limit = 30, offset = 0) => request(`/api/posts/feed?limit=${limit}&offset=${offset}`),
+  feed: (limit = 30, offset = 0, scope = 'campus') =>
+    request(`/api/posts/feed?limit=${limit}&offset=${offset}&scope=${scope}`),
   byUser: (userId, limit = 60, offset = 0) =>
     request(`/api/posts/by-user/${userId}?limit=${limit}&offset=${offset}`),
   search: (query, limit = 30) => request(`/api/posts/search?q=${encodeURIComponent(query)}&limit=${limit}`),
@@ -158,7 +170,7 @@ export const PostsAPI = {
       if (renewed) {
         return PostsAPI.uploadImage(file);
       }
-      clearSession();
+      announceSessionExpired();
     }
 
     const data = await res.json().catch(() => ({}));
@@ -197,7 +209,7 @@ export const ProfileAPI = {
       if (renewed) {
         return ProfileAPI.uploadAvatar(file);
       }
-      clearSession();
+      announceSessionExpired();
     }
 
     const data = await res.json().catch(() => ({}));
@@ -329,9 +341,23 @@ export const StatusesAPI = {
     if (res.status === 401) {
       const renewed = await renewSession();
       if (renewed) return StatusesAPI.uploadImage(file);
+      announceSessionExpired();
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     return data;
   },
+};
+
+// ---- Friends (mutual, distinct from one-way Follow) ----
+export const FriendsAPI = {
+  list: () => request('/api/friends', { auth: true }),
+  listOf: (userId) => request(`/api/friends/${userId}`, { auth: true }),
+  requests: (direction = 'incoming') => request(`/api/friends/requests?direction=${direction}`, { auth: true }),
+  send: (userId) => request(`/api/friends/requests/${userId}`, { method: 'POST', auth: true }),
+  accept: (requestId) => request(`/api/friends/requests/${requestId}/accept`, { method: 'POST', auth: true }),
+  decline: (requestId) => request(`/api/friends/requests/${requestId}/decline`, { method: 'POST', auth: true }),
+  cancel: (requestId) => request(`/api/friends/requests/${requestId}`, { method: 'DELETE', auth: true }),
+  unfriend: (userId) => request(`/api/friends/${userId}`, { method: 'DELETE', auth: true }),
+  suggestions: (limit = 15) => request(`/api/friends/suggestions?limit=${limit}`, { auth: true }),
 };
