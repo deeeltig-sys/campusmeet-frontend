@@ -32,10 +32,12 @@ function ProtectedLayout({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return (
-    <>
-      {children}
+    <div className="app-shell">
       <BottomNav />
-    </>
+      <div className="app-main">
+        {children}
+      </div>
+    </div>
   );
 }
 

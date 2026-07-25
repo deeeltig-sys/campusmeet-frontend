@@ -7,28 +7,37 @@ import { PostsAPI } from '../api/client';
  * genuinely missing before (profiles showed follower counts and a bio,
  * but never the person's actual posts), which is a big part of why the
  * app read as a corporate directory rather than a social platform.
+ *
+ * mode="posts" (default) — this person's own posts, requires userId.
+ * mode="saved" — the CALLER's bookmarked posts (only ever their own —
+ * there's no "view someone else's saved posts", same as IG/X).
  */
-export default function PostGrid({ userId }) {
+export default function PostGrid({ userId, mode = 'posts' }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!userId) return;
+    if (mode === 'posts' && !userId) return;
     let cancelled = false;
     setLoading(true);
-    PostsAPI.byUser(userId)
+    const fetcher = mode === 'saved' ? PostsAPI.saved() : PostsAPI.byUser(userId);
+    fetcher
       .then((data) => { if (!cancelled) setPosts(Array.isArray(data) ? data : []); })
       .catch(() => { if (!cancelled) setPosts([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [userId, mode]);
 
   if (loading) {
     return <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginTop: 'var(--sp-4)' }}>Loading posts…</p>;
   }
   if (posts.length === 0) {
-    return <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginTop: 'var(--sp-4)' }}>No posts yet.</p>;
+    return (
+      <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginTop: 'var(--sp-4)' }}>
+        {mode === 'saved' ? 'Nothing saved yet.' : 'No posts yet.'}
+      </p>
+    );
   }
 
   return (

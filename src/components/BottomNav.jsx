@@ -30,11 +30,12 @@ export default function BottomNav() {
   }, []);
 
   return (
-    <nav style={styles.nav}>
+    <nav className="bottom-nav">
       {tabs.map(({ to, label, icon: Icon, badge }) => (
         <NavLink
           key={to}
           to={to}
+          className="bottom-nav-tab"
           onClick={(e) => {
             // Tapping Feed while already ON Feed is a dead click by
             // default (react-router won't re-navigate to the same
@@ -45,7 +46,6 @@ export default function BottomNav() {
             }
           }}
           style={({ isActive }) => ({
-            ...styles.tab,
             color: isActive ? 'var(--maroon-deep)' : 'var(--ink-soft)',
           })}
         >
@@ -55,7 +55,7 @@ export default function BottomNav() {
                 <Icon active={isActive} />
                 {badge && unread > 0 && <span style={styles.badge}>{unread > 9 ? '9+' : unread}</span>}
               </div>
-              <span style={styles.label}>{label}</span>
+              <span className="bottom-nav-label">{label}</span>
             </>
           )}
         </NavLink>
@@ -129,27 +129,6 @@ function ProfileIcon({ active }) {
 }
 
 const styles = {
-  nav: {
-    display: 'flex',
-    borderTop: '1px solid var(--line)',
-    background: '#fff',
-    padding: '10px 0 calc(10px + env(safe-area-inset-bottom))',
-    position: 'sticky',
-    bottom: 0,
-  },
-  tab: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  label: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '0.625rem',
-    letterSpacing: '0.02em',
-    textTransform: 'uppercase',
-  },
   badge: {
     position: 'absolute',
     top: -6,

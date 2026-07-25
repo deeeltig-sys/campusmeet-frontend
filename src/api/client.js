@@ -145,6 +145,9 @@ export const PostsAPI = {
     request(`/api/posts/${postId}/reactions`, { method: 'POST', body: { type }, auth: true }),
   unreact: (postId) => request(`/api/posts/${postId}/reactions`, { method: 'DELETE', auth: true }),
   reactors: (postId) => request(`/api/posts/${postId}/reactions`),
+  save: (postId) => request(`/api/posts/${postId}/save`, { method: 'POST', auth: true }),
+  unsave: (postId) => request(`/api/posts/${postId}/save`, { method: 'DELETE', auth: true }),
+  saved: () => request('/api/posts/saved', { auth: true }),
 
   // Image posts. This bypasses the generic request() helper since it's
   // multipart, not JSON — the browser sets its own Content-Type boundary,

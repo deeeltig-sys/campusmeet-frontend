@@ -210,12 +210,11 @@ a { color: inherit; text-decoration: none; }
 .reaction-emoji {
   font-size: 1.1rem;
   line-height: 1;
-  transform: translateY(-0.5px); /* optical centering inside the round button */
+  transform: translateY(-0.5px);
 }
-/* Persistent "you reacted with this" state — stays on until the user taps
-   the same button again to un-react (see PostCard.jsx `active` logic).
-   Gold ring + maroon fill + light scale-up so it reads clearly at a glance,
-   distinct from the plain :hover/:active transient states above. */
+/* Persistent "you reacted with this" state — stays on until the user
+   taps the same button again to un-react, distinct from the plain
+   :hover/:active transient states above. */
 .reaction-btn.active {
   background: linear-gradient(180deg, var(--maroon), var(--maroon-deep));
   border: 2px solid var(--gold-bright);
@@ -701,4 +700,132 @@ a { color: inherit; text-decoration: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .download-cta { animation: none; }
+}
+
+/* ============================================================
+   RESPONSIVE SHELL — below 768px this changes nothing (bottom nav,
+   full-width screens, exactly as before). At tablet/desktop widths
+   the nav becomes a fixed left sidebar and content centers into a
+   max-width column instead of stretching full-bleed — the actual fix
+   for "it always looks like a phone screen" on desktop/tablet.
+   ============================================================ */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.app-main {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    flex-direction: row;
+  }
+  .app-main {
+    display: flex;
+    justify-content: center;
+    margin-left: 220px;
+  }
+  .screen {
+    width: 100%;
+    max-width: 600px;
+    padding-top: var(--sp-6);
+  }
+}
+
+.bottom-nav {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+.bottom-nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+.bottom-nav-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    border-top: none;
+    border-right: 1px solid var(--line);
+    padding: var(--sp-6) var(--sp-3);
+    gap: 2px;
+  }
+  .bottom-nav-tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--sp-3);
+    padding: 11px 14px;
+    border-radius: 999px;
+    transition: background 0.12s ease;
+  }
+  .bottom-nav-tab:hover {
+    background: var(--maroon-light);
+  }
+  .bottom-nav-label {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+}
+
+/* Post overflow menu */
+.post-menu-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+}
+.post-menu-trigger:hover {
+  background: var(--maroon-light);
+}
+.post-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--fs-sm);
+  border-radius: 8px;
+}
+.post-menu-item:hover {
+  background: var(--ivory-dim);
+}
+.post-menu-item.danger {
+  color: #a33;
+}
+
+/* Profile strength ring — deliberately NOT the verified checkmark
+   shape/color, so it never reads as official ID verification. */
+.profile-strength-ring {
+  border: 2.5px solid var(--gold-bright);
 }

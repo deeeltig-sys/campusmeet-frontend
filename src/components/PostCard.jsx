@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
-import { REACTION_TYPES } from '../api/client';
+import { REACTION_TYPES, PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { ReactionIcon, CommentIcon } from './icons';
 
-// Reaction buttons use plain emoji (not the custom line-icon SVGs from
-// icons.jsx) — only these 4 buttons. The reaction-count/comment-count
-// icons in the footer below still use the SVG icon set untouched.
+// Reaction buttons use plain emoji, not the custom line-icon SVGs from
+// icons.jsx — only these 4 buttons.
 const REACTIONS = [
   { type: 'fire', emoji: '🔥', label: 'Fire' },
   { type: 'cosign', emoji: '🤝', label: 'Cosign' },
@@ -19,16 +18,8 @@ const REACTIONS = [
 export default function PostCard({ post, onReact, onEditSave, onDeletePost, onShowReactors, onShowComments }) {
   const { user } = useAuth();
 
-  // reaction_count is the aggregate across all four types — fire, cosign,
-  // doubt and yawa all count the same toward it and toward feed ranking.
-  // There's no separate suppressed or "contested" state for high-yawa posts;
-  // a post's reach doesn't change because of which reaction it's getting.
   const { content, created_at, reaction_count = 0, comment_count = 0, user_reaction } = post;
 
-  // public_post_fields() only returns author_id (no nested author object), so the
-  // `feed` DB view is what would actually join in name/verified — its exact column
-  // names aren't confirmed here. This handles the two most likely shapes: a nested
-  // `author` object, or flattened `author_full_name` / `author_verified_at` columns.
   const author = post.author || {
     full_name: post.author_full_name,
     verified: post.author_verified_at != null || post.author_verified,
@@ -41,11 +32,25 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [showReport, setShowReport] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [saved, setSaved] = useState(!!post.saved);
+  const [savingBookmark, setSavingBookmark] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
 
   function startEdit() {
     setEditDraft(content);
     setEditError('');
     setIsEditing(true);
+    setShowMenu(false);
   }
 
   async function saveEdit() {
@@ -67,8 +72,24 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   }
 
   function handleDelete() {
+    setShowMenu(false);
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
     onDeletePost?.(post.id);
+  }
+
+  async function handleToggleSave() {
+    setShowMenu(false);
+    if (savingBookmark) return;
+    const next = !saved;
+    setSaved(next); // optimistic
+    setSavingBookmark(true);
+    try {
+      next ? await PostsAPI.save(post.id) : await PostsAPI.unsave(post.id);
+    } catch {
+      setSaved(!next); // revert on failure
+    } finally {
+      setSavingBookmark(false);
+    }
   }
 
   return (
@@ -92,6 +113,41 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
               {new Date(created_at).toLocaleString()}
             </time>
+          )}
+        </div>
+
+        {/* Overflow menu — every utility action (edit/delete/report/save)
+            lives behind this one button instead of a row of separate
+            links, matching how X/IG/FB keep the card itself clean. */}
+        <div style={{ position: 'relative' }} ref={menuRef}>
+          <button
+            type="button"
+            className="post-menu-trigger"
+            aria-label="Post options"
+            onClick={() => setShowMenu((v) => !v)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="5" cy="12" r="1.6" fill="var(--ink-soft)" />
+              <circle cx="12" cy="12" r="1.6" fill="var(--ink-soft)" />
+              <circle cx="19" cy="12" r="1.6" fill="var(--ink-soft)" />
+            </svg>
+          </button>
+          {showMenu && (
+            <div className="card" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 15, minWidth: 170, padding: 6 }}>
+              <button type="button" className="post-menu-item" onClick={handleToggleSave}>
+                {saved ? 'Unsave' : 'Save'}
+              </button>
+              {isOwn ? (
+                <>
+                  <button type="button" className="post-menu-item" onClick={startEdit}>Edit</button>
+                  <button type="button" className="post-menu-item danger" onClick={handleDelete}>Delete</button>
+                </>
+              ) : (
+                <button type="button" className="post-menu-item danger" onClick={() => { setShowMenu(false); setShowReport(true); }}>
+                  Report
+                </button>
+              )}
+            </div>
           )}
         </div>
       </header>
@@ -129,27 +185,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         </div>
       )}
 
-      {isOwn && !isEditing && (
-        <div className="post-actions">
-          <button type="button" className="post-action-link" onClick={startEdit}>Edit</button>
-          <button type="button" className="post-action-link" onClick={handleDelete}>Delete</button>
-        </div>
-      )}
-
-      {!isOwn && (
-        <div className="post-actions">
-          <button type="button" className="post-action-link" onClick={() => setShowReport(true)}>Report</button>
-        </div>
-      )}
-
       <footer className="reaction-footer">
         <div className="reaction-bar" role="group" aria-label="React to this post">
           {REACTIONS.map(({ type, emoji, label }) => {
-            // `active` is derived straight from the post's own user_reaction field,
-            // which Feed.jsx / Search.jsx update optimistically on tap — so whichever
-            // button matches the user's current reaction stays visibly marked (maroon
-            // fill + gold ring) until they tap it again to un-react. Never just a
-            // hover/press flash.
             const active = user_reaction === type;
             return (
               <button
