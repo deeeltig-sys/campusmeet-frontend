@@ -2,153 +2,64 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="CampMEET - University social platform for USTED students" />
-    <meta name="theme-color" content="#4A0E21" />
-    <meta name="color-scheme" content="light" />
-    
-    <!-- Mobile/PWA Meta Tags -->
+
+    <!-- The one line most likely to be the actual cause of "always looks
+         mobile" on desktop if it was ever missing or wrong. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>CampusMEET — Ghana's Campus Social Platform</title>
+    <meta name="description" content="CampusMEET — the real-identity social platform for university students. Connect, post, react, and build your network across campuses." />
+
+    <!-- Brand color for the browser chrome (address bar on Android Chrome,
+         status bar tint in some PWA/homescreen contexts) — matches the
+         maroon used throughout the app. -->
+    <meta name="theme-color" content="#7a2436" />
+    <meta name="background-color" content="#faf6ee" />
+
+    <!-- Favicon + homescreen icons. app-icon-512.png is the optimized
+         source generated earlier — update the referenced paths if the
+         actual filenames in /public differ. -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/app-icon-512.png" />
+
+    <!-- PWA — lets "Add to Home Screen" work properly on mobile browsers,
+         independent of the Capacitor Android build. -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CampMEET" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    
-    <!-- Responsive Styles Base -->
+    <meta name="apple-mobile-web-app-title" content="CampusMEET" />
+
+    <!-- Social preview — how a shared campusmeetx.netlify.app link looks
+         when pasted into WhatsApp, Twitter/X, Facebook, etc. Point
+         og:image at a real hosted 1200x630 image once one exists. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CampusMEET" />
+    <meta property="og:title" content="CampusMEET — Ghana's Campus Social Platform" />
+    <meta property="og:description" content="Real students, real campuses. Connect, post, react, and build your network." />
+    <meta property="og:image" content="/app-icon-512.png" />
+    <meta property="og:url" content="https://campusmeetx.netlify.app" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CampusMEET" />
+    <meta name="twitter:description" content="Real students, real campuses." />
+    <meta name="twitter:image" content="/app-icon-512.png" />
+
+    <!-- Preconnect to Google Fonts before global.css's @import fires —
+         this is the one thing @import inside CSS can't do on its own,
+         and it shaves real time off first paint since the font request
+         starts immediately instead of waiting for the CSS to be
+         parsed first. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Prevents the classic mobile-browser flash of unstyled white
+         background before global.css finishes loading. -->
     <style>
-      * {
-        box-sizing: border-box;
-      }
-      html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
-      html {
-        font-size: clamp(14px, 2vw, 16px);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: #ffffff;
-        color: #1a1a1a;
-        overflow: hidden;
-      }
-      
-      #root {
-        width: 100%;
-        height: 100%;
-        display: flex;
-      }
-
-      /* Desktop redirect screen */
-      .desktop-redirect {
-        display: none;
-        width: 100%;
-        height: 100%;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        text-align: center;
-      }
-
-      .desktop-redirect.active {
-        display: flex;
-      }
-
-      .desktop-redirect h1 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #4A0E21;
-        margin: 0 0 1rem;
-      }
-
-      .desktop-redirect p {
-        font-size: 1.05rem;
-        color: #666;
-        margin: 0 0 2rem;
-        max-width: 400px;
-      }
-
-      .desktop-redirect a {
-        display: inline-block;
-        background: #4A0E21;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: background 0.2s;
-      }
-
-      .desktop-redirect a:hover {
-        background: #3a0815;
-      }
-
-      /* Safe area support for notched devices */
-      @supports (padding: max(0px)) {
-        body {
-          padding-left: max(0px, env(safe-area-inset-left));
-          padding-right: max(0px, env(safe-area-inset-right));
-          padding-top: max(0px, env(safe-area-inset-top));
-          padding-bottom: max(0px, env(safe-area-inset-bottom));
-        }
-      }
+      html, body, #root { height: 100%; margin: 0; background: #faf6ee; }
     </style>
-    
-    <title>CampMEET</title>
   </head>
   <body>
     <div id="root"></div>
-    
-    <div class="desktop-redirect" id="desktopRedirect">
-      <h1>CampMEET</h1>
-      <p>Best experienced on mobile. Log in to your account on desktop.</p>
-      <a href="/login">Go to Login</a>
-    </div>
-
-    <script>
-      // Detect if device is likely desktop
-      function isDesktopDevice() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-        const screenWidth = window.innerWidth;
-        
-        // Show desktop redirect if:
-        // Screen width > 768px AND no mobile user agent
-        return screenWidth > 768 && !isMobile;
-      }
-
-      function handleDeviceDetection() {
-        const redirectDiv = document.getElementById('desktopRedirect');
-        const rootDiv = document.getElementById('root');
-        
-        if (isDesktopDevice()) {
-          redirectDiv.classList.add('active');
-          rootDiv.style.display = 'none';
-        } else {
-          redirectDiv.classList.remove('active');
-          rootDiv.style.display = 'flex';
-        }
-      }
-
-      // Check on load
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', handleDeviceDetection);
-      } else {
-        handleDeviceDetection();
-      }
-
-      // Re-check on resize
-      window.addEventListener('resize', handleDeviceDetection);
-    </script>
-
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

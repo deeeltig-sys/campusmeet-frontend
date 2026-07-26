@@ -5,6 +5,7 @@ import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { ReactionIcon, CommentIcon } from './icons';
+import FullscreenImageViewer from './FullscreenImageViewer';
 
 // Reaction buttons use plain emoji, not the custom line-icon SVGs from
 // icons.jsx — only these 4 buttons.
@@ -35,6 +36,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [showMenu, setShowMenu] = useState(false);
   const [saved, setSaved] = useState(!!post.saved);
   const [savingBookmark, setSavingBookmark] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -90,6 +92,30 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
     } finally {
       setSavingBookmark(false);
     }
+  }
+
+  function renderReactionBar() {
+    return (
+      <div className="reaction-bar" role="group" aria-label="React to this post">
+        {REACTIONS.map(({ type, emoji, label }) => {
+          const active = user_reaction === type;
+          return (
+            <button
+              key={type}
+              type="button"
+              className={`reaction-btn${active ? ' active' : ''}`}
+              aria-pressed={active}
+              aria-label={active ? `${label} (your reaction)` : label}
+              title={label}
+              onClick={() => onReact?.(post.id, type)}
+              disabled={!REACTION_TYPES.includes(type)}
+            >
+              <span className="reaction-emoji" aria-hidden="true">{emoji}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
   }
 
   return (
@@ -180,31 +206,18 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       )}
 
       {post.image_url && (
-        <div className="post-image-wrap">
+        <button
+          type="button"
+          className="post-image-wrap"
+          onClick={() => setShowFullscreen(true)}
+          style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
+        >
           <img className="post-image" src={post.image_url} alt="" loading="lazy" />
-        </div>
+        </button>
       )}
 
       <footer className="reaction-footer">
-        <div className="reaction-bar" role="group" aria-label="React to this post">
-          {REACTIONS.map(({ type, emoji, label }) => {
-            const active = user_reaction === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                className={`reaction-btn${active ? ' active' : ''}`}
-                aria-pressed={active}
-                aria-label={active ? `${label} (your reaction)` : label}
-                title={label}
-                onClick={() => onReact?.(post.id, type)}
-                disabled={!REACTION_TYPES.includes(type)}
-              >
-                <span className="reaction-emoji" aria-hidden="true">{emoji}</span>
-              </button>
-            );
-          })}
-        </div>
+        {renderReactionBar()}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
           <button
             type="button"
@@ -223,6 +236,15 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
           </button>
         </div>
       </footer>
+
+      {showFullscreen && post.image_url && (
+        <FullscreenImageViewer
+          imageUrl={post.image_url}
+          caption={content}
+          reactionBar={renderReactionBar()}
+          onClose={() => setShowFullscreen(false)}
+        />
+      )}
 
       {showReport && (
         <ReportModal targetType="post" targetId={post.id} onClose={() => setShowReport(false)} />
