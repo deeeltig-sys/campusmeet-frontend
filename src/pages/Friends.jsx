@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FriendsAPI, UsersAPI } from '../api/client';
+import { FriendsAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 
 const TABS = [
   { key: 'friends', label: 'Friends' },
   { key: 'requests', label: 'Requests' },
   { key: 'discover', label: 'Discover' },
-  { key: 'all', label: 'All Students' },
 ];
 
 export default function Friends() {
@@ -20,32 +19,6 @@ export default function Friends() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Find-anyone-by-name search — this is the actual "Friends page is
-  // where you find all people on the platform" ask. Separate from the
-  // three tabs below; searching replaces the tab content entirely
-  // while there's a query typed, same as Facebook's Find Friends.
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    setSearching(true);
-    const handle = setTimeout(() => {
-      UsersAPI.search(trimmed)
-        .then((data) => setSearchResults(Array.isArray(data) ? data : []))
-        .catch(() => setSearchResults([]))
-        .finally(() => setSearching(false));
-    }, 300); // debounced — no need to hit the backend on every keystroke
-    return () => clearTimeout(handle);
-  }, [query]);
-
-  const [allStudents, setAllStudents] = useState([]);
-
   const load = useCallback(async (activeTab) => {
     setError('');
     try {
@@ -55,8 +28,6 @@ export default function Friends() {
         const [inc, out] = await Promise.all([FriendsAPI.requests('incoming'), FriendsAPI.requests('outgoing')]);
         setIncoming(Array.isArray(inc) ? inc : []);
         setOutgoing(Array.isArray(out) ? out : []);
-      } else if (activeTab === 'all') {
-        setAllStudents(await UsersAPI.all());
       } else {
         setSuggestions(await FriendsAPI.suggestions());
       }
@@ -106,17 +77,35 @@ export default function Friends() {
   return (
     <div className="screen">
       <header style={{ marginBottom: 'var(--sp-3)' }}>
-        <p className="eyebrow">Friends</p>
-        <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', marginBottom: 'var(--sp-3)' }}>
-          Your CampusMEET circle
-        </h1>
-        <div style={{ display: 'flex', gap: 'var(--sp-2)', overflowX: 'auto', paddingBottom: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p className="eyebrow">Friends</p>
+            <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>
+              Your CampusMEET circle
+            </h1>
+          </div>
+          <button
+            type="button"
+            aria-label="Search people"
+            onClick={() => navigate('/search', { state: { mode: 'people' } })}
+            style={{
+              width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--line)', background: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink-soft)" strokeWidth="1.8" />
+              <path d="M20 20l-4.35-4.35" stroke="var(--ink-soft)" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-3)' }}>
           {TABS.map((t) => (
             <button
               key={t.key}
               type="button"
               className={tab === t.key ? 'btn btn-primary' : 'btn btn-ghost'}
-              style={{ padding: '8px 16px', flexShrink: 0, whiteSpace: 'nowrap' }}
+              style={{ padding: '8px 16px', flex: 1 }}
               onClick={() => setTab(t.key)}
             >
               {t.label}{t.key === 'requests' && incoming.length > 0 ? ` (${incoming.length})` : ''}
@@ -125,40 +114,8 @@ export default function Friends() {
         </div>
       </header>
 
-      {/* Find-anyone-by-name — the actual "this page is where you find
-          all people on the platform" feature. */}
-      <div style={{ position: 'relative', marginBottom: 'var(--sp-3)' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
-          <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink-soft)" strokeWidth="2" />
-          <path d="M20 20l-4.35-4.35" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search people by name…"
-          style={{
-            width: '100%', padding: '10px 12px 10px 36px', border: '1px solid var(--line)',
-            borderRadius: 999, fontSize: 'var(--fs-sm)', boxSizing: 'border-box',
-          }}
-        />
-      </div>
-
       {error && <div className="banner-error">{error}</div>}
-
-      {query.trim().length >= 2 ? (
-        searching ? (
-          <p style={{ color: 'var(--ink-soft)' }}>Searching…</p>
-        ) : searchResults.length === 0 ? (
-          <p style={{ color: 'var(--ink-soft)' }}>No one found matching "{query.trim()}".</p>
-        ) : (
-          searchResults.map((person) => (
-            <PersonRow key={person.id} person={person} onClick={() => navigate(`/profile/${person.id}`)} />
-          ))
-        )
-      ) : (
-        <>
-          {loading && <p style={{ color: 'var(--ink-soft)' }}>Loading…</p>}
+      {loading && <p style={{ color: 'var(--ink-soft)' }}>Loading…</p>}
 
       {!loading && tab === 'friends' && (
         friends.length === 0 ? (
@@ -223,16 +180,6 @@ export default function Friends() {
             />
           ))
         )
-      )}
-
-      {!loading && tab === 'all' && (
-        allStudents.length === 0 ? (
-          <p style={{ color: 'var(--ink-soft)' }}>No other students yet.</p>
-        ) : (
-          allStudents.map((s) => <PersonRow key={s.id} person={s} onClick={() => navigate(`/profile/${s.id}`)} />)
-        )
-      )}
-        </>
       )}
     </div>
   );

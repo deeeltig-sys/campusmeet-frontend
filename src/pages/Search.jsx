@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { PostsAPI, UsersAPI } from '../api/client';
 import PostCard from '../components/PostCard';
 import VerifiedBadge from '../components/VerifiedBadge';
 
 export default function Search() {
-  const [mode, setMode] = useState('posts'); // 'posts' | 'people'
+  const location = useLocation();
+  // Friends' search-people icon (and anywhere else that wants to land
+  // straight on People instead of the default Posts tab) passes this
+  // via navigate(..., { state: { mode: 'people' } }).
+  const [mode, setMode] = useState(location.state?.mode === 'people' ? 'people' : 'posts');
   const [query, setQuery] = useState('');
   const [posts, setPosts] = useState([]);
   const [people, setPeople] = useState([]);
