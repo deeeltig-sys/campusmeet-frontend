@@ -15,6 +15,11 @@ export default function StatusStrip() {
   }
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    window.addEventListener('campusmeet:status-posted', load);
+    return () => window.removeEventListener('campusmeet:status-posted', load);
+  }, []);
+
   const myGroup = groups.find((g) => g.author.id === user?.id);
   const otherGroups = groups.filter((g) => g.author.id !== user?.id);
 

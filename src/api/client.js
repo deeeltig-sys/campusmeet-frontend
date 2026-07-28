@@ -137,6 +137,8 @@ export const PostsAPI = {
   search: (query, limit = 30) => request(`/api/posts/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   registerSearchHit: (postId) => request(`/api/posts/${postId}/search-hit`, { method: 'POST' }),
   create: (payload) => request('/api/posts', { method: 'POST', body: payload, auth: true }),
+  repost: (originalPostId, comment = '') =>
+    request('/api/posts', { method: 'POST', body: { repost_of: originalPostId, content: comment.trim() }, auth: true }),
   get: (postId) => request(`/api/posts/${postId}`),
   update: (postId, payload) => request(`/api/posts/${postId}`, { method: 'PATCH', body: payload, auth: true }),
   softDelete: (postId) => request(`/api/posts/${postId}`, { method: 'PATCH', body: { delete: true }, auth: true }),
@@ -257,6 +259,7 @@ export const UsersAPI = {
   search: (q) => request(`/api/users/search?q=${encodeURIComponent(q)}`),
   profile: (userId) => request(`/api/profile/${userId}`, { auth: true }),
   suggested: (limit = 10) => request(`/api/users/suggested?limit=${limit}`, { auth: true }),
+  all: (limit = 40, offset = 0) => request(`/api/users?limit=${limit}&offset=${offset}`, { auth: true }),
 };
 
 // ---- Notifications ----
