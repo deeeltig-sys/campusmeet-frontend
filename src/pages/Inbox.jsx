@@ -39,6 +39,7 @@ export default function Inbox() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const pressTimer = useRef(null);
+  const longPressFired = useRef(false);
 
   const loadConversations = useCallback(async (activeTab) => {
     try {
@@ -68,12 +69,26 @@ export default function Inbox() {
 
   // Long-press handling — works for touch (phone) and mouse (desktop
   // testing) via the same timer-based approach, since there's no
-  // native "long press" DOM event.
+  // native "long press" DOM event. The row is a router <Link>, so once
+  // the timer fires and the action sheet opens, releasing the finger
+  // would otherwise still fire the Link's click and navigate away out
+  // from under the menu — `longPressFired` flags that so the row's
+  // click handler can suppress it.
   function startPress(conv) {
-    pressTimer.current = setTimeout(() => setActionSheetConv(conv), LONG_PRESS_MS);
+    longPressFired.current = false;
+    pressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setActionSheetConv(conv);
+    }, LONG_PRESS_MS);
   }
   function cancelPress() {
     clearTimeout(pressTimer.current);
+  }
+  function handleRowClick(e) {
+    if (longPressFired.current) {
+      e.preventDefault();
+      longPressFired.current = false;
+    }
   }
 
   async function handleHide(conv) {
@@ -226,7 +241,7 @@ export default function Inbox() {
           rows.map((c) => (
             <ConversationRow
               key={c.id} conv={c} tab={tab}
-              onPressStart={() => startPress(c)} onPressEnd={cancelPress}
+              onPressStart={() => startPress(c)} onPressEnd={cancelPress} onRowClick={handleRowClick}
               selectMode={selectMode} selected={selected.has(c.id)} onToggleSelect={() => toggleSelected(c.id)}
               onUnhide={() => handleUnhide(c)} onRestore={() => handleRestore(c)}
             />
@@ -277,7 +292,7 @@ export default function Inbox() {
   );
 }
 
-function ConversationRow({ conv, tab, onPressStart, onPressEnd, selectMode, selected, onToggleSelect, onUnhide, onRestore }) {
+function ConversationRow({ conv, tab, onPressStart, onPressEnd, onRowClick, selectMode, selected, onToggleSelect, onUnhide, onRestore }) {
   const other = conv.other_user || {};
   const rowContent = (
     <>
@@ -346,6 +361,7 @@ function ConversationRow({ conv, tab, onPressStart, onPressEnd, selectMode, sele
       onMouseDown={onPressStart}
       onMouseUp={onPressEnd}
       onMouseLeave={onPressEnd}
+      onClick={onRowClick}
       onContextMenu={(e) => e.preventDefault()}
     >
       {rowContent}

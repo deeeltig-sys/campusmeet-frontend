@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { FriendsAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 
+// Facebook's Friends tab is really one flow, not three separate lists:
+// requests you can act on right now, up top, then "People You May Know"
+// underneath so there's always something to do even with an empty
+// requests queue. That's the shape we're matching here — two tabs
+// instead of three, with Discover folded into Requests.
 const TABS = [
   { key: 'friends', label: 'Friends' },
   { key: 'requests', label: 'Requests' },
-  { key: 'discover', label: 'Discover' },
 ];
 
 export default function Friends() {
@@ -15,6 +19,7 @@ export default function Friends() {
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [dismissed, setDismissed] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -24,12 +29,18 @@ export default function Friends() {
     try {
       if (activeTab === 'friends') {
         setFriends(await FriendsAPI.list());
-      } else if (activeTab === 'requests') {
-        const [inc, out] = await Promise.all([FriendsAPI.requests('incoming'), FriendsAPI.requests('outgoing')]);
+      } else {
+        // Requests + suggestions load together so the "People You May
+        // Know" grid is already there the moment requests finish
+        // rendering — no second loading flicker underneath them.
+        const [inc, out, sugg] = await Promise.all([
+          FriendsAPI.requests('incoming'),
+          FriendsAPI.requests('outgoing'),
+          FriendsAPI.suggestions(),
+        ]);
         setIncoming(Array.isArray(inc) ? inc : []);
         setOutgoing(Array.isArray(out) ? out : []);
-      } else {
-        setSuggestions(await FriendsAPI.suggestions());
+        setSuggestions(Array.isArray(sugg) ? sugg : []);
       }
     } catch (err) {
       setError(err.message || 'Could not load this.');
@@ -73,6 +84,15 @@ export default function Friends() {
       setError(err.message || 'Could not send request.');
     }
   }
+  function handleDismissSuggestion(userId) {
+    // No "hide this suggestion" endpoint yet — this is a local-only
+    // dismiss so a "not interested" tap doesn't feel ignored, but it
+    // will reappear next session. Worth a real dismiss endpoint later
+    // if this gets used a lot.
+    setDismissed((prev) => new Set(prev).add(userId));
+  }
+
+  const visibleSuggestions = suggestions.filter((s) => !dismissed.has(s.id));
 
   return (
     <div className="screen">
@@ -119,7 +139,7 @@ export default function Friends() {
 
       {!loading && tab === 'friends' && (
         friends.length === 0 ? (
-          <p style={{ color: 'var(--ink-soft)' }}>No friends yet — browse a profile's friends list or check Discover.</p>
+          <p style={{ color: 'var(--ink-soft)' }}>No friends yet — browse a profile's friends list or check Requests.</p>
         ) : (
           friends.map((f) => <PersonRow key={f.id} person={f} onClick={() => navigate(`/profile/${f.id}`)} />)
         )
@@ -129,23 +149,24 @@ export default function Friends() {
         <>
           {incoming.length > 0 && (
             <>
-              <p className="eyebrow" style={{ margin: 'var(--sp-3) 0 var(--sp-2)' }}>Incoming</p>
+              <p className="eyebrow" style={{ margin: '0 0 var(--sp-2)' }}>Friend requests</p>
               {incoming.map((r) => (
                 <PersonRow
                   key={r.id} person={r.user} onClick={() => navigate(`/profile/${r.user.id}`)}
                   action={
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button type="button" className="btn btn-primary" style={{ padding: '6px 12px' }} onClick={(e) => { e.stopPropagation(); handleAccept(r.id); }}>Accept</button>
-                      <button type="button" className="btn btn-ghost" style={{ padding: '6px 12px' }} onClick={(e) => { e.stopPropagation(); handleDecline(r.id); }}>Decline</button>
+                      <button type="button" className="btn btn-primary" style={{ padding: '6px 12px' }} onClick={(e) => { e.stopPropagation(); handleAccept(r.id); }}>Confirm</button>
+                      <button type="button" className="btn btn-ghost" style={{ padding: '6px 12px' }} onClick={(e) => { e.stopPropagation(); handleDecline(r.id); }}>Delete</button>
                     </div>
                   }
                 />
               ))}
             </>
           )}
+
           {outgoing.length > 0 && (
             <>
-              <p className="eyebrow" style={{ margin: 'var(--sp-3) 0 var(--sp-2)' }}>Sent</p>
+              <p className="eyebrow" style={{ margin: 'var(--sp-4) 0 var(--sp-2)' }}>Sent</p>
               {outgoing.map((r) => (
                 <PersonRow
                   key={r.id} person={r.user} onClick={() => navigate(`/profile/${r.user.id}`)}
@@ -156,36 +177,37 @@ export default function Friends() {
               ))}
             </>
           )}
+
           {incoming.length === 0 && outgoing.length === 0 && (
             <p style={{ color: 'var(--ink-soft)' }}>No pending requests.</p>
           )}
-        </>
-      )}
 
-      {!loading && tab === 'discover' && (
-        suggestions.length === 0 ? (
-          <p style={{ color: 'var(--ink-soft)' }}>
-            Nothing yet — this fills in once you've got a friend or two, based on who they know.
-          </p>
-        ) : (
-          suggestions.map((s) => (
-            <PersonRow
-              key={s.id} person={s} onClick={() => navigate(`/profile/${s.id}`)}
-              subtitle={`${s.mutual_friends} mutual friend${s.mutual_friends === 1 ? '' : 's'}`}
-              action={
-                <button type="button" className="btn btn-primary" style={{ padding: '6px 12px' }} onClick={(e) => { e.stopPropagation(); handleSendFromSuggestion(s.id); }}>
-                  Add
-                </button>
-              }
-            />
-          ))
-        )
+          {/* People You May Know — the FB pattern this whole tab is built
+              around: requests you can act on now, then a steady supply of
+              people to add underneath, so the tab is never a dead end. */}
+          {visibleSuggestions.length > 0 && (
+            <>
+              <p className="eyebrow" style={{ margin: 'var(--sp-5) 0 var(--sp-2)' }}>People you may know</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
+                {visibleSuggestions.map((s) => (
+                  <SuggestionCard
+                    key={s.id}
+                    person={s}
+                    onClick={() => navigate(`/profile/${s.id}`)}
+                    onAdd={() => handleSendFromSuggestion(s.id)}
+                    onDismiss={() => handleDismissSuggestion(s.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function PersonRow({ person, onClick, action, subtitle }) {
+function PersonRow({ person, onClick, action }) {
   return (
     <button
       type="button"
@@ -201,9 +223,65 @@ function PersonRow({ person, onClick, action, subtitle }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
           <VerifiedBadge verified={person.verified} size={13} />
         </div>
-        {subtitle && <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>{subtitle}</p>}
       </div>
       {action}
     </button>
+  );
+}
+
+// Facebook's "People You May Know" card: big square photo up top, name
+// and mutual-friend count below, then a full-width primary Add action
+// with a quiet dismiss next to it — a grid card, not a list row.
+function SuggestionCard({ person, onClick, onAdd, onDismiss }) {
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+      <button
+        type="button"
+        aria-label="Not interested"
+        onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+        style={{
+          position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: '50%',
+          border: 'none', background: 'rgba(0,0,0,0.35)', color: '#fff', fontSize: '0.8rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1,
+        }}
+      >
+        ×
+      </button>
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          width: '100%', aspectRatio: '1 / 1', border: 'none', cursor: 'pointer', padding: 0,
+          background: 'var(--parchment, #f1ece2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {person.avatar_url ? (
+          <img src={person.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--maroon)' }}>
+            {person.full_name ? person.full_name.charAt(0) : '?'}
+          </span>
+        )}
+      </button>
+      <div style={{ padding: 'var(--sp-2) var(--sp-3) var(--sp-3)' }}>
+        <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+          <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
+          <VerifiedBadge verified={person.verified} size={12} />
+        </button>
+        {typeof person.mutual_friends === 'number' && (
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>
+            {person.mutual_friends} mutual friend{person.mutual_friends === 1 ? '' : 's'}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ width: '100%', padding: '7px 0', marginTop: 'var(--sp-2)', fontSize: 'var(--fs-sm)' }}
+          onClick={(e) => { e.stopPropagation(); onAdd(); }}
+        >
+          Add Friend
+        </button>
+      </div>
+    </div>
   );
 }

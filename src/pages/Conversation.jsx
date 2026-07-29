@@ -61,12 +61,31 @@ export default function Conversation() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const [msgs, convs] = await Promise.all([
+      // The conversation being opened might be an accepted chat, a
+      // pending message request, or (rarely) a blocked one — it is NOT
+      // guaranteed to be in the 'active' filter, which is what caused
+      // the bug: a message request opened with `conv` staying null, so
+      // `is_request` never resolved and the Accept button never showed.
+      // Check 'active' and 'requests' together (the two common entry
+      // points), and only fall back to 'blocked' if neither has it.
+      const [msgs, activeList, requestList] = await Promise.all([
         ConversationsAPI.messages(conversationId),
-        ConversationsAPI.list(),
+        ConversationsAPI.list('active'),
+        ConversationsAPI.list('requests'),
       ]);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      setConv((convs || []).find((c) => c.id === conversationId) || null);
+
+      let found = [
+        ...(Array.isArray(activeList) ? activeList : []),
+        ...(Array.isArray(requestList) ? requestList : []),
+      ].find((c) => c.id === conversationId);
+
+      if (!found) {
+        const blockedList = await ConversationsAPI.list('blocked').catch(() => []);
+        found = (Array.isArray(blockedList) ? blockedList : []).find((c) => c.id === conversationId);
+      }
+
+      setConv(found || null);
     } catch (err) {
       setError(err.message || 'Could not load this conversation.');
     } finally {

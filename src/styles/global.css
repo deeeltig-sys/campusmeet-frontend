@@ -339,10 +339,64 @@ a { color: inherit; text-decoration: none; }
 
 .reactor-emoji { font-size: 1.1rem; flex-shrink: 0; }
 
+.comment-thread-block {
+  padding-top: var(--sp-1);
+}
+.comment-thread-block + .comment-thread-block { border-top: 1px solid var(--line); }
+
 .comment-row {
   padding: var(--sp-3) 0;
 }
-.comment-row + .comment-row { border-top: 1px solid var(--line); }
+.comment-thread-block .comment-row { padding: var(--sp-2) 0; }
+.comment-thread-block > .comment-row:first-child { padding-top: var(--sp-2); }
+
+.comment-row-reply {
+  margin-left: 34px;
+  padding-top: var(--sp-2) !important;
+  padding-bottom: var(--sp-2) !important;
+}
+
+.comment-reply-composer {
+  display: flex;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2) 34px;
+}
+.comment-reply-composer textarea {
+  flex: 1;
+  resize: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  padding: 6px var(--sp-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  max-height: 70px;
+}
+.comment-reply-composer textarea:focus { outline: none; border-color: var(--gold); }
+
+.comment-thread {
+  margin-left: 34px;
+}
+
+.comment-thread-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: none;
+  border: none;
+  padding: var(--sp-2) 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.comment-thread-toggle:hover { color: var(--maroon); }
+.comment-thread-line {
+  width: 18px;
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
+}
 
 .comment-row-header {
   display: flex;
@@ -382,6 +436,33 @@ a { color: inherit; text-decoration: none; }
   max-height: 90px;
 }
 .comment-composer textarea:focus { outline: none; border-color: var(--gold); }
+
+/* ---- New posts pill (FB/IG/X pattern) ---- */
+.new-posts-pill {
+  position: sticky;
+  top: var(--sp-2);
+  z-index: 15;
+  margin: 0 auto var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--maroon-deep);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  animation: new-posts-pill-in 0.2s ease;
+}
+@keyframes new-posts-pill-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* ---- Pull to refresh ---- */
 .pull-refresh-indicator {

@@ -32,6 +32,11 @@ export default function Feed() {
   const touchStartY = useRef(null);
   const [pullDistance, setPullDistance] = useState(0);
 
+  // The FB/IG/X "New posts" pill: id of the newest post the person has
+  // actually seen, plus whether a background peek found something newer.
+  const latestSeenIdRef = useRef(null);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+
   // ---- Initial load ----
   const load = useCallback(async () => {
     setError('');
@@ -41,6 +46,8 @@ export default function Feed() {
       setPosts(list);
       setOffset(list.length);
       setHasMore(list.length === PAGE_SIZE);
+      latestSeenIdRef.current = list[0]?.id ?? null;
+      setNewPostsAvailable(false);
     } catch (err) {
       setError(err.message || 'Could not load the feed.');
     } finally {
@@ -73,12 +80,43 @@ export default function Feed() {
       setPosts(list);
       setOffset(list.length);
       setHasMore(list.length === PAGE_SIZE);
+      latestSeenIdRef.current = list[0]?.id ?? null;
+      setNewPostsAvailable(false);
     } catch (err) {
       setError(err.message || 'Could not refresh the feed.');
     } finally {
       setRefreshing(false);
       setPullDistance(0);
     }
+  }
+
+  // ---- "New posts" pill ----
+  // A light peek at just the newest post, on an interval, while the
+  // person is reading further down the feed. This is what makes
+  // pull-to-refresh feel like Facebook instead of a plain refresh
+  // button: the app tells you there's something new rather than
+  // waiting for you to go check.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (refreshing || loading) return;
+      try {
+        const data = await PostsAPI.feed(1, 0, scope);
+        const list = Array.isArray(data) ? data : data?.posts || [];
+        const newestId = list[0]?.id;
+        if (newestId && newestId !== latestSeenIdRef.current) {
+          setNewPostsAvailable(true);
+        }
+      } catch {
+        // A failed background peek is invisible to the person by design —
+        // it just tries again on the next tick.
+      }
+    }, 45000);
+    return () => clearInterval(interval);
+  }, [scope, refreshing, loading]);
+
+  function handleNewPostsClick() {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    handleRefresh();
   }
 
   function handleTouchStart(e) {
@@ -109,6 +147,14 @@ export default function Feed() {
       setPullDistance(0);
     }
     touchStartY.current = null;
+  }
+
+  function handleTouchCancel() {
+    // The OS can interrupt a touch mid-gesture (incoming call, system
+    // notification drawer) — without this the indicator could get stuck
+    // half-open since neither touchmove nor touchend fires again.
+    touchStartY.current = null;
+    setPullDistance(0);
   }
 
   // ---- Infinite scroll ----
@@ -201,6 +247,7 @@ export default function Feed() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
       <div
         className="pull-refresh-indicator"
@@ -208,6 +255,15 @@ export default function Feed() {
       >
         {refreshing ? 'Refreshing…' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
       </div>
+
+      {newPostsAvailable && !refreshing && (
+        <button type="button" className="new-posts-pill" onClick={handleNewPostsClick}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          New posts
+        </button>
+      )}
 
       <header className="feed-header">
         <button

@@ -226,8 +226,15 @@ export const ProfileAPI = {
 // ---- Comments ----
 export const CommentsAPI = {
   list: (postId) => request(`/api/posts/${postId}/comments`),
-  create: (postId, content) =>
-    request(`/api/posts/${postId}/comments`, { method: 'POST', body: { content }, auth: true }),
+  // parentCommentId is optional — omitted (null) for a top-level comment,
+  // set to the top-level comment's id for a reply. Threading is one level
+  // deep (matches IG/X: you reply to a comment, not to a reply).
+  create: (postId, content, parentCommentId = null) =>
+    request(`/api/posts/${postId}/comments`, {
+      method: 'POST',
+      body: parentCommentId ? { content, parent_comment_id: parentCommentId } : { content },
+      auth: true,
+    }),
   update: (postId, commentId, content) =>
     request(`/api/posts/${postId}/comments/${commentId}`, { method: 'PATCH', body: { content }, auth: true }),
   softDelete: (postId, commentId) =>
