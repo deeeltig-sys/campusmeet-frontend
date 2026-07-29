@@ -26,7 +26,15 @@ export default function BottomNav() {
     }
     poll();
     const interval = setInterval(poll, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
+    // The Notifications page can't reach into this component's state
+    // directly, so it announces read-state changes via this event
+    // instead of the badge sitting stale until the next 30s tick.
+    window.addEventListener('campusmeet:notifications-read', poll);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('campusmeet:notifications-read', poll);
+    };
   }, []);
 
   return (

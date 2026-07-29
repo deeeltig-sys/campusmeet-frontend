@@ -7,12 +7,19 @@ const NOTIF_TEXT = {
   comment: (name) => `${name} commented on your post`,
   reaction: (name) => `${name} reacted to your post`,
   message: (name) => `${name} sent you a message`,
+  // The app has two separate relationship systems — one-way Follow and
+  // mutual Friends with a request/accept flow — and only Follow was
+  // wired up here. A friend request or acceptance previously fell
+  // through to generic "New activity" text with no tap action.
+  friend_request: (name) => `${name} sent you a friend request`,
+  friend_accept: (name) => `${name} accepted your friend request`,
 };
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [markingAll, setMarkingAll] = useState(false);
   const navigate = useNavigate();
 
   const loadNotifications = useCallback(async () => {
@@ -30,13 +37,24 @@ export default function Notifications() {
     loadNotifications().finally(() => setLoading(false));
   }, [loadNotifications]);
 
+  // BottomNav's badge count is driven by its own 30s poll, which has no
+  // way to know we just marked things read here — this event lets it
+  // re-check immediately instead of showing a stale count for half a
+  // minute after the person just cleared their notifications.
+  function announceReadStateChanged() {
+    window.dispatchEvent(new CustomEvent('campusmeet:notifications-read'));
+  }
+
   async function handleNotifTap(n) {
     if (!n.read) {
       NotificationsAPI.markRead(n.id).catch(() => {});
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+      announceReadStateChanged();
     }
-    if (n.type === 'follow' && n.actor_id) {
+    if ((n.type === 'follow' || n.type === 'friend_accept') && n.actor_id) {
       navigate(`/profile/${n.actor_id}`);
+    } else if (n.type === 'friend_request') {
+      navigate('/friends');
     } else if (n.type === 'message' && n.target_id) {
       navigate(`/inbox/messages/${n.target_id}`);
     } else if ((n.type === 'comment' || n.type === 'reaction') && n.target_id) {
@@ -44,11 +62,34 @@ export default function Notifications() {
     }
   }
 
+  async function handleMarkAllRead() {
+    if (markingAll) return;
+    setMarkingAll(true);
+    try {
+      await NotificationsAPI.markAllRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      announceReadStateChanged();
+    } catch (err) {
+      setError(err.message || 'Could not mark everything read.');
+    } finally {
+      setMarkingAll(false);
+    }
+  }
+
+  const hasUnread = notifications.some((n) => !n.read);
+
   return (
     <div className="screen">
-      <header style={{ marginBottom: 'var(--sp-4)' }}>
-        <p className="eyebrow">Notifications</p>
-        <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's new</h1>
+      <header style={{ marginBottom: 'var(--sp-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <p className="eyebrow">Notifications</p>
+          <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's new</h1>
+        </div>
+        {hasUnread && (
+          <button type="button" className="post-action-link" onClick={handleMarkAllRead} disabled={markingAll}>
+            {markingAll ? '…' : 'Mark all read'}
+          </button>
+        )}
       </header>
 
       {error && <div className="banner-error">{error}</div>}
@@ -78,7 +119,7 @@ export default function Notifications() {
                   {(NOTIF_TEXT[n.type] || (() => 'New activity'))(n.actor_full_name || 'Someone')}
                 </p>
                 <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
-                  {new Date(n.created_at).toLocaleString()}
+                  {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
                 </time>
               </div>
               {!n.read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--maroon)' }} />}
