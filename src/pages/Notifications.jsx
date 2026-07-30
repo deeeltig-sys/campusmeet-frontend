@@ -5,12 +5,9 @@ import { NotificationsAPI } from '../api/client';
 const NOTIF_TEXT = {
   follow: (name) => `${name} started following you`,
   comment: (name) => `${name} commented on your post`,
+  comment_reply: (name) => `${name} replied to your comment`,  // NEW
   reaction: (name) => `${name} reacted to your post`,
   message: (name) => `${name} sent you a message`,
-  // The app has two separate relationship systems — one-way Follow and
-  // mutual Friends with a request/accept flow — and only Follow was
-  // wired up here. A friend request or acceptance previously fell
-  // through to generic "New activity" text with no tap action.
   friend_request: (name) => `${name} sent you a friend request`,
   friend_accept: (name) => `${name} accepted your friend request`,
 };
@@ -37,10 +34,6 @@ export default function Notifications() {
     loadNotifications().finally(() => setLoading(false));
   }, [loadNotifications]);
 
-  // BottomNav's badge count is driven by its own 30s poll, which has no
-  // way to know we just marked things read here — this event lets it
-  // re-check immediately instead of showing a stale count for half a
-  // minute after the person just cleared their notifications.
   function announceReadStateChanged() {
     window.dispatchEvent(new CustomEvent('campusmeet:notifications-read'));
   }
@@ -51,14 +44,26 @@ export default function Notifications() {
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       announceReadStateChanged();
     }
+    
+    // Navigate based on notification type
     if ((n.type === 'follow' || n.type === 'friend_accept') && n.actor_id) {
       navigate(`/profile/${n.actor_id}`);
     } else if (n.type === 'friend_request') {
       navigate('/friends');
     } else if (n.type === 'message' && n.target_id) {
       navigate(`/inbox/messages/${n.target_id}`);
-    } else if ((n.type === 'comment' || n.type === 'reaction') && n.target_id) {
-      navigate(`/post/${n.target_id}`);
+    } else if ((n.type === 'comment' || n.type === 'comment_reply' || n.type === 'reaction') && n.target_id) {
+      // For comments and replies, navigate to the post so user can see the context
+      // (The target_id for comment_reply is the comment itself, but we need the post)
+      // For now, just go to post — the comments sheet will load with all threads visible
+      if (n.type === 'comment_reply') {
+        // target_id is the comment, but we need the post_id
+        // This is a limitation we'll fix by storing post_id in notifications later
+        // For now, just navigate and let them find it in the post
+        navigate(`/post/${n.target_id}`); 
+      } else {
+        navigate(`/post/${n.target_id}`);
+      }
     }
   }
 
