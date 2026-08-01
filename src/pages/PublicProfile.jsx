@@ -8,6 +8,7 @@ import FriendButton from '../components/FriendButton';
 import ReportModal from '../components/ReportModal';
 import BackHeader from '../components/BackHeader';
 import PostGrid from '../components/PostGrid';
+import FollowListModal from '../components/FollowListModal';
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaSnapchat, FaTiktok, FaXTwitter,
   FaLinkedin, FaTelegram, FaYoutube, FaThreads, FaDiscord,
@@ -58,6 +59,7 @@ export default function PublicProfile() {
   const [error, setError] = useState('');
   const [showReport, setShowReport] = useState(false);
   const [messaging, setMessaging] = useState(false);
+  const [followListMode, setFollowListMode] = useState(null); // null | 'followers' | 'following'
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -130,8 +132,20 @@ export default function PublicProfile() {
               </p>
             )}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--sp-4)', marginTop: 'var(--sp-2)' }}>
-              <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{profile.follower_count || 0}</strong> followers</span>
-              <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{profile.following_count || 0}</strong> following</span>
+              <button
+                type="button"
+                onClick={() => setFollowListMode('followers')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+              >
+                <strong>{profile.follower_count || 0}</strong> followers
+              </button>
+              <button
+                type="button"
+                onClick={() => setFollowListMode('following')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+              >
+                <strong>{profile.following_count || 0}</strong> following
+              </button>
             </div>
           </div>
 

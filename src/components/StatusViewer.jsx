@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { StatusesAPI } from '../api/client';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
@@ -7,6 +8,7 @@ const SLIDE_DURATION_MS = 5000;
 
 export default function StatusViewer({ groups, startIndex, onClose }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [groupIndex, setGroupIndex] = useState(startIndex);
   const [statusIndex, setStatusIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -125,10 +127,20 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', padding: 'var(--sp-3)' }}>
-        <div className="avatar-circle" style={{ width: 32, height: 32 }}>
+        <button
+          type="button"
+          onClick={() => { onClose?.(); navigate(isOwn ? '/profile' : `/profile/${group.author.id}`); }}
+          className="avatar-circle"
+          style={{ width: 32, height: 32, border: 'none', padding: 0, cursor: 'pointer' }}
+        >
           {group.author.avatar_url ? <img src={group.author.avatar_url} alt="" /> : (group.author.full_name?.charAt(0) || '?')}
-        </div>
-        <span style={{ color: '#fff', fontSize: 'var(--fs-sm)', fontWeight: 600, flex: 1 }}>{group.author.full_name}</span>
+        </button>
+        <span
+          onClick={() => { onClose?.(); navigate(isOwn ? '/profile' : `/profile/${group.author.id}`); }}
+          style={{ color: '#fff', fontSize: 'var(--fs-sm)', fontWeight: 600, flex: 1, cursor: 'pointer' }}
+        >
+          {group.author.full_name}
+        </span>
         {isOwn && (
           <button type="button" onClick={handleDelete} aria-label="Delete status" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
             Delete

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import BackHeader from '../components/BackHeader';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 
 function timeLabel(iso) {
@@ -160,8 +159,43 @@ export default function Conversation() {
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: 'var(--sp-5) var(--sp-4) 0', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
-        <div style={{ flex: 1 }}>
-          <BackHeader fallback="/inbox" title={conv?.other_user?.full_name || 'Conversation'} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+          <button
+            onClick={() => {
+              if (window.history.length > 2) navigate(-1); else navigate('/inbox');
+            }}
+            aria-label="Go back"
+            style={{
+              width: 36, height: 36, minWidth: 36, borderRadius: '999px', border: '1.5px solid var(--line)',
+              background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18l-6-6 6-6" stroke="var(--maroon-deep)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {conv?.other_user?.id ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/profile/${conv.other_user.id}`)}
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+            >
+              <div className="avatar-circle" style={{ width: 32, height: 32 }}>
+                {conv.other_user.avatar_url ? (
+                  <img src={conv.other_user.avatar_url} alt="" />
+                ) : (
+                  (conv.other_user.full_name || '?').charAt(0)
+                )}
+              </div>
+              <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
+                {conv.other_user.full_name || 'Conversation'}
+              </h1>
+            </button>
+          ) : (
+            <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
+              {conv?.other_user?.full_name || 'Conversation'}
+            </h1>
+          )}
         </div>
         <button
           type="button"

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import VerifiedBadge from './VerifiedBadge';
 import { REACTION_ICONS } from './icons';
 
 export default function ReactorsModal({ postId, onClose }) {
+  const navigate = useNavigate();
   const [reactors, setReactors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +41,13 @@ export default function ReactorsModal({ postId, onClose }) {
             reactors.map((r, i) => {
               const Icon = REACTION_ICONS[r.type];
               return (
-                <div className="reactor-row" key={`${r.user_id || i}-${r.type}`}>
+                <button
+                  type="button"
+                  className="reactor-row"
+                  key={`${r.user_id || i}-${r.type}`}
+                  onClick={() => { if (r.user_id) { onClose?.(); navigate(`/profile/${r.user_id}`); } }}
+                  style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', cursor: r.user_id ? 'pointer' : 'default' }}
+                >
                   <div className="avatar-circle" style={{ width: 30, height: 30, fontSize: '0.8rem' }}>
                     {r.avatar_url ? <img src={r.avatar_url} alt="" /> : (r.full_name ? r.full_name.charAt(0) : '?')}
                   </div>
@@ -48,7 +56,7 @@ export default function ReactorsModal({ postId, onClose }) {
                     <VerifiedBadge verified={r.verified} size={13} />
                   </div>
                   {Icon && <Icon size={17} color="var(--maroon)" />}
-                </div>
+                </button>
               );
             })
           )}

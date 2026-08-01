@@ -57,7 +57,7 @@ export default function SuggestedPeople() {
             >
               <button
                 type="button"
-                onClick={() => navigate(`/u/${person.id}`)}
+                onClick={() => navigate(`/profile/${person.id}`)}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
                 {person.avatar_url ? (
@@ -77,7 +77,7 @@ export default function SuggestedPeople() {
                 )}
               </button>
               <span
-                onClick={() => navigate(`/u/${person.id}`)}
+                onClick={() => navigate(`/profile/${person.id}`)}
                 style={{
                   fontSize: 'var(--fs-xs)', fontWeight: 600, cursor: 'pointer',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',

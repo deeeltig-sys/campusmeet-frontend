@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CommentsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from './VerifiedBadge';
@@ -6,6 +7,7 @@ import ReportModal from './ReportModal';
 
 export default function CommentsSheet({ postId, onClose, onCommentCountChange }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -138,14 +140,22 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
     return (
       <div className={isReply ? 'comment-row comment-row-reply' : 'comment-row'} key={c.id}>
         <div className="comment-row-header">
-          <div className="avatar-circle" style={{ width: isReply ? 22 : 26, height: isReply ? 22 : 26, fontSize: '0.7rem' }}>
+          <button
+            type="button"
+            onClick={() => c.author_id && navigate(`/profile/${c.author_id}`)}
+            className="avatar-circle"
+            style={{ width: isReply ? 22 : 26, height: isReply ? 22 : 26, fontSize: '0.7rem', border: 'none', padding: 0, cursor: c.author_id ? 'pointer' : 'default' }}
+          >
             {c.author_avatar_url ? (
               <img src={c.author_avatar_url} alt="" />
             ) : (
               c.author_full_name ? c.author_full_name.charAt(0) : '?'
             )}
-          </div>
-          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600 }}>
+          </button>
+          <span
+            onClick={() => c.author_id && navigate(`/profile/${c.author_id}`)}
+            style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, cursor: c.author_id ? 'pointer' : 'default' }}
+          >
             {c.author_full_name || 'Student'}
           </span>
           <VerifiedBadge verified={c.author_verified} size={12} />

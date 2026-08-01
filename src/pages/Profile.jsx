@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PostGrid from '../components/PostGrid';
 import SocialLinksModal from '../components/SocialLinksModal';
 import EditProfileModal from '../components/EditProfileModal';
 import ProfileStrengthMeter, { computeProfileStrength, STRONG_PROFILE_THRESHOLD } from '../components/ProfileStrengthMeter';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
+import FollowListModal from '../components/FollowListModal';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -15,6 +17,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -22,6 +25,7 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
 
   const [tab, setTab] = useState('posts'); // 'posts' | 'saved'
   const [postCount, setPostCount] = useState(0);
@@ -165,8 +169,20 @@ export default function Profile() {
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--sp-5)', margin: 'var(--sp-3) 0' }}>
           <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{postCount}</strong> posts</span>
-          <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{friendCount}</strong> friends</span>
-          <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{user.follower_count || 0}</strong> followers</span>
+          <button
+            type="button"
+            onClick={() => navigate('/friends')}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+          >
+            <strong>{friendCount}</strong> friends
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFollowers(true)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+          >
+            <strong>{user.follower_count || 0}</strong> followers
+          </button>
         </div>
 
         <button type="button" className="btn btn-ghost" style={{ padding: '8px 24px' }} onClick={() => setShowEditModal(true)}>
@@ -218,6 +234,13 @@ export default function Profile() {
           initialLinks={user?.social_links || {}}
           onClose={() => setShowSocialModal(false)}
           onSaved={() => { refresh(); setShowSocialModal(false); }}
+        />
+      )}
+      {showFollowers && (
+        <FollowListModal
+          userId={user.id}
+          mode="followers"
+          onClose={() => setShowFollowers(false)}
         />
       )}
 
