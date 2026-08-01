@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { PostsAPI, UsersAPI } from '../api/client';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { PostsAPI, UsersAPI, HashtagsAPI } from '../api/client';
 import PostCard from '../components/PostCard';
 import VerifiedBadge from '../components/VerifiedBadge';
 
 export default function Search() {
   const location = useLocation();
+  const navigate = useNavigate();
   // Friends' search-people icon (and anywhere else that wants to land
   // straight on People instead of the default Posts tab) passes this
   // via navigate(..., { state: { mode: 'people' } }).
@@ -17,6 +18,18 @@ export default function Search() {
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
   const hitFired = useRef(new Set());
+  const [trending, setTrending] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+
+  // Loaded once up front — this is what shows in Posts mode before
+  // anyone's typed anything, the same "Explore" role IG's search tab
+  // plays when it's empty.
+  useEffect(() => {
+    HashtagsAPI.trending()
+      .then((data) => setTrending(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setTrendingLoading(false));
+  }, []);
 
   const runSearch = useCallback(async (q, searchMode) => {
     if (q.trim().length < 2) {
@@ -147,6 +160,34 @@ export default function Search() {
 
       {!loading && !searched && query.trim().length > 0 && query.trim().length < 2 && (
         <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Keep typing — at least 2 characters.</p>
+      )}
+
+      {!searched && mode === 'posts' && query.trim().length === 0 && (
+        <div style={{ marginBottom: 'var(--sp-4)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>Trending on campus</p>
+          {trendingLoading ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Loading…</p>
+          ) : trending.length === 0 ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Nothing trending yet — be the first to start a tag.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+              {trending.map((h) => (
+                <button
+                  key={h.tag}
+                  type="button"
+                  onClick={() => navigate(`/hashtag/${h.tag}`)}
+                  className="card"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <strong style={{ fontSize: 'var(--fs-sm)', color: 'var(--maroon)' }}>#{h.tag}</strong>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)' }}>
+                    {h.post_count} {h.post_count === 1 ? 'post' : 'posts'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {!loading && mode === 'posts' &&

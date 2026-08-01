@@ -259,6 +259,12 @@ export const FollowsAPI = {
   following: (userId) => request(`/api/users/${userId}/following`),
 };
 
+// ---- Hashtags / Explore ----
+export const HashtagsAPI = {
+  trending: (limit = 20) => request(`/api/hashtags/trending?limit=${limit}`),
+  posts: (tag) => request(`/api/hashtags/${encodeURIComponent(tag)}/posts`),
+};
+
 // ---- Users (search + public profile) ----
 export const UsersAPI = {
   search: (q) => request(`/api/users/search?q=${encodeURIComponent(q)}`),

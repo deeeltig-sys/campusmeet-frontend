@@ -11,6 +11,7 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Feed from './pages/Feed';
 import Search from './pages/Search';
+import HashtagFeed from './pages/HashtagFeed';
 import CreatePost from './pages/CreatePost';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
@@ -55,6 +56,7 @@ function AppRoutes() {
 
         <Route path="/feed" element={<ProtectedLayout><Feed /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><Search /></ProtectedLayout>} />
+        <Route path="/hashtag/:tag" element={<ProtectedLayout><HashtagFeed /></ProtectedLayout>} />
         <Route path="/create" element={<ProtectedLayout><CreatePost /></ProtectedLayout>} />
         <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
         <Route path="/profile/:userId" element={<ProtectedLayout><PublicProfile /></ProtectedLayout>} />

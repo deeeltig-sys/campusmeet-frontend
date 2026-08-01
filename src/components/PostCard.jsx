@@ -6,6 +6,7 @@ import { REACTION_TYPES, PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { ReactionIcon, CommentIcon } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
+import HashtagText from './HashtagText';
 
 // Reaction buttons use plain emoji, not the custom line-icon SVGs from
 // icons.jsx — only these 4 buttons.
@@ -202,7 +203,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
           </div>
         </>
       ) : (
-        <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>{content}</p>
+        <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>
+          <HashtagText text={content} />
+        </p>
       )}
 
       {post.image_url && (
