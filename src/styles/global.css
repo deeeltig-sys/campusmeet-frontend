@@ -834,6 +834,38 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+/* ============================================================
+   DESKTOP RIGHT RAIL — the actual 3-column Facebook shape. Below
+   1100px this renders nothing at all (not just visually hidden —
+   `display: none` so it doesn't reserve space or fire its data
+   fetch on tablet/mobile where there isn't room for it). At 1100px+
+   it becomes a fixed 300px column on the right, matching the left
+   sidebar's `position: fixed` approach so it never scrolls out of
+   view. Tablet widths (768px-1099px) keep exactly the prior 2-column
+   shape (left nav + centered feed) — nothing changes for them.
+   ============================================================ */
+.desktop-right-rail {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .desktop-right-rail {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    overflow-y: auto;
+    padding: var(--sp-6) var(--sp-3);
+  }
+  /* Room for the fixed rail on the right, same idea as .protected-main's
+     existing margin-left for the fixed left sidebar. */
+  .protected-main {
+    margin-right: 300px;
+  }
+}
+
 .bottom-nav {
   display: flex;
   border-top: 1px solid var(--line);

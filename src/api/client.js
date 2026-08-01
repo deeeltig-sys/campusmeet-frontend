@@ -319,6 +319,7 @@ export const StatsAPI = {
 
 // ---- Admin (Verify USTED flow) ----
 export const AdminAPI = {
+  stats: () => request('/api/admin/stats', { auth: true }),
   listUsers: (verified) =>
     request(`/api/admin/users${verified !== undefined ? `?verified=${verified}` : ''}`, { auth: true }),
   verify: (userId) => request(`/api/admin/users/${userId}/verify`, { method: 'POST', auth: true }),

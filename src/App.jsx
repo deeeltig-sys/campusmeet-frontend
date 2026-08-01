@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BottomNav from './components/BottomNav';
+import RightRail from './components/RightRail';
 import UpdateBanner from './components/UpdateBanner';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
 
@@ -38,6 +39,7 @@ function ProtectedLayout({ children }) {
       <div className="protected-main">
         {children}
       </div>
+      <RightRail />
     </div>
   );
 }
