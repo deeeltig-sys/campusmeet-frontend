@@ -980,3 +980,8 @@ a { color: inherit; text-decoration: none; }
 .profile-strength-ring {
   border: 2.5px solid var(--gold-bright);
 }
+
+/* Used by the status-composer send button's loading spinner. */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

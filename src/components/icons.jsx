@@ -70,6 +70,19 @@ export function CommentIcon({ size = 15, color = 'var(--ink-soft)' }) {
   );
 }
 
+// WhatsApp/Facebook-status-composer style paper plane — used on the
+// circular send button when posting a status.
+export function SendIcon({ size = 20, color = '#fff' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3.5 11.5L20 4l-6.2 16-3-6.8-6.8-2.7z"
+        fill={color} stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export const REACTION_ICONS = {
   fire: FireIcon,
   cosign: CosignIcon,

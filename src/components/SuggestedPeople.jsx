@@ -43,7 +43,25 @@ export default function SuggestedPeople() {
 
   return (
     <div className="card" style={{ marginBottom: 'var(--sp-4)', padding: 'var(--sp-3)' }}>
-      <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)', paddingLeft: 4 }}>People to follow</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-3)', paddingLeft: 4, paddingRight: 4 }}>
+        <button
+          type="button"
+          onClick={() => navigate('/friends', { state: { tab: 'requests' } })}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <p className="eyebrow" style={{ margin: 0 }}>People to follow</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/friends', { state: { tab: 'requests' } })}
+          style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--maroon)',
+          }}
+        >
+          See all →
+        </button>
+      </div>
       <div style={{ display: 'flex', gap: 'var(--sp-3)', overflowX: 'auto', paddingBottom: 4 }}>
         {people.map((person) => {
           const following = followingIds.has(person.id);
