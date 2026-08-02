@@ -5,8 +5,11 @@ import { NotificationsAPI } from '../api/client';
 const NOTIF_TEXT = {
   follow: (name) => `${name} started following you`,
   comment: (name) => `${name} commented on your post`,
+  comment_reply: (name) => `${name} replied to your comment`,
   reaction: (name) => `${name} reacted to your post`,
   message: (name) => `${name} sent you a message`,
+  friend_request: (name) => `${name} sent you a friend request`,
+  friend_accept: (name) => `${name} accepted your friend request`,
 };
 
 export default function Notifications() {
@@ -35,11 +38,16 @@ export default function Notifications() {
       NotificationsAPI.markRead(n.id).catch(() => {});
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
     }
-    if (n.type === 'follow' && n.actor_id) {
+    if ((n.type === 'follow' || n.type === 'friend_accept') && n.actor_id) {
       navigate(`/profile/${n.actor_id}`);
+    } else if (n.type === 'friend_request') {
+      // target_id here is the friend_request row's id, not a user or
+      // post — there's nowhere to deep-link to except the Requests
+      // tab itself, where the actual Accept/Decline buttons live.
+      navigate('/friends', { state: { tab: 'requests' } });
     } else if (n.type === 'message' && n.target_id) {
       navigate(`/inbox/messages/${n.target_id}`);
-    } else if ((n.type === 'comment' || n.type === 'reaction') && n.target_id) {
+    } else if ((n.type === 'comment' || n.type === 'comment_reply' || n.type === 'reaction') && n.target_id) {
       navigate(`/post/${n.target_id}`);
     }
   }

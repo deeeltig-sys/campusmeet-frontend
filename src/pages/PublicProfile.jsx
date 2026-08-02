@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { UsersAPI, ConversationsAPI, BlocksAPI } from '../api/client';
+import { UsersAPI, ConversationsAPI, BlocksAPI, FriendsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from '../components/VerifiedBadge';
 import FollowButton from '../components/FollowButton';
@@ -59,7 +59,8 @@ export default function PublicProfile() {
   const [error, setError] = useState('');
   const [showReport, setShowReport] = useState(false);
   const [messaging, setMessaging] = useState(false);
-  const [followListMode, setFollowListMode] = useState(null); // null | 'followers' | 'following'
+  const [followListMode, setFollowListMode] = useState(null); // null | 'followers' | 'following' | 'friends'
+  const [friendCount, setFriendCount] = useState(0);
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -69,6 +70,9 @@ export default function PublicProfile() {
       .then(setProfile)
       .catch((err) => setError(err.message || 'Could not load this profile.'))
       .finally(() => setLoading(false));
+    FriendsAPI.listOf(userId)
+      .then((data) => setFriendCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => {});
   }, [userId]);
 
   async function handleMessage() {
@@ -132,6 +136,13 @@ export default function PublicProfile() {
               </p>
             )}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--sp-4)', marginTop: 'var(--sp-2)' }}>
+              <button
+                type="button"
+                onClick={() => setFollowListMode('friends')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+              >
+                <strong>{friendCount}</strong> friends
+              </button>
               <button
                 type="button"
                 onClick={() => setFollowListMode('followers')}
@@ -232,6 +243,14 @@ export default function PublicProfile() {
 
       {showReport && (
         <ReportModal targetType="user" targetId={userId} onClose={() => setShowReport(false)} />
+      )}
+
+      {followListMode && (
+        <FollowListModal
+          userId={userId}
+          mode={followListMode}
+          onClose={() => setFollowListMode(null)}
+        />
       )}
     </div>
   );

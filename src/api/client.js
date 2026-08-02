@@ -329,6 +329,9 @@ export const AdminAPI = {
     request(`/api/admin/reports/${reportId}`, { method: 'PATCH', body: { status }, auth: true }),
   yawaVelocity: (windowHours = 6) =>
     request(`/api/admin/reactions/velocity?window_hours=${windowHours}`, { auth: true }),
+  staffList: () => request('/api/admin/staff', { auth: true }),
+  setRole: (userId, role) =>
+    request(`/api/admin/users/${userId}/role`, { method: 'POST', body: { role }, auth: true }),
 };
 
 // ---- Statuses (24hr Stories) ----

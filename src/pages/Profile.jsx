@@ -26,6 +26,7 @@ export default function Profile() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const [tab, setTab] = useState('posts'); // 'posts' | 'saved'
   const [postCount, setPostCount] = useState(0);
@@ -168,7 +169,13 @@ export default function Profile() {
         )}
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--sp-5)', margin: 'var(--sp-3) 0' }}>
-          <span style={{ fontSize: 'var(--fs-sm)' }}><strong>{postCount}</strong> posts</span>
+          <button
+            type="button"
+            onClick={() => setTab('posts')}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+          >
+            <strong>{postCount}</strong> posts
+          </button>
           <button
             type="button"
             onClick={() => navigate('/friends')}
@@ -182,6 +189,13 @@ export default function Profile() {
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
           >
             <strong>{user.follower_count || 0}</strong> followers
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFollowing(true)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-sm)', color: 'inherit' }}
+          >
+            <strong>{user.following_count || 0}</strong> following
           </button>
         </div>
 
@@ -241,6 +255,13 @@ export default function Profile() {
           userId={user.id}
           mode="followers"
           onClose={() => setShowFollowers(false)}
+        />
+      )}
+      {showFollowing && (
+        <FollowListModal
+          userId={user.id}
+          mode="following"
+          onClose={() => setShowFollowing(false)}
         />
       )}
 

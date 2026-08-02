@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FriendsAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 
@@ -14,7 +14,11 @@ const TABS = [
 ];
 
 export default function Friends() {
-  const [tab, setTab] = useState('friends');
+  const location = useLocation();
+  // A friend_request notification navigates here with
+  // { state: { tab: 'requests' } } so it actually lands the person on
+  // the requests they came to act on, not the default Friends tab.
+  const [tab, setTab] = useState(location.state?.tab === 'requests' ? 'requests' : 'friends');
   const [friends, setFriends] = useState([]);
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);

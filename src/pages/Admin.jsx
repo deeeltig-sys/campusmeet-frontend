@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AdminAPI } from '../api/client';
+import { AdminAPI, UsersAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import GoldSparkle from '../components/GoldSparkle';
 import { YawaIcon } from '../components/icons';
@@ -12,10 +12,12 @@ export default function Admin() {
   const [tab, setTab] = useState('overview');
 
   useEffect(() => {
-    if (user && user.role !== 'admin') {
+    if (user && !['admin', 'moderator'].includes(user.role)) {
       navigate('/feed');
     }
   }, [user, navigate]);
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="screen">
@@ -43,6 +45,15 @@ export default function Admin() {
         >
           Reports
         </button>
+        {isAdmin && (
+          <button
+            type="button"
+            className={`tab-btn${tab === 'team' ? ' active' : ''}`}
+            onClick={() => setTab('team')}
+          >
+            Team
+          </button>
+        )}
         <button
           type="button"
           className={`tab-btn${tab === 'velocity' ? ' active' : ''}`}
@@ -55,6 +66,7 @@ export default function Admin() {
       {tab === 'overview' ? <OverviewPanel />
         : tab === 'verify' ? <VerifyPanel />
         : tab === 'reports' ? <ReportsPanel />
+        : tab === 'team' ? <TeamPanel currentUserId={user?.id} isAdmin={isAdmin} />
         : <VelocityPanel />}
     </div>
   );
@@ -111,6 +123,159 @@ function OverviewPanel() {
         </div>
       ))}
     </div>
+  );
+}
+
+// Team access — search for a ProjectX teammate's existing CampusMEET
+// account and grant/revoke moderator or admin. Backend enforces
+// @require_admin on the actual role-change route (routes/admin.py),
+// so even if this tab were somehow reached by a moderator, the calls
+// would 403 — this UI gate (isAdmin) is just so a moderator never
+// sees promote/demote controls in the first place, not the real
+// security boundary.
+function TeamPanel({ currentUserId, isAdmin }) {
+  const [staff, setStaff] = useState([]);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [working, setWorking] = useState(null);
+  const [error, setError] = useState('');
+
+  const loadStaff = useCallback(async () => {
+    try {
+      const data = await AdminAPI.staffList();
+      setStaff(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Could not load the current team.');
+    }
+  }, []);
+
+  useEffect(() => { loadStaff(); }, [loadStaff]);
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    setError('');
+    try {
+      const data = await UsersAPI.search(query.trim());
+      setResults(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Search failed.');
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleSetRole(userId, role) {
+    setWorking(userId);
+    setError('');
+    try {
+      await AdminAPI.setRole(userId, role);
+      await loadStaff();
+      setResults((prev) => prev.map((r) => (r.id === userId ? { ...r, role } : r)));
+    } catch (err) {
+      setError(err.message || 'Could not update that role.');
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  function RoleActions({ person }) {
+    if (!isAdmin) return null;
+    const isSelf = person.id === currentUserId;
+    return (
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {person.role !== 'moderator' && (
+          <button
+            type="button" className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 'var(--fs-xs)' }}
+            disabled={working === person.id}
+            onClick={() => handleSetRole(person.id, 'moderator')}
+          >
+            Make moderator
+          </button>
+        )}
+        {person.role !== 'admin' && (
+          <button
+            type="button" className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 'var(--fs-xs)' }}
+            disabled={working === person.id}
+            onClick={() => handleSetRole(person.id, 'admin')}
+          >
+            Make admin
+          </button>
+        )}
+        {person.role !== 'student' && (
+          <button
+            type="button" className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 'var(--fs-xs)' }}
+            disabled={working === person.id || isSelf}
+            title={isSelf ? "You can't remove your own access" : undefined}
+            onClick={() => handleSetRole(person.id, 'student')}
+          >
+            Remove access
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {error && <div className="banner-error">{error}</div>}
+
+      <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>Current team</p>
+      {staff.length === 0 ? (
+        <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-4)' }}>
+          Just you, right now.
+        </p>
+      ) : (
+        <div style={{ marginBottom: 'var(--sp-4)' }}>
+          {staff.map((person) => (
+            <div
+              key={person.id} className="card"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' }}
+            >
+              <div>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Unnamed'}</strong>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: 0, textTransform: 'uppercase' }}>
+                  {person.role}
+                </p>
+              </div>
+              <RoleActions person={person} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isAdmin && (
+        <>
+          <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>Grant access</p>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-3)' }}>
+            <input
+              type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name…" style={{ flex: 1 }}
+            />
+            <button type="submit" className="btn btn-primary" disabled={searching}>
+              {searching ? 'Searching…' : 'Search'}
+            </button>
+          </form>
+
+          {results.map((person) => (
+            <div
+              key={person.id} className="card"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' }}
+            >
+              <div>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Unnamed'}</strong>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: 0, textTransform: 'uppercase' }}>
+                  {person.role}
+                </p>
+              </div>
+              <RoleActions person={person} />
+            </div>
+          ))}
+        </>
+      )}
+    </>
   );
 }
 
