@@ -7,6 +7,8 @@ import EditProfileModal from '../components/EditProfileModal';
 import ProfileStrengthMeter, { computeProfileStrength, STRONG_PROFILE_THRESHOLD } from '../components/ProfileStrengthMeter';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 import FollowListModal from '../components/FollowListModal';
+import HighlightsRow from '../components/HighlightsRow';
+import HighlightViewer from '../components/HighlightViewer';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -26,6 +28,7 @@ export default function Profile() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
+  const [openHighlightId, setOpenHighlightId] = useState(null);
   const [showFollowing, setShowFollowing] = useState(false);
 
   const [tab, setTab] = useState('posts'); // 'posts' | 'saved'
@@ -206,6 +209,8 @@ export default function Profile() {
 
       {error && <div className="banner-error">{error}</div>}
 
+      <HighlightsRow userId={user.id} onOpenHighlight={setOpenHighlightId} />
+
       <ProfileStrengthMeter user={user} postCount={postCount} />
 
       {/* ---- Posts / Saved tabs — IG/X pattern ---- */}
@@ -264,6 +269,27 @@ export default function Profile() {
           onClose={() => setShowFollowing(false)}
         />
       )}
+      {openHighlightId && (
+        <HighlightViewer
+          highlightId={openHighlightId}
+          onClose={() => setOpenHighlightId(null)}
+        />
+      )}
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Explore</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+          <button type="button" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/groups')}>
+            Groups
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/events')}>
+            Events
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/insights')}>
+            Insights
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Settings</p>

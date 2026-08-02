@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { ReactionIcon, CommentIcon } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
+import PollBlock from './PollBlock';
 
 // Reaction buttons use plain emoji, not the custom line-icon SVGs from
 // icons.jsx — only these 4 buttons.
@@ -207,6 +208,8 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
           <HashtagText text={content} />
         </p>
       )}
+
+      {post.poll && <PollBlock post={post} />}
 
       {post.image_url && (
         <button

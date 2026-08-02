@@ -148,6 +148,8 @@ export const PostsAPI = {
   save: (postId) => request(`/api/posts/${postId}/save`, { method: 'POST', auth: true }),
   unsave: (postId) => request(`/api/posts/${postId}/save`, { method: 'DELETE', auth: true }),
   saved: () => request('/api/posts/saved', { auth: true }),
+  vote: (postId, optionId) => request(`/api/posts/${postId}/vote`, { method: 'POST', body: { option_id: optionId }, auth: true }),
+  unvote: (postId) => request(`/api/posts/${postId}/vote`, { method: 'DELETE', auth: true }),
 
   // Image posts. This bypasses the generic request() helper since it's
   // multipart, not JSON — the browser sets its own Content-Type boundary,
@@ -380,4 +382,46 @@ export const FriendsAPI = {
   cancel: (requestId) => request(`/api/friends/requests/${requestId}`, { method: 'DELETE', auth: true }),
   unfriend: (userId) => request(`/api/friends/${userId}`, { method: 'DELETE', auth: true }),
   suggestions: (limit = 15) => request(`/api/friends/suggestions?limit=${limit}`, { auth: true }),
+};
+
+// ---- Groups / Communities ----
+export const GroupsAPI = {
+  discover: (limit = 30, offset = 0) => request(`/api/groups?limit=${limit}&offset=${offset}`),
+  mine: () => request('/api/groups/mine', { auth: true }),
+  get: (groupId) => request(`/api/groups/${groupId}`),
+  create: (payload) => request('/api/groups', { method: 'POST', body: payload, auth: true }),
+  join: (groupId) => request(`/api/groups/${groupId}/join`, { method: 'POST', auth: true }),
+  leave: (groupId) => request(`/api/groups/${groupId}/join`, { method: 'DELETE', auth: true }),
+  members: (groupId) => request(`/api/groups/${groupId}/members`),
+  posts: (groupId, limit = 30, offset = 0) =>
+    request(`/api/groups/${groupId}/posts?limit=${limit}&offset=${offset}`),
+};
+
+// ---- Events ----
+export const EventsAPI = {
+  list: (limit = 30, offset = 0) => request(`/api/events?limit=${limit}&offset=${offset}`),
+  listForGroup: (groupId) => request(`/api/events?group_id=${groupId}`),
+  get: (eventId) => request(`/api/events/${eventId}`),
+  create: (payload) => request('/api/events', { method: 'POST', body: payload, auth: true }),
+  rsvp: (eventId, status) => request(`/api/events/${eventId}/rsvp`, { method: 'POST', body: { status }, auth: true }),
+  cancelRsvp: (eventId) => request(`/api/events/${eventId}/rsvp`, { method: 'DELETE', auth: true }),
+  attendees: (eventId, status) =>
+    request(`/api/events/${eventId}/attendees${status ? `?status=${status}` : ''}`),
+};
+
+// ---- Story Highlights ----
+export const HighlightsAPI = {
+  listForUser: (userId) => request(`/api/highlights/users/${userId}`),
+  get: (highlightId) => request(`/api/highlights/${highlightId}`),
+  create: (title) => request('/api/highlights', { method: 'POST', body: { title }, auth: true }),
+  addItem: (highlightId, statusId) =>
+    request(`/api/highlights/${highlightId}/items`, { method: 'POST', body: { status_id: statusId }, auth: true }),
+  delete: (highlightId) => request(`/api/highlights/${highlightId}`, { method: 'DELETE', auth: true }),
+  deleteItem: (highlightId, itemId) =>
+    request(`/api/highlights/${highlightId}/items/${itemId}`, { method: 'DELETE', auth: true }),
+};
+
+// ---- Insights (private, own account only) ----
+export const InsightsAPI = {
+  get: () => request('/api/stats/insights', { auth: true }),
 };

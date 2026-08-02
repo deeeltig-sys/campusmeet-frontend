@@ -22,6 +22,13 @@ import PostView from './pages/PostView';
 import Friends from './pages/Friends';
 import Conversation from './pages/Conversation';
 import Admin from './pages/Admin';
+import Groups from './pages/Groups';
+import CreateGroup from './pages/CreateGroup';
+import GroupDetail from './pages/GroupDetail';
+import Events from './pages/Events';
+import CreateEvent from './pages/CreateEvent';
+import EventDetail from './pages/EventDetail';
+import Insights from './pages/Insights';
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -68,6 +75,13 @@ function AppRoutes() {
         <Route path="/friends" element={<ProtectedLayout><Friends /></ProtectedLayout>} />
         <Route path="/inbox/messages/:conversationId" element={<ProtectedLayout><Conversation /></ProtectedLayout>} />
         <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
+        <Route path="/groups" element={<ProtectedLayout><Groups /></ProtectedLayout>} />
+        <Route path="/groups/create" element={<ProtectedLayout><CreateGroup /></ProtectedLayout>} />
+        <Route path="/groups/:groupId" element={<ProtectedLayout><GroupDetail /></ProtectedLayout>} />
+        <Route path="/events" element={<ProtectedLayout><Events /></ProtectedLayout>} />
+        <Route path="/events/create" element={<ProtectedLayout><CreateEvent /></ProtectedLayout>} />
+        <Route path="/events/:eventId" element={<ProtectedLayout><EventDetail /></ProtectedLayout>} />
+        <Route path="/insights" element={<ProtectedLayout><Insights /></ProtectedLayout>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -43,6 +43,21 @@ export default function RightRail() {
 
   return (
     <aside className="desktop-right-rail">
+      <div className="card" style={{ padding: 'var(--sp-3)', marginBottom: 'var(--sp-3)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>Shortcuts</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <button type="button" onClick={() => navigate('/groups')} className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '6px 8px' }}>
+            Groups
+          </button>
+          <button type="button" onClick={() => navigate('/events')} className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '6px 8px' }}>
+            Events
+          </button>
+          <button type="button" onClick={() => navigate('/insights')} className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '6px 8px' }}>
+            Insights
+          </button>
+        </div>
+      </div>
+
       <div className="card" style={{ padding: 'var(--sp-3)' }}>
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>People you may know</p>
 

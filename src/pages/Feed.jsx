@@ -287,9 +287,36 @@ export default function Feed() {
 
         <button
           type="button"
+          onClick={() => navigate('/groups')}
+          aria-label="Groups"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginLeft: 'auto' }}
+        >
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+            <circle cx="8" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
+            <circle cx="17" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
+            <path d="M2.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+            <path d="M11.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/events')}
+          aria-label="Events"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
+        >
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="5" width="18" height="16" rx="2" stroke="var(--ink)" strokeWidth="2" />
+            <path d="M3 10h18" stroke="var(--ink)" strokeWidth="2" />
+            <path d="M8 3v4M16 3v4" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
           onClick={() => navigate('/search')}
           aria-label="Search"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginLeft: 'auto' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink)" strokeWidth="2" />

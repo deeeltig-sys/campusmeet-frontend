@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { StatusesAPI } from '../api/client';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
+import AddToHighlightModal from './AddToHighlightModal';
 
 const SLIDE_DURATION_MS = 5000;
 
@@ -15,6 +16,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   const [paused, setPaused] = useState(false);
   const rafRef = useRef(null);
   const startRef = useRef(null);
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
 
   const group = groups[groupIndex];
   const current = group?.statuses?.[statusIndex];
@@ -28,7 +30,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   // Auto-advance — a per-status progress bar that fills over
   // SLIDE_DURATION_MS, same visual language as IG/Snapchat stories.
   useEffect(() => {
-    if (!current || paused) return;
+    if (!current || paused || showHighlightPicker) return;
     setProgress(0);
     startRef.current = performance.now();
     function tick(now) {
@@ -44,7 +46,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupIndex, statusIndex, paused]);
+  }, [groupIndex, statusIndex, paused, showHighlightPicker]);
 
   function goNextStatus() {
     if (!group) return;
@@ -142,9 +144,14 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           {group.author.full_name}
         </span>
         {isOwn && (
-          <button type="button" onClick={handleDelete} aria-label="Delete status" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
-            Delete
-          </button>
+          <>
+            <button type="button" onClick={() => setShowHighlightPicker(true)} aria-label="Add to highlight" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
+              Highlight
+            </button>
+            <button type="button" onClick={handleDelete} aria-label="Delete status" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
+              Delete
+            </button>
+          </>
         )}
         <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1 }}>
           ×
@@ -173,6 +180,13 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           <img src={current.image_url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} draggable={false} />
         )}
       </div>
+
+      {showHighlightPicker && (
+        <AddToHighlightModal
+          statusId={current.id}
+          onClose={() => setShowHighlightPicker(false)}
+        />
+      )}
     </div>
   );
 }

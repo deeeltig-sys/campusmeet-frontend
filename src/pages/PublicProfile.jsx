@@ -9,6 +9,8 @@ import ReportModal from '../components/ReportModal';
 import BackHeader from '../components/BackHeader';
 import PostGrid from '../components/PostGrid';
 import FollowListModal from '../components/FollowListModal';
+import HighlightsRow from '../components/HighlightsRow';
+import HighlightViewer from '../components/HighlightViewer';
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaSnapchat, FaTiktok, FaXTwitter,
   FaLinkedin, FaTelegram, FaYoutube, FaThreads, FaDiscord,
@@ -60,6 +62,7 @@ export default function PublicProfile() {
   const [showReport, setShowReport] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [followListMode, setFollowListMode] = useState(null); // null | 'followers' | 'following' | 'friends'
+  const [openHighlightId, setOpenHighlightId] = useState(null);
   const [friendCount, setFriendCount] = useState(0);
   const [blocked, setBlocked] = useState(false);
 
@@ -160,6 +163,8 @@ export default function PublicProfile() {
             </div>
           </div>
 
+          <HighlightsRow userId={userId} onOpenHighlight={setOpenHighlightId} />
+
           {!blocked && (
             <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
               <FriendButton
@@ -250,6 +255,12 @@ export default function PublicProfile() {
           userId={userId}
           mode={followListMode}
           onClose={() => setFollowListMode(null)}
+        />
+      )}
+      {openHighlightId && (
+        <HighlightViewer
+          highlightId={openHighlightId}
+          onClose={() => setOpenHighlightId(null)}
         />
       )}
     </div>

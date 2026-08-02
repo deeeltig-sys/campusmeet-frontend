@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import { compressImage } from '../utils/compressImage';
@@ -18,8 +18,30 @@ export default function CreatePost() {
   const [busy, setBusy] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [optimizing, setOptimizing] = useState(false);
+  const [showPoll, setShowPoll] = useState(false);
+  const [pollOptions, setPollOptions] = useState(['', '']);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const groupId = location.state?.groupId;
+  const groupName = location.state?.groupName;
+
+  function togglePoll() {
+    setShowPoll((v) => !v);
+    if (imageFile) removeImage();
+  }
+
+  function updatePollOption(index, value) {
+    setPollOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
+  }
+
+  function addPollOption() {
+    setPollOptions((prev) => (prev.length < 4 ? [...prev, ''] : prev));
+  }
+
+  function removePollOption(index) {
+    setPollOptions((prev) => (prev.length > 2 ? prev.filter((_, i) => i !== index) : prev));
+  }
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -60,18 +82,37 @@ export default function CreatePost() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!content.trim() && !imageFile) return;
+    if (showPoll) {
+      const cleaned = pollOptions.map((o) => o.trim()).filter(Boolean);
+      if (!content.trim()) {
+        setError('Write a question for your poll.');
+        return;
+      }
+      if (cleaned.length < 2) {
+        setError('A poll needs at least 2 options.');
+        return;
+      }
+    } else if (!content.trim() && !imageFile) {
+      return;
+    }
     setError('');
     setBusy(true);
     try {
       let image_url;
-      if (imageFile) {
+      if (imageFile && !showPoll) {
         setUploadStage('Uploading image…');
         image_url = await PostsAPI.uploadImage(imageFile);
       }
       setUploadStage('Publishing…');
-      await PostsAPI.create({ content: content.trim(), image_url });
-      navigate('/feed');
+      const payload = { content: content.trim(), image_url };
+      if (showPoll) {
+        payload.poll_options = pollOptions.map((o) => o.trim()).filter(Boolean);
+      }
+      if (groupId) {
+        payload.group_id = groupId;
+      }
+      await PostsAPI.create(payload);
+      navigate(groupId ? `/groups/${groupId}` : '/feed');
     } catch (err) {
       setError(err.message || 'Could not publish your post.');
     } finally {
@@ -82,7 +123,11 @@ export default function CreatePost() {
 
   return (
     <div className="screen">
-      <BackHeader eyebrow="New post" title="Share with campus" fallback="/feed" />
+      <BackHeader
+        eyebrow={groupName ? `Posting in ${groupName}` : 'New post'}
+        title={groupName ? groupName : 'Share with campus'}
+        fallback={groupId ? `/groups/${groupId}` : '/feed'}
+      />
 
       {error && <div className="banner-error">{error}</div>}
 
@@ -99,7 +144,54 @@ export default function CreatePost() {
           />
         </div>
 
-        <div className="image-picker">
+        <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+          <button
+            type="button"
+            onClick={togglePoll}
+            className={showPoll ? 'btn btn-primary' : 'btn'}
+            style={{ fontSize: 'var(--fs-sm)', padding: '6px 14px' }}
+          >
+            {showPoll ? 'Remove poll' : 'Add a poll'}
+          </button>
+        </div>
+
+        {showPoll && (
+          <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pollOptions.map((opt, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={opt}
+                  onChange={(e) => updatePollOption(i, e.target.value)}
+                  placeholder={`Option ${i + 1}`}
+                  maxLength={80}
+                  style={{ flex: 1 }}
+                />
+                {pollOptions.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removePollOption(i)}
+                    aria-label="Remove option"
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 6px' }}
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+            ))}
+            {pollOptions.length < 4 && (
+              <button
+                type="button"
+                onClick={addPollOption}
+                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--maroon)', fontWeight: 600, fontSize: 'var(--fs-sm)', cursor: 'pointer', padding: 0 }}
+              >
+                + Add option
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="image-picker" style={{ opacity: showPoll ? 0.4 : 1, pointerEvents: showPoll ? 'none' : 'auto' }}>
           {imagePreview ? (
             <div className="image-preview">
               <img src={imagePreview} alt="Selected upload preview" />
@@ -145,9 +237,14 @@ export default function CreatePost() {
         <button
           type="submit"
           className="btn btn-primary btn-block"
-          disabled={busy || optimizing || (!content.trim() && !imageFile)}
+          disabled={
+            busy || optimizing ||
+            (showPoll
+              ? !content.trim() || pollOptions.map((o) => o.trim()).filter(Boolean).length < 2
+              : !content.trim() && !imageFile)
+          }
         >
-          {busy ? uploadStage || 'Publishing…' : 'Publish'}
+          {busy ? uploadStage || 'Publishing…' : showPoll ? 'Publish poll' : 'Publish'}
         </button>
       </form>
     </div>
