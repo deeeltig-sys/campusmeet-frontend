@@ -19,6 +19,7 @@ const ASPECTS = [
 export default function ImageEditor({ file, onCancel, onDone }) {
   const [tab, setTab] = useState('crop'); // 'crop' | 'filter' | 'adjust'
   const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [aspect, setAspect] = useState('original');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0.5, y: 0.5 });
@@ -31,8 +32,34 @@ export default function ImageEditor({ file, onCancel, onDone }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadImageFromFile(file).then((img) => { if (!cancelled) setImage(img); }).catch(() => setError('Could not open this image.'));
-    return () => { cancelled = true; };
+    setLoading(true);
+    setError('');
+    setImage(null);
+    // loadImageFromFile creates a fresh blob URL every call — if it
+    // never resolves (a decode error, an unsupported format that
+    // slipped past the picker's accept filter, etc.) the previous
+    // code left `image` at null with the frame's black background and
+    // nothing else on screen: no spinner, no visible error, just a
+    // blank black box that looks exactly like "the image fails to
+    // show." Now loading/error are explicit states rendered inside
+    // the frame itself, so a failure is always visible, never silent.
+    let objectUrl = null;
+    loadImageFromFile(file)
+      .then((img) => {
+        if (cancelled) return;
+        objectUrl = img.src;
+        setImage(img);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError('Could not open this image. Try a different photo.');
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [file]);
 
   const aspectRatio = useMemo(() => {
@@ -108,6 +135,19 @@ export default function ImageEditor({ file, onCancel, onDone }) {
             marginBottom: 'var(--sp-3)', touchAction: 'none', cursor: tab === 'crop' ? 'grab' : 'default',
           }}
         >
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{
+                width: 28, height: 28, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+              }} />
+            </div>
+          )}
+          {!loading && error && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-4)' }}>
+              <p style={{ color: '#fff', fontSize: 'var(--fs-sm)', textAlign: 'center', margin: 0 }}>{error}</p>
+            </div>
+          )}
           {image && (
             <img
               src={image.src}
