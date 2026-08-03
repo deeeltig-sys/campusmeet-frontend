@@ -20,16 +20,42 @@ export default function Search() {
   const hitFired = useRef(new Set());
   const [trending, setTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [explorePosts, setExplorePosts] = useState([]);
+  const [exploreLoading, setExploreLoading] = useState(true);
 
   // Loaded once up front — this is what shows in Posts mode before
   // anyone's typed anything, the same "Explore" role IG's search tab
-  // plays when it's empty.
+  // plays when it's empty. Trending tags plus actual explore posts
+  // (content from outside the caller's own network) together cover
+  // both halves of that role — topics to browse, and posts to see.
   useEffect(() => {
     HashtagsAPI.trending()
       .then((data) => setTrending(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setTrendingLoading(false));
+    PostsAPI.explore()
+      .then((data) => setExplorePosts(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setExploreLoading(false));
   }, []);
+
+  async function handleExploreReact(postId, type) {
+    const current = explorePosts.find((p) => p.id === postId);
+    if (!current) return;
+    const wasSame = current.user_reaction === type;
+    const hadAny = current.user_reaction != null;
+    const nextReaction = wasSame ? null : type;
+    const countDelta = wasSame ? -1 : hadAny ? 0 : 1;
+    setExplorePosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, user_reaction: nextReaction, reaction_count: p.reaction_count + countDelta } : p))
+    );
+    try {
+      if (wasSame) await PostsAPI.unreact(postId);
+      else await PostsAPI.react(postId, type);
+    } catch {
+      PostsAPI.explore().then((data) => setExplorePosts(Array.isArray(data) ? data : [])).catch(() => {});
+    }
+  }
 
   const runSearch = useCallback(async (q, searchMode) => {
     if (q.trim().length < 2) {
@@ -186,6 +212,21 @@ export default function Search() {
                 </button>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {!searched && mode === 'posts' && query.trim().length === 0 && (
+        <div style={{ marginBottom: 'var(--sp-4)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--sp-2)' }}>Explore</p>
+          {exploreLoading ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Loading…</p>
+          ) : explorePosts.length === 0 ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)' }}>Nothing to explore yet — check back soon.</p>
+          ) : (
+            explorePosts.map((post) => (
+              <PostCard key={post.id} post={post} onReact={handleExploreReact} />
+            ))
           )}
         </div>
       )}

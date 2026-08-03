@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StatusesAPI } from '../api/client';
 import { SendIcon } from './icons';
+import ImageEditor from './ImageEditor';
 
 const BG_COLORS = ['#7a2436', '#111111', '#0a66c2', '#1f7a4d', '#c9a227', '#5b2a86'];
 const MAX_TEXT_LENGTH = 280;
@@ -41,6 +42,7 @@ export default function CreateStatusModal({ onClose, onPosted }) {
   const [bgColor, setBgColor] = useState(BG_COLORS[0]);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
+  const [editingFile, setEditingFile] = useState(null); // raw file pending crop/filter/adjust
   const fileInputRef = useRef(null);
 
   // Revoke the local object URL when it's replaced or the modal
@@ -51,9 +53,16 @@ export default function CreateStatusModal({ onClose, onPosted }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
+    // Same edit stack as the post composer — crop/filter/adjust runs
+    // before the send preview, not after.
+    setEditingFile(file);
+  }
+
+  function handleEditorDone(editedFile) {
+    setEditingFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPendingFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPendingFile(editedFile);
+    setPreviewUrl(URL.createObjectURL(editedFile));
     setMode('photo');
   }
 
@@ -135,6 +144,15 @@ export default function CreateStatusModal({ onClose, onPosted }) {
             >
               Choose another
             </button>
+            <button
+              type="button" onClick={() => pendingFile && setEditingFile(pendingFile)} disabled={posting}
+              style={{
+                position: 'absolute', top: 12, right: 12, padding: '6px 14px', borderRadius: 999,
+                background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',
+              }}
+            >
+              Edit
+            </button>
             <SendButton onClick={handleSendPhoto} posting={posting} />
           </div>
         )}
@@ -175,6 +193,14 @@ export default function CreateStatusModal({ onClose, onPosted }) {
           </>
         )}
       </div>
+
+      {editingFile && (
+        <ImageEditor
+          file={editingFile}
+          onCancel={() => setEditingFile(null)}
+          onDone={handleEditorDone}
+        />
+      )}
     </div>
   );
 }

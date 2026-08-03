@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import { compressImage } from '../utils/compressImage';
+import ImageEditor from '../components/ImageEditor';
 
 // Raw pre-compression cap — generous, since compression brings the final
 // upload size down regardless. This just guards against absurd files
@@ -20,6 +21,7 @@ export default function CreatePost() {
   const [optimizing, setOptimizing] = useState(false);
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
+  const [editingFile, setEditingFile] = useState(null); // raw File pending crop/filter/adjust
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,7 +45,7 @@ export default function CreatePost() {
     setPollOptions((prev) => (prev.length > 2 ? prev.filter((_, i) => i !== index) : prev));
   }
 
-  async function handleFileChange(e) {
+  function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -57,17 +59,25 @@ export default function CreatePost() {
     }
 
     setError('');
+    // Opens the crop/filter/adjust editor before anything gets
+    // uploaded — matches FB/IG, where the edit stack runs BEFORE
+    // compression/upload, not after.
+    setEditingFile(file);
+  }
+
+  async function handleEditorDone(editedFile) {
+    setEditingFile(null);
     setOptimizing(true);
     try {
-      const compressed = await compressImage(file);
+      // The editor already rendered to a size-capped JPEG; this pass
+      // just squeezes it a little further the same way any picked
+      // photo does, so filtered posts aren't heavier than plain ones.
+      const compressed = await compressImage(editedFile);
       setImageFile(compressed);
       setImagePreview(URL.createObjectURL(compressed));
     } catch {
-      // If compression fails for any reason, fall back to the original file
-      // rather than blocking the post — the backend's 6MB cap is still the
-      // real safety net.
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      setImageFile(editedFile);
+      setImagePreview(URL.createObjectURL(editedFile));
     } finally {
       setOptimizing(false);
     }
@@ -194,7 +204,7 @@ export default function CreatePost() {
         <div className="image-picker" style={{ opacity: showPoll ? 0.4 : 1, pointerEvents: showPoll ? 'none' : 'auto' }}>
           {imagePreview ? (
             <div className="image-preview">
-              <img src={imagePreview} alt="Selected upload preview" />
+              <img src={imagePreview} alt="Selected upload preview" style={{ filter: 'none' }} />
               <button
                 type="button"
                 className="image-preview-remove"
@@ -202,6 +212,16 @@ export default function CreatePost() {
                 aria-label="Remove image"
               >
                 &times;
+              </button>
+              <button
+                type="button"
+                onClick={() => imageFile && setEditingFile(imageFile)}
+                style={{
+                  position: 'absolute', bottom: 10, right: 10, padding: '6px 14px', borderRadius: 999,
+                  background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',
+                }}
+              >
+                Edit
               </button>
             </div>
           ) : (
@@ -247,6 +267,14 @@ export default function CreatePost() {
           {busy ? uploadStage || 'Publishing…' : showPoll ? 'Publish poll' : 'Publish'}
         </button>
       </form>
+
+      {editingFile && (
+        <ImageEditor
+          file={editingFile}
+          onCancel={() => setEditingFile(null)}
+          onDone={handleEditorDone}
+        />
+      )}
     </div>
   );
 }

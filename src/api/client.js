@@ -132,6 +132,7 @@ export const AuthAPI = {
 export const PostsAPI = {
   feed: (limit = 30, offset = 0, scope = 'campus') =>
     request(`/api/posts/feed?limit=${limit}&offset=${offset}&scope=${scope}`),
+  explore: (limit = 30) => request(`/api/posts/explore?limit=${limit}`, { auth: true }),
   byUser: (userId, limit = 60, offset = 0) =>
     request(`/api/posts/by-user/${userId}?limit=${limit}&offset=${offset}`),
   search: (query, limit = 30) => request(`/api/posts/search?q=${encodeURIComponent(query)}&limit=${limit}`),
@@ -300,6 +301,10 @@ export const ConversationsAPI = {
     request(`/api/conversations/${conversationId}/wallpaper`, {
       method: 'PATCH', body: { wallpaper, custom_wallpaper_url: customUrl }, auth: true,
     }),
+  setTyping: (conversationId, typing) =>
+    request(`/api/conversations/${conversationId}/typing`, { method: 'POST', body: { typing }, auth: true }),
+  getTyping: (conversationId) =>
+    request(`/api/conversations/${conversationId}/typing`, { auth: true }),
 };
 
 // ---- Blocks ----

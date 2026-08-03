@@ -12,6 +12,21 @@ const NOTIF_TEXT = {
   friend_accept: (name) => `${name} accepted your friend request`,
 };
 
+// Builds the "X and 12 others liked your post" line for grouped
+// notifications (reaction/comment/comment_reply) — falls back to the
+// plain single-actor line for everything else or when there's nothing
+// to pile onto.
+function notifText(n) {
+  const base = NOTIF_TEXT[n.type] || (() => 'New activity');
+  const name = n.actor_full_name || 'Someone';
+  if (!n.extra_count) return base(name);
+  const others = `${n.extra_count} other${n.extra_count === 1 ? '' : 's'}`;
+  const verb = n.type === 'reaction' ? 'reacted to your post'
+    : n.type === 'comment_reply' ? 'replied to your comment'
+    : 'commented on your post';
+  return `${name} and ${others} ${verb}`;
+}
+
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +98,7 @@ export default function Notifications() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 'var(--fs-sm)' }}>
-                  {(NOTIF_TEXT[n.type] || (() => 'New activity'))(n.actor_full_name || 'Someone')}
+                  {notifText(n)}
                 </p>
                 <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
                   {new Date(n.created_at).toLocaleString()}

@@ -58,6 +58,16 @@ export default function Inbox() {
     loadConversations(tab).finally(() => setLoading(false));
   }, [tab, loadConversations]);
 
+  // Quiet background refresh so a new message bumps its conversation to
+  // the top / updates the preview without the user pulling to refresh —
+  // same near-real-time pattern used inside an open conversation.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!selectMode) loadConversations(tab);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [tab, selectMode, loadConversations]);
+
   useEffect(() => {
     if (tab !== 'active') return;
     ConversationsAPI.activeContacts().then((data) => setContacts(Array.isArray(data) ? data : [])).catch(() => {});

@@ -92,11 +92,76 @@ export default function Conversation() {
     }
   }, [conversationId]);
 
+  const [otherTyping, setOtherTyping] = useState(false);
+  const typingIdleTimer = useRef(null);
+  const wasTypingRef = useRef(false);
+
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Near-real-time without websocket infra: quietly re-fetch the thread
+  // every few seconds while it's open. Only touches state when the
+  // message count actually changed, so it doesn't fight the user's
+  // scroll position or flicker on every tick.
+  useEffect(() => {
+    if (!conversationId) return;
+    const interval = setInterval(async () => {
+      try {
+        const msgs = await ConversationsAPI.messages(conversationId);
+        if (Array.isArray(msgs)) {
+          setMessages((prev) => (msgs.length !== prev.length ? msgs : prev));
+        }
+      } catch {
+        // silent — this is a background refresh, not a user action
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [conversationId]);
+
+  // Polls whether the other participant is currently typing. Kept
+  // separate from the message poll so a slow/failed typing check never
+  // blocks new messages from showing up.
+  useEffect(() => {
+    if (!conversationId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await ConversationsAPI.getTyping(conversationId);
+        setOtherTyping(!!res?.typing);
+      } catch {
+        // silent
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [conversationId]);
+
+  // Pings /typing as the user types (debounced to avoid a request per
+  // keystroke) and clears it after a short pause or on unmount, so a
+  // typing indicator never gets stuck on for the other person.
+  useEffect(() => {
+    if (!conversationId) return;
+    const isTypingNow = draft.trim().length > 0;
+    if (isTypingNow && !wasTypingRef.current) {
+      ConversationsAPI.setTyping(conversationId, true).catch(() => {});
+      wasTypingRef.current = true;
+    }
+    clearTimeout(typingIdleTimer.current);
+    typingIdleTimer.current = setTimeout(() => {
+      if (wasTypingRef.current) {
+        ConversationsAPI.setTyping(conversationId, false).catch(() => {});
+        wasTypingRef.current = false;
+      }
+    }, 2500);
+    return () => clearTimeout(typingIdleTimer.current);
+  }, [draft, conversationId]);
+
+  useEffect(() => () => {
+    if (conversationId && wasTypingRef.current) {
+      ConversationsAPI.setTyping(conversationId, false).catch(() => {});
+    }
+  }, [conversationId]);
 
   const isRecipientOfPendingRequest = conv?.is_request;
   const wallpaperKey = conv?.wallpaper || 'system';
@@ -126,6 +191,8 @@ export default function Conversation() {
       const msg = await ConversationsAPI.sendMessage(conversationId, content);
       setMessages((prev) => [...prev, msg]);
       setDraft('');
+      wasTypingRef.current = false;
+      ConversationsAPI.setTyping(conversationId, false).catch(() => {});
     } catch (err) {
       setError(err.message || 'Could not send — you may need to accept this conversation first.');
     } finally {
@@ -299,7 +366,13 @@ export default function Conversation() {
           </button>
         </div>
       ) : (
-        <div className="comment-composer">
+        <>
+          {otherTyping && (
+            <div style={{ padding: '2px var(--sp-4)', fontSize: '0.6875rem', color: 'var(--ink-soft)', fontStyle: 'italic' }}>
+              {conv?.other_user?.full_name ? `${conv.other_user.full_name} is typing…` : 'Typing…'}
+            </div>
+          )}
+          <div className="comment-composer">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -316,7 +389,8 @@ export default function Conversation() {
           >
             {sending ? '…' : 'Send'}
           </button>
-        </div>
+          </div>
+        </>
       )}
 
       {showWallpaper && (
