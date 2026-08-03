@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import BottomNav from './components/BottomNav';
 import RightRail from './components/RightRail';
 import UpdateBanner from './components/UpdateBanner';
+import InstallPrompt from './components/InstallPrompt';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
 
 import Splash from './pages/Splash';
@@ -56,6 +57,7 @@ function AppRoutes() {
   return (
     <div className="app-shell">
       <UpdateBanner />
+      <InstallPrompt />
       <Routes>
         <Route path="/" element={<Splash />} />
         <Route path="/onboarding" element={<Onboarding />} />
