@@ -8,6 +8,7 @@ import { ReactionIcon, CommentIcon } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
+import PostImageCarousel from './PostImageCarousel';
 
 // Reaction buttons use plain emoji, not the custom line-icon SVGs from
 // icons.jsx — only these 4 buttons.
@@ -38,7 +39,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [showMenu, setShowMenu] = useState(false);
   const [saved, setSaved] = useState(!!post.saved);
   const [savingBookmark, setSavingBookmark] = useState(false);
-  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [fullscreenUrl, setFullscreenUrl] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -205,21 +206,25 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         </>
       ) : (
         <p style={{ margin: 0, fontSize: 'var(--fs-base)', lineHeight: 1.55 }}>
-          <HashtagText text={content} />
+          <HashtagText text={content} mentions={post.mentions} />
         </p>
       )}
 
       {post.poll && <PollBlock post={post} />}
 
-      {post.image_url && (
-        <button
-          type="button"
-          className="post-image-wrap"
-          onClick={() => setShowFullscreen(true)}
-          style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
-        >
-          <img className="post-image" src={post.image_url} alt="" loading="lazy" />
-        </button>
+      {post.images && post.images.length > 1 ? (
+        <PostImageCarousel images={post.images} onImageTap={setFullscreenUrl} />
+      ) : (
+        (post.image_url || post.images?.[0]?.url) && (
+          <button
+            type="button"
+            className="post-image-wrap"
+            onClick={() => setFullscreenUrl(post.images?.[0]?.url || post.image_url)}
+            style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
+          >
+            <img className="post-image" src={post.images?.[0]?.url || post.image_url} alt="" loading="lazy" />
+          </button>
+        )
       )}
 
       <footer className="reaction-footer">
@@ -243,12 +248,12 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         </div>
       </footer>
 
-      {showFullscreen && post.image_url && (
+      {fullscreenUrl && (
         <FullscreenImageViewer
-          imageUrl={post.image_url}
+          imageUrl={fullscreenUrl}
           caption={content}
           reactionBar={renderReactionBar()}
-          onClose={() => setShowFullscreen(false)}
+          onClose={() => setFullscreenUrl(null)}
         />
       )}
 

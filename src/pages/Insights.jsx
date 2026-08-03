@@ -53,7 +53,7 @@ export default function Insights() {
               <div key={post.id} className="card" style={{ marginBottom: 'var(--sp-2)' }}>
                 {post.content && (
                   <p style={{ fontSize: 'var(--fs-sm)', margin: '0 0 var(--sp-2)', lineHeight: 1.5 }}>
-                    <HashtagText text={post.content} />
+                    <HashtagText text={post.content} mentions={post.mentions} />
                   </p>
                 )}
                 {post.image_url && (

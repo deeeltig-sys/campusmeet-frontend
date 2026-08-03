@@ -26,6 +26,7 @@ import Admin from './pages/Admin';
 import Groups from './pages/Groups';
 import CreateGroup from './pages/CreateGroup';
 import GroupDetail from './pages/GroupDetail';
+import GroupSettings from './pages/GroupSettings';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
@@ -79,6 +80,7 @@ function AppRoutes() {
         <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
         <Route path="/groups" element={<ProtectedLayout><Groups /></ProtectedLayout>} />
         <Route path="/groups/create" element={<ProtectedLayout><CreateGroup /></ProtectedLayout>} />
+        <Route path="/groups/:groupId/settings" element={<ProtectedLayout><GroupSettings /></ProtectedLayout>} />
         <Route path="/groups/:groupId" element={<ProtectedLayout><GroupDetail /></ProtectedLayout>} />
         <Route path="/events" element={<ProtectedLayout><Events /></ProtectedLayout>} />
         <Route path="/events/create" element={<ProtectedLayout><CreateEvent /></ProtectedLayout>} />

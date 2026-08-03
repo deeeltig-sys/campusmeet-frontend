@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PostsAPI } from '../api/client';
+import { PostsAPI, UsersAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import { compressImage } from '../utils/compressImage';
 import ImageEditor from '../components/ImageEditor';
@@ -9,11 +9,13 @@ import ImageEditor from '../components/ImageEditor';
 // upload size down regardless. This just guards against absurd files
 // (e.g. a 40MB RAW export) before we spend time processing them.
 const MAX_RAW_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_IMAGES = 5;
 
 export default function CreatePost() {
   const [content, setContent] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // Each entry: { file, previewUrl }. Order in this array is the
+  // carousel order a viewer will swipe through, same as IG.
+  const [images, setImages] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
@@ -21,15 +23,90 @@ export default function CreatePost() {
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [editingFile, setEditingFile] = useState(null); // raw File pending crop/filter/adjust
+  const [editingIndex, setEditingIndex] = useState(null); // null = adding new photo; a number = re-editing that slot
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const groupId = location.state?.groupId;
   const groupName = location.state?.groupName;
 
+  // ---- @mention autocomplete ----
+  // No @username handle system in this schema — a mention is an
+  // explicit {id, full_name} the person picked from this dropdown,
+  // not something parsed out of free-typed text afterward. That's
+  // also why matching is done here at selection time rather than
+  // trying to regex a name pattern out of the caption later.
+  const [mentionQuery, setMentionQuery] = useState(null); // null = dropdown closed
+  const [mentionStart, setMentionStart] = useState(null); // index of the '@' that opened it
+  const [mentionResults, setMentionResults] = useState([]);
+  const [taggedUsers, setTaggedUsers] = useState([]); // [{id, full_name}], in the order picked
+
+  useEffect(() => {
+    if (mentionQuery === null || mentionQuery.length < 2) {
+      setMentionResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      UsersAPI.search(mentionQuery)
+        .then((data) => { if (!cancelled) setMentionResults(Array.isArray(data) ? data.slice(0, 6) : []); })
+        .catch(() => { if (!cancelled) setMentionResults([]); });
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [mentionQuery]);
+
+  function handleContentChange(e) {
+    const value = e.target.value;
+    const cursor = e.target.selectionStart;
+    setContent(value);
+
+    // Find the nearest unfinished "@token" ending exactly at the
+    // cursor — i.e. an '@' with no whitespace between it and where
+    // the caret currently is.
+    const upToCursor = value.slice(0, cursor);
+    const at = upToCursor.lastIndexOf('@');
+    if (at === -1 || /\s/.test(upToCursor.slice(at + 1))) {
+      setMentionQuery(null);
+      setMentionStart(null);
+      return;
+    }
+    const precedingChar = at > 0 ? value[at - 1] : ' ';
+    if (!/\s/.test(precedingChar)) {
+      // '@' stuck to the middle of another word (an email-ish thing) —
+      // not a mention trigger.
+      setMentionQuery(null);
+      setMentionStart(null);
+      return;
+    }
+    setMentionStart(at);
+    setMentionQuery(upToCursor.slice(at + 1));
+  }
+
+  function pickMention(user) {
+    const textarea = textareaRef.current;
+    const cursor = textarea ? textarea.selectionStart : content.length;
+    const before = content.slice(0, mentionStart);
+    const after = content.slice(cursor);
+    const inserted = `@${user.full_name} `;
+    const nextContent = `${before}${inserted}${after}`;
+    setContent(nextContent);
+    setTaggedUsers((prev) => (prev.some((u) => u.id === user.id) ? prev : [...prev, { id: user.id, full_name: user.full_name }]));
+    setMentionQuery(null);
+    setMentionStart(null);
+    setMentionResults([]);
+
+    requestAnimationFrame(() => {
+      if (!textarea) return;
+      const newCursor = before.length + inserted.length;
+      textarea.focus();
+      textarea.setSelectionRange(newCursor, newCursor);
+    });
+  }
+
   function togglePoll() {
     setShowPoll((v) => !v);
-    if (imageFile) removeImage();
+    if (images.length > 0) clearAllImages();
   }
 
   function updatePollOption(index, value) {
@@ -58,36 +135,76 @@ export default function CreatePost() {
     }
 
     setError('');
+    setEditingIndex(null); // adding a new slot, not re-editing one
     // Opens the crop/filter/adjust editor before anything gets
     // uploaded — matches FB/IG, where the edit stack runs BEFORE
     // compression/upload, not after.
     setEditingFile(file);
   }
 
+  function openEditFor(index) {
+    setEditingIndex(index);
+    setEditingFile(images[index].file);
+  }
+
   async function handleEditorDone(editedFile) {
+    const targetIndex = editingIndex;
     setEditingFile(null);
+    setEditingIndex(null);
     setOptimizing(true);
     try {
       // The editor already rendered to a size-capped JPEG; this pass
       // just squeezes it a little further the same way any picked
       // photo does, so filtered posts aren't heavier than plain ones.
       const compressed = await compressImage(editedFile);
-      setImageFile(compressed);
-      setImagePreview(URL.createObjectURL(compressed));
+      const entry = { file: compressed, previewUrl: URL.createObjectURL(compressed) };
+      setImages((prev) => {
+        if (targetIndex !== null) {
+          const next = [...prev];
+          if (next[targetIndex]) URL.revokeObjectURL(next[targetIndex].previewUrl);
+          next[targetIndex] = entry;
+          return next;
+        }
+        if (prev.length >= MAX_IMAGES) return prev;
+        return [...prev, entry];
+      });
     } catch {
-      setImageFile(editedFile);
-      setImagePreview(URL.createObjectURL(editedFile));
+      const entry = { file: editedFile, previewUrl: URL.createObjectURL(editedFile) };
+      setImages((prev) => {
+        if (targetIndex !== null) {
+          const next = [...prev];
+          if (next[targetIndex]) URL.revokeObjectURL(next[targetIndex].previewUrl);
+          next[targetIndex] = entry;
+          return next;
+        }
+        if (prev.length >= MAX_IMAGES) return prev;
+        return [...prev, entry];
+      });
     } finally {
       setOptimizing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
-  function removeImage() {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+  function removeImageAt(index) {
+    setImages((prev) => {
+      const next = [...prev];
+      const [removed] = next.splice(index, 1);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return next;
+    });
+  }
+
+  function clearAllImages() {
+    images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setImages([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
+
+  const validMentions = useCallback(
+    () => taggedUsers.filter((u) => content.includes(`@${u.full_name}`)),
+    [taggedUsers, content]
+  );
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -101,24 +218,34 @@ export default function CreatePost() {
         setError('A poll needs at least 2 options.');
         return;
       }
-    } else if (!content.trim() && !imageFile) {
+    } else if (!content.trim() && images.length === 0) {
       return;
     }
     setError('');
     setBusy(true);
     try {
-      let image_url;
-      if (imageFile && !showPoll) {
-        setUploadStage('Uploading image…');
-        image_url = await PostsAPI.uploadImage(imageFile);
+      let image_urls;
+      if (images.length > 0 && !showPoll) {
+        setUploadStage(images.length > 1 ? `Uploading photo 1 of ${images.length}…` : 'Uploading image…');
+        image_urls = [];
+        for (let i = 0; i < images.length; i++) {
+          if (images.length > 1) setUploadStage(`Uploading photo ${i + 1} of ${images.length}…`);
+          const url = await PostsAPI.uploadImage(images[i].file);
+          image_urls.push(url);
+        }
       }
       setUploadStage('Publishing…');
-      const payload = { content: content.trim(), image_url };
+      const payload = { content: content.trim() };
+      if (image_urls) payload.image_urls = image_urls;
       if (showPoll) {
         payload.poll_options = pollOptions.map((o) => o.trim()).filter(Boolean);
       }
       if (groupId) {
         payload.group_id = groupId;
+      }
+      const mentions = validMentions();
+      if (mentions.length > 0) {
+        payload.mentioned_user_ids = mentions.map((u) => u.id);
       }
       await PostsAPI.create(payload);
       navigate(groupId ? `/groups/${groupId}` : '/feed');
@@ -141,16 +268,44 @@ export default function CreatePost() {
       {error && <div className="banner-error">{error}</div>}
 
       <form onSubmit={handleSubmit}>
-        <div className="field">
+        <div className="field" style={{ position: 'relative' }}>
           <label htmlFor="content">What's on your mind?</label>
           <textarea
+            ref={textareaRef}
             id="content"
             rows={5}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Tell campus what's going on…"
+            onChange={handleContentChange}
+            placeholder="Tell campus what's going on… type @ to tag someone"
             style={{ resize: 'vertical', fontFamily: 'var(--font-body)' }}
           />
+
+          {mentionQuery !== null && mentionResults.length > 0 && (
+            <div
+              className="card"
+              style={{
+                position: 'absolute', left: 0, right: 0, zIndex: 10, marginTop: -8, padding: 6,
+                maxHeight: 220, overflowY: 'auto', boxShadow: 'var(--shadow-card)',
+              }}
+            >
+              {mentionResults.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => pickMention(u)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%', border: 'none',
+                    background: 'none', textAlign: 'left', cursor: 'pointer', padding: '6px 8px', borderRadius: 8,
+                  }}
+                >
+                  <div className="avatar-circle" style={{ width: 26, height: 26, fontSize: '0.7rem' }}>
+                    {u.avatar_url ? <img src={u.avatar_url} alt="" /> : (u.full_name ? u.full_name.charAt(0) : '?')}
+                  </div>
+                  <span style={{ fontSize: 'var(--fs-sm)' }}>{u.full_name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
@@ -201,30 +356,37 @@ export default function CreatePost() {
         )}
 
         <div className="image-picker" style={{ opacity: showPoll ? 0.4 : 1, pointerEvents: showPoll ? 'none' : 'auto' }}>
-          {imagePreview ? (
-            <div className="image-preview">
-              <img src={imagePreview} alt="Selected upload preview" style={{ filter: 'none' }} />
-              <button
-                type="button"
-                className="image-preview-remove"
-                onClick={removeImage}
-                aria-label="Remove image"
-              >
-                &times;
-              </button>
-              <button
-                type="button"
-                onClick={() => imageFile && setEditingFile(imageFile)}
-                className="overlay-pill-btn"
-                style={{
-                  position: 'absolute', bottom: 10, right: 10, padding: '6px 14px', borderRadius: 999,
-                  background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',
-                }}
-              >
-                Edit
-              </button>
+          {images.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 8 }}>
+              {images.map((img, i) => (
+                <div key={img.previewUrl} className="image-preview" style={{ position: 'relative', flexShrink: 0, width: 96, height: 96 }}>
+                  <img src={img.previewUrl} alt={`Selected photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+                  <button
+                    type="button"
+                    className="image-preview-remove"
+                    onClick={() => removeImageAt(i)}
+                    aria-label={`Remove photo ${i + 1}`}
+                    style={{ position: 'absolute', top: 4, right: 4 }}
+                  >
+                    &times;
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEditFor(i)}
+                    className="overlay-pill-btn"
+                    style={{
+                      position: 'absolute', bottom: 4, left: 4, right: 4, padding: '3px 6px', borderRadius: 999,
+                      background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: '0.6rem', cursor: 'pointer',
+                    }}
+                  >
+                    Edit
+                  </button>
+                </div>
+              ))}
             </div>
-          ) : (
+          )}
+
+          {images.length < MAX_IMAGES ? (
             <button
               type="button"
               className="image-picker-trigger"
@@ -240,10 +402,14 @@ export default function CreatePost() {
                     <circle cx="8.5" cy="10" r="1.6" fill="var(--gold)" />
                     <path d="M4 17l5-5 4 4 3-3 4 4" stroke="var(--maroon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Add a photo
+                  {images.length > 0 ? `Add another photo (${images.length}/${MAX_IMAGES})` : 'Add a photo'}
                 </>
               )}
             </button>
+          ) : (
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', textAlign: 'center', margin: '4px 0' }}>
+              Maximum {MAX_IMAGES} photos per post.
+            </p>
           )}
           <input
             ref={fileInputRef}
@@ -261,7 +427,7 @@ export default function CreatePost() {
             busy || optimizing ||
             (showPoll
               ? !content.trim() || pollOptions.map((o) => o.trim()).filter(Boolean).length < 2
-              : !content.trim() && !imageFile)
+              : !content.trim() && images.length === 0)
           }
         >
           {busy ? uploadStage || 'Publishing…' : showPoll ? 'Publish poll' : 'Publish'}
@@ -271,7 +437,7 @@ export default function CreatePost() {
       {editingFile && (
         <ImageEditor
           file={editingFile}
-          onCancel={() => setEditingFile(null)}
+          onCancel={() => { setEditingFile(null); setEditingIndex(null); }}
           onDone={handleEditorDone}
         />
       )}

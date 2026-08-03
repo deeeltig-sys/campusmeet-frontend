@@ -106,9 +106,23 @@ export default function GroupDetail() {
       {error && <div className="banner-error">{error}</div>}
 
       <div className="card" style={{ marginBottom: 'var(--sp-3)' }}>
-        {group.description && (
-          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', marginTop: 0 }}>{group.description}</p>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', marginBottom: group.description ? 'var(--sp-2)' : 0 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 12, flexShrink: 0, overflow: 'hidden',
+            background: 'var(--maroon-light)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {group.avatar_url ? (
+              <img src={group.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontFamily: 'var(--font-display)', color: 'var(--maroon-deep)', fontSize: '1.3rem' }}>
+                {group.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          {group.description && (
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', margin: 0 }}>{group.description}</p>
+          )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -128,15 +142,40 @@ export default function GroupDetail() {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleJoinToggle}
-            disabled={joinBusy}
-            className={group.is_member ? 'btn' : 'btn btn-primary'}
-            style={{ fontSize: 'var(--fs-sm)', padding: '6px 14px', marginLeft: 'auto' }}
-          >
-            {group.is_member ? (group.my_role === 'admin' ? 'Admin' : 'Leave') : 'Join'}
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-2)' }}>
+            {group.my_role === 'admin' && (
+              <button
+                type="button"
+                onClick={() => navigate(`/groups/${groupId}/settings`)}
+                className="btn"
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 14px' }}
+              >
+                Settings
+              </button>
+            )}
+            {group.is_member && group.my_role !== 'admin' && (
+              <button
+                type="button"
+                onClick={handleJoinToggle}
+                disabled={joinBusy}
+                className="btn"
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 14px' }}
+              >
+                Leave
+              </button>
+            )}
+            {!group.is_member && (
+              <button
+                type="button"
+                onClick={handleJoinToggle}
+                disabled={joinBusy}
+                className="btn btn-primary"
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 14px' }}
+              >
+                Join
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

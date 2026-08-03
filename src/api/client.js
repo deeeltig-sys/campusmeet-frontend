@@ -395,11 +395,50 @@ export const GroupsAPI = {
   mine: () => request('/api/groups/mine', { auth: true }),
   get: (groupId) => request(`/api/groups/${groupId}`),
   create: (payload) => request('/api/groups', { method: 'POST', body: payload, auth: true }),
+  update: (groupId, payload) => request(`/api/groups/${groupId}`, { method: 'PATCH', body: payload, auth: true }),
+  delete: (groupId) => request(`/api/groups/${groupId}`, { method: 'DELETE', auth: true }),
   join: (groupId) => request(`/api/groups/${groupId}/join`, { method: 'POST', auth: true }),
   leave: (groupId) => request(`/api/groups/${groupId}/join`, { method: 'DELETE', auth: true }),
   members: (groupId) => request(`/api/groups/${groupId}/members`),
+  updateMemberRole: (groupId, userId, role) =>
+    request(`/api/groups/${groupId}/members/${userId}`, { method: 'PATCH', body: { role }, auth: true }),
+  removeMember: (groupId, userId) =>
+    request(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE', auth: true }),
   posts: (groupId, limit = 30, offset = 0) =>
     request(`/api/groups/${groupId}/posts?limit=${limit}&offset=${offset}`),
+
+  // Same multipart pattern as ProfileAPI.uploadAvatar — bypasses the
+  // generic JSON request() helper on purpose.
+  uploadAvatar: async (groupId, file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('avatar', file);
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/groups/${groupId}/upload-avatar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) {
+        return GroupsAPI.uploadAvatar(groupId, file);
+      }
+      announceSessionExpired();
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || 'Group photo upload failed. Try again.');
+    }
+    return data;
+  },
 };
 
 // ---- Events ----
