@@ -9,7 +9,6 @@ import ImageEditor from '../components/ImageEditor';
 // upload size down regardless. This just guards against absurd files
 // (e.g. a 40MB RAW export) before we spend time processing them.
 const MAX_RAW_IMAGE_BYTES = 20 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function CreatePost() {
   const [content, setContent] = useState('');
@@ -49,8 +48,8 @@ export default function CreatePost() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Only JPEG, PNG, or WEBP images are supported.');
+    if (!file.type.startsWith('image/')) {
+      setError('Please pick an image file.');
       return;
     }
     if (file.size > MAX_RAW_IMAGE_BYTES) {
@@ -248,7 +247,7 @@ export default function CreatePost() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />

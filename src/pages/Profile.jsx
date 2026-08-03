@@ -15,7 +15,6 @@ import GoldSparkle from '../components/GoldSparkle';
 import campmeetLogo from '../assets/campmeet-logo.png';
 
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
@@ -65,8 +64,8 @@ export default function Profile() {
     if (!file) return;
     e.target.value = '';
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Only JPEG, PNG, or WEBP images are supported.');
+    if (!file.type.startsWith('image/')) {
+      setError('Please pick an image file.');
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
@@ -151,7 +150,7 @@ export default function Profile() {
           </span>
         </div>
 
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarChange} style={{ display: 'none' }} />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <h2 className="h-display" style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>{user.full_name}</h2>
