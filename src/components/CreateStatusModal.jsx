@@ -137,6 +137,7 @@ export default function CreateStatusModal({ onClose, onPosted }) {
             />
             <button
               type="button" onClick={handleRetakePhoto} disabled={posting}
+              className="overlay-pill-btn"
               style={{
                 position: 'absolute', top: 12, left: 12, padding: '6px 14px', borderRadius: 999,
                 background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',
@@ -146,6 +147,7 @@ export default function CreateStatusModal({ onClose, onPosted }) {
             </button>
             <button
               type="button" onClick={() => pendingFile && setEditingFile(pendingFile)} disabled={posting}
+              className="overlay-pill-btn"
               style={{
                 position: 'absolute', top: 12, right: 12, padding: '6px 14px', borderRadius: 999,
                 background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',

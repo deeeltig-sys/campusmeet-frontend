@@ -1,0 +1,342 @@
+/* Photo-editing studio — shared by the post composer and the story
+   composer (both mount the same <ImageEditor/>). This is deliberately
+   styled apart from the app's everyday light card UI: FB/IG's own
+   editors go dark/cinematic regardless of the host app's theme,
+   because it puts full attention on the photo instead of competing
+   with it. Brand accent colors (gold/maroon) carry through in every
+   active/selected state so it still reads as CampusMEET, not a
+   generic dark UI. */
+
+.studio-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10, 6, 8, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  animation: studioFadeIn 0.18s ease-out;
+}
+
+@keyframes studioFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.studio-panel {
+  background: linear-gradient(180deg, #201014 0%, #150b0d 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: studioRiseIn 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes studioRiseIn {
+  from { transform: translateY(18px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@media (min-width: 860px) {
+  .studio-overlay { padding: var(--sp-6); }
+  .studio-panel {
+    width: 100%;
+    max-width: 980px;
+    height: min(86vh, 680px);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    flex-direction: column;
+  }
+}
+
+/* Header */
+.studio-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.studio-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  color: var(--gold-bright);
+  letter-spacing: 0.01em;
+}
+
+.studio-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.studio-close:hover { background: rgba(255, 255, 255, 0.16); }
+.studio-close:active { transform: scale(0.9); }
+
+/* Body — mobile: stacked column. Desktop: canvas + control rail side
+   by side, both scroll independently if content overflows. */
+.studio-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 860px) {
+  .studio-body { flex-direction: row; }
+}
+
+.studio-canvas-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  padding: var(--sp-3);
+  position: relative;
+}
+
+@media (min-width: 860px) {
+  .studio-canvas-wrap { flex: 1.35 1 0; padding: var(--sp-5); }
+}
+
+.studio-frame {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #000;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  touch-action: none;
+}
+
+.studio-controls {
+  flex: 0 0 auto;
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+}
+
+@media (min-width: 860px) {
+  .studio-controls {
+    flex: 0 0 320px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--sp-5) var(--sp-4);
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Segmented tab switcher with a sliding highlight */
+.studio-tabs {
+  position: relative;
+  display: flex;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-seal);
+  padding: 3px;
+  margin-bottom: var(--sp-4);
+}
+
+.studio-tab {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: none;
+  padding: 8px 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  border-radius: var(--radius-seal);
+  transition: color 0.18s ease;
+}
+
+.studio-tab.active { color: var(--maroon-deep); }
+
+.studio-tab-highlight {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: calc(33.333% - 2px);
+  background: var(--gold-bright);
+  border-radius: var(--radius-seal);
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Crop controls */
+.studio-aspect-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+
+.studio-chip {
+  padding: 6px 16px;
+  border-radius: var(--radius-seal);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.studio-chip:active { transform: scale(0.95); }
+.studio-chip.active {
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
+  color: var(--maroon-deep);
+  font-weight: 700;
+}
+
+.studio-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+/* Custom slider — gold thumb with a soft glow, dark track */
+.studio-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  margin-bottom: var(--sp-4);
+  cursor: pointer;
+}
+.studio-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 0 4px rgba(232, 199, 102, 0.22), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s ease;
+}
+.studio-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
+.studio-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 0 4px rgba(232, 199, 102, 0.22);
+}
+
+/* Filter carousel */
+.studio-filter-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: var(--sp-4);
+  scrollbar-width: none;
+}
+.studio-filter-row::-webkit-scrollbar { display: none; }
+
+.studio-filter-btn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+}
+.studio-filter-btn:active { transform: scale(0.94); }
+.studio-filter-btn.active { opacity: 1; }
+
+.studio-filter-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.studio-filter-btn.active .studio-filter-thumb {
+  border-color: var(--gold-bright);
+  transform: scale(1.04);
+}
+
+.studio-filter-label {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Reset link + Done button */
+.studio-reset-link {
+  background: none;
+  border: none;
+  color: var(--gold-bright);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--sp-3);
+}
+
+.studio-done-btn {
+  margin-top: auto;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-seal);
+  padding: 13px 0;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: var(--maroon-deep);
+  font-weight: 700;
+  font-size: var(--fs-base);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.studio-done-btn:active:not(:disabled) { transform: scale(0.98); }
+.studio-done-btn:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+
+.studio-error-banner {
+  background: rgba(166, 39, 44, 0.25);
+  border: 1px solid rgba(166, 39, 44, 0.5);
+  color: #ffb3b6;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-3);
+}
+
+.studio-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--gold-bright);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}

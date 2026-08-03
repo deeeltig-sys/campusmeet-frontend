@@ -215,6 +215,7 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => imageFile && setEditingFile(imageFile)}
+                className="overlay-pill-btn"
                 style={{
                   position: 'absolute', bottom: 10, right: 10, padding: '6px 14px', borderRadius: 999,
                   background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 'var(--fs-xs)', cursor: 'pointer',
