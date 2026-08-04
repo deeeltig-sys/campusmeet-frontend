@@ -19,17 +19,27 @@ export default function HashtagText({ text, mentions }) {
   HASHTAG_RE.lastIndex = 0;
   let match;
   while ((match = HASHTAG_RE.exec(text)) !== null) {
+    // Capture this iteration's values into their own consts — `render`
+    // is called later, after this while loop has fully finished, at
+    // which point the shared `match` variable holds its FINAL value
+    // (null, since that's what ends the loop). Closing over `match`
+    // itself instead of its value here is what was crashing every
+    // post that contained a hashtag with "Cannot read properties of
+    // null (reading '1')".
+    const tag = match[1];
+    const start = match.index;
+    const end = HASHTAG_RE.lastIndex;
     tokens.push({
-      start: match.index,
-      end: HASHTAG_RE.lastIndex,
+      start,
+      end,
       render: (key) => (
         <Link
           key={key}
-          to={`/hashtag/${match[1].toLowerCase()}`}
+          to={`/hashtag/${tag.toLowerCase()}`}
           onClick={(e) => e.stopPropagation()}
           style={{ color: 'var(--maroon)', fontWeight: 600, textDecoration: 'none' }}
         >
-          #{match[1]}
+          #{tag}
         </Link>
       ),
     });

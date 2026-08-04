@@ -3,4 +3,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self)
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://hoeslmqgmefrcqqpbgnc.supabase.co wss://hoeslmqgmefrcqqpbgnc.supabase.co https://campus-backend-tz9q.onrender.com https://api.paystack.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://hoeslmqgmefrcqqpbgnc.supabase.co wss://hoeslmqgmefrcqqpbgnc.supabase.co https://campus-backend-tz9q.onrender.com https://api.paystack.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
