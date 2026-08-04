@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 
 const DISMISSED_KEY = 'campmeet_install_dismissed_at';
-const REPROMPT_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // 3 days — "anytime" but not nagging every single visit
+const REPROMPT_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // Android/desktop — 3 days, not nagging
+
+// iOS gets a much shorter reprompt window on purpose. Apple gives no
+// programmatic install trigger and no way to hard-require it, so this
+// is "soft power" instead of a technical mandate: not blocking, but
+// persistent enough that skipping it never quietly becomes permanent.
+// Every school-rank push you're not getting is a real, felt loss for
+// exactly the audience this feature is built for — worth resurfacing
+// often until they've actually installed.
+const IOS_REPROMPT_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function isStandalone() {
   return (
@@ -23,18 +32,21 @@ export default function InstallPrompt() {
     if (isStandalone()) return; // already installed — never show anything
 
     const lastDismissed = Number(localStorage.getItem(DISMISSED_KEY) || 0);
-    if (Date.now() - lastDismissed < REPROMPT_AFTER_MS) return;
 
     if (isIOS()) {
       // Apple never implemented beforeinstallprompt and never will —
-      // there is no programmatic install trigger on iOS Safari. The
-      // only real path is the manual Share -> Add to Home Screen flow,
-      // so the best this can do is surface clear instructions instead
-      // of pretending a one-tap install exists here.
+      // there is no programmatic install trigger on iOS Safari, so
+      // there's no way to hard-require this the way Android can.
+      // The short reprompt window is the soft-power substitute: not a
+      // block, just a decision to keep asking until it happens rather
+      // than let a dismissal quietly become forever.
+      if (Date.now() - lastDismissed < IOS_REPROMPT_AFTER_MS) return;
       setPlatform('ios');
       setVisible(true);
       return;
     }
+
+    if (Date.now() - lastDismissed < REPROMPT_AFTER_MS) return;
 
     // Android Chrome, and desktop Chrome/Edge, fire this when the PWA
     // criteria (manifest + icons + served over HTTPS) are met — it's
@@ -76,10 +88,12 @@ export default function InstallPrompt() {
       }}
     >
       <div style={{ flex: 1 }}>
-        <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-sm)' }}>Install CampusMEET</p>
+        <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-sm)' }}>
+          {platform === 'ios' ? "Don't miss your school's rank" : 'Install CampusMEET'}
+        </p>
         <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'rgba(255,255,255,0.8)' }}>
           {platform === 'ios'
-            ? 'Tap the Share icon, then "Add to Home Screen"'
+            ? 'Add to Home Screen to get alerts the moment a rival school overtakes yours — tap Share, then "Add to Home Screen"'
             : 'Add it to your home screen for quick access, like an app'}
         </p>
       </div>
@@ -95,10 +109,14 @@ export default function InstallPrompt() {
       <button
         type="button"
         onClick={handleDismiss}
-        aria-label="Dismiss"
-        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', cursor: 'pointer', flexShrink: 0, padding: 4 }}
+        aria-label={platform === 'ios' ? 'Maybe later' : 'Dismiss'}
+        style={{
+          background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
+          fontSize: platform === 'ios' ? 'var(--fs-xs)' : '1.1rem',
+          cursor: 'pointer', flexShrink: 0, padding: 4, whiteSpace: 'nowrap',
+        }}
       >
-        ×
+        {platform === 'ios' ? 'Later' : '×'}
       </button>
     </div>
   );

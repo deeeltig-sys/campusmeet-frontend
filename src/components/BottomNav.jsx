@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NotificationsAPI } from '../api/client';
+import { Dawuro, Nkonsonkonson } from './AdinkraIcons';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
@@ -90,14 +91,12 @@ function SearchIcon({ active }) {
   );
 }
 function FriendsIcon({ active }) {
-  const c = active ? 'var(--maroon)' : 'var(--ink-soft)';
+  // Nkonsonkonson — the chain-link symbol, meaning unity and human
+  // relations. Swapped in for the generic two-circle icon.
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <circle cx="9" cy="8" r="3" stroke={c} strokeWidth="2" />
-      <path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke={c} strokeWidth="2" strokeLinecap="round" />
-      <circle cx="17" cy="8.5" r="2.4" stroke={c} strokeWidth="1.8" />
-      <path d="M15 13.3c2.2.3 3.9 2.1 4 4.4" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
+    <span style={{ display: 'inline-flex', color: active ? 'var(--maroon)' : 'var(--ink-soft)' }}>
+      <Nkonsonkonson size={22} strokeWidth={2} />
+    </span>
   );
 }
 function PlusIcon({ active }) {
@@ -109,14 +108,13 @@ function PlusIcon({ active }) {
   );
 }
 function BellIcon({ active }) {
+  // Dawuro — the gong-gong used by town criers to announce news,
+  // meaning vigilance and the spreading of information. Swapped in
+  // for the generic bell.
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 4a5 5 0 0 0-5 5v2.6c0 .6-.2 1.2-.6 1.7L5 15.5a1 1 0 0 0 .8 1.6h12.4a1 1 0 0 0 .8-1.6l-1.4-2.2a2.8 2.8 0 0 1-.6-1.7V9a5 5 0 0 0-5-5z"
-        stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinejoin="round"
-      />
-      <path d="M10 19.5a2 2 0 0 0 4 0" stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'} strokeWidth="2" strokeLinecap="round" />
-    </svg>
+    <span style={{ display: 'inline-flex', color: active ? 'var(--maroon)' : 'var(--ink-soft)' }}>
+      <Dawuro size={22} strokeWidth={1.8} />
+    </span>
   );
 }
 function InboxIcon({ active }) {
