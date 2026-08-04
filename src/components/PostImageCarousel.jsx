@@ -1,5 +1,16 @@
 import { useRef, useState } from 'react';
 
+// The backend's images array (routes/posts.py _attach_post_images) is
+// a plain array of URL strings: ["https://...", "https://..."]. This
+// component was reading img.url on each entry — a string has no .url
+// property, so every src and every React key came out undefined for
+// every multi-image post, silently. Handling both shapes defensively
+// (plain string, or an {url} object) so this can't regress the same
+// way again if something upstream ever sends objects instead.
+function resolveUrl(img) {
+  return typeof img === 'string' ? img : img?.url;
+}
+
 export default function PostImageCarousel({ images, onImageTap }) {
   const trackRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -21,19 +32,22 @@ export default function PostImageCarousel({ images, onImageTap }) {
           WebkitOverflowScrolling: 'touch', borderRadius: 'var(--radius-md)',
         }}
       >
-        {images.map((img, i) => (
-          <button
-            key={img.url}
-            type="button"
-            onClick={() => onImageTap?.(img.url)}
-            style={{
-              flex: '0 0 100%', scrollSnapAlign: 'start', border: 'none', padding: 0,
-              cursor: 'zoom-in', display: 'block', width: '100%',
-            }}
-          >
-            <img className="post-image" src={img.url} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
-          </button>
-        ))}
+        {images.map((img, i) => {
+          const url = resolveUrl(img);
+          return (
+            <button
+              key={url || i}
+              type="button"
+              onClick={() => url && onImageTap?.(url)}
+              style={{
+                flex: '0 0 100%', scrollSnapAlign: 'start', border: 'none', padding: 0,
+                cursor: 'zoom-in', display: 'block', width: '100%',
+              }}
+            >
+              <img className="post-image" src={url} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
+            </button>
+          );
+        })}
       </div>
 
       {images.length > 1 && (
@@ -47,7 +61,7 @@ export default function PostImageCarousel({ images, onImageTap }) {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 6 }}>
             {images.map((img, i) => (
               <span
-                key={img.url}
+                key={resolveUrl(img) || i}
                 style={{
                   width: 6, height: 6, borderRadius: '50%',
                   background: i === activeIndex ? 'var(--maroon)' : 'var(--line)',

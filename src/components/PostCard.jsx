@@ -215,14 +215,14 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       {post.images && post.images.length > 1 ? (
         <PostImageCarousel images={post.images} onImageTap={setFullscreenUrl} />
       ) : (
-        (post.image_url || post.images?.[0]?.url) && (
+        post.image_url && (
           <button
             type="button"
             className="post-image-wrap"
-            onClick={() => setFullscreenUrl(post.images?.[0]?.url || post.image_url)}
+            onClick={() => setFullscreenUrl(post.image_url)}
             style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
           >
-            <img className="post-image" src={post.images?.[0]?.url || post.image_url} alt="" loading="lazy" />
+            <img className="post-image" src={post.image_url} alt="" loading="lazy" />
           </button>
         )
       )}

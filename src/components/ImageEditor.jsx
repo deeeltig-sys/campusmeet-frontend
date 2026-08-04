@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   FILTER_PRESETS, DEFAULT_ADJUSTMENTS, buildFilterString, renderEditedImage, loadImageFromFile,
 } from '../utils/imageEditor';
@@ -15,14 +15,33 @@ const TABS = [
   { id: 'crop', label: 'Crop' },
   { id: 'filter', label: 'Filter' },
   { id: 'adjust', label: 'Adjust' },
+  { id: 'draw', label: 'Draw' },
+  { id: 'text', label: 'Text' },
 ];
 
+const DRAW_COLORS = ['#ffffff', '#1A1210', '#A6272C', '#D4AF37', '#2E6B44', '#0a66c2'];
+const TEXT_COLORS = ['#ffffff', '#1A1210', '#D4AF37', '#A6272C', '#0a66c2'];
+const BRUSH_SIZES = [
+  { id: 'thin', label: 'Thin', value: 0.006 },
+  { id: 'medium', label: 'Medium', value: 0.014 },
+  { id: 'thick', label: 'Thick', value: 0.026 },
+];
+
+let nextId = 1;
+const makeId = () => `el${nextId++}`;
+
 /**
- * The shared photo-editing studio — crop/zoom, filters, and
- * brightness/contrast/saturation. Same component mounts inside both
- * the post composer and the story composer, so any polish here shows
- * up in both places, on phone and desktop alike (see imageStudio.css
- * for the responsive split layout).
+ * The shared photo-editing studio — crop/zoom, filters, brightness/
+ * contrast/saturation, freehand drawing, and draggable text overlays.
+ * Same component mounts inside both the post composer and the story
+ * composer, so this covers both surfaces at once, on phone and
+ * desktop (see imageStudio.css for the responsive split layout).
+ *
+ * Draw and Text overlays are stored normalized (0-1) relative to the
+ * frame as it appears at the moment they're placed. That's why those
+ * two tabs come after Crop — changing crop/zoom/pan after drawing
+ * would shift the frame's visible content under already-placed
+ * strokes/text, same limitation most lightweight editors have.
  *
  * props:
  *   file        - the raw File the user picked
@@ -30,7 +49,7 @@ const TABS = [
  *   onDone(editedFile, previewUrl) - fires with the final edited image
  */
 export default function ImageEditor({ file, onCancel, onDone }) {
-  const [tab, setTab] = useState('crop'); // 'crop' | 'filter' | 'adjust'
+  const [tab, setTab] = useState('crop');
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [aspect, setAspect] = useState('original');
@@ -40,21 +59,28 @@ export default function ImageEditor({ file, onCancel, onDone }) {
   const [adjustments, setAdjustments] = useState(DEFAULT_ADJUSTMENTS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Draw tool state
+  const [strokes, setStrokes] = useState([]);
+  const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]);
+  const [brushSize, setBrushSize] = useState(BRUSH_SIZES[1].value);
+
+  // Text tool state
+  const [texts, setTexts] = useState([]);
+  const [activeTextId, setActiveTextId] = useState(null);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
+
   const dragState = useRef(null);
   const frameRef = useRef(null);
+  const drawCanvasRef = useRef(null);
+  const drawingRef = useRef(null); // { points: [{x,y}] } while a stroke is in progress
+  const textDragRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
     setImage(null);
-    // loadImageFromFile creates a fresh blob URL every call — if it
-    // never resolves (a decode error, an unsupported format that
-    // slipped past the picker's accept filter, etc.) the previous
-    // code left `image` at null with nothing visible on screen: no
-    // spinner, no error, just a blank box. loading/error are explicit
-    // states rendered inside the frame itself now, so a failure is
-    // always visible, never silent.
     let objectUrl = null;
     loadImageFromFile(file)
       .then((img) => {
@@ -83,25 +109,131 @@ export default function ImageEditor({ file, onCancel, onDone }) {
 
   const filterString = buildFilterString(presetId, adjustments);
   const tabIndex = TABS.findIndex((t) => t.id === tab);
+  const activeText = texts.find((t) => t.id === activeTextId) || null;
 
-  function handlePointerDown(e) {
-    dragState.current = { startX: e.clientX, startY: e.clientY, panStart: pan };
+  // Keeps the draw canvas's pixel buffer in sync with its displayed
+  // CSS size (frame resizes on aspect-ratio change / desktop-vs-mobile
+  // layout switch) and replays existing strokes so switching tabs or
+  // resizing never loses what's already been drawn.
+  const resizeAndRedrawCanvas = useCallback(() => {
+    const canvas = drawCanvasRef.current;
+    const frame = frameRef.current;
+    if (!canvas || !frame) return;
+    const rect = frame.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    setFrameSize({ width: rect.width, height: rect.height });
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const stroke of strokes) {
+      drawStrokeOnCanvas(ctx, stroke, canvas.width, canvas.height);
+    }
+  }, [strokes]);
+
+  useEffect(() => {
+    resizeAndRedrawCanvas();
+  }, [resizeAndRedrawCanvas, aspectRatio, tab]);
+
+  useEffect(() => {
+    function onResize() { resizeAndRedrawCanvas(); }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [resizeAndRedrawCanvas]);
+
+  function normalizedPointFromEvent(e) {
+    const rect = frameRef.current.getBoundingClientRect();
+    return {
+      x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
+    };
+  }
+
+  // Crop-tab panning
+  function handleFramePointerDown(e) {
+    if (tab === 'crop') {
+      dragState.current = { startX: e.clientX, startY: e.clientY, panStart: pan };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } else if (tab === 'draw') {
+      const canvas = drawCanvasRef.current;
+      const point = normalizedPointFromEvent(e);
+      drawingRef.current = { points: [point] };
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = drawColor;
+      ctx.lineWidth = Math.max(1, brushSize * canvas.width);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(point.x * canvas.width, point.y * canvas.height);
+      canvas.setPointerCapture?.(e.pointerId);
+    }
+  }
+  function handleFramePointerMove(e) {
+    if (tab === 'crop' && dragState.current) {
+      const rect = frameRef.current.getBoundingClientRect();
+      const dx = (e.clientX - dragState.current.startX) / rect.width;
+      const dy = (e.clientY - dragState.current.startY) / rect.height;
+      setPan({
+        x: clamp01(dragState.current.panStart.x - dx),
+        y: clamp01(dragState.current.panStart.y - dy),
+      });
+    } else if (tab === 'draw' && drawingRef.current) {
+      const canvas = drawCanvasRef.current;
+      const point = normalizedPointFromEvent(e);
+      drawingRef.current.points.push(point);
+      const ctx = canvas.getContext('2d');
+      ctx.lineTo(point.x * canvas.width, point.y * canvas.height);
+      ctx.stroke();
+    }
+  }
+  function handleFramePointerUp() {
+    dragState.current = null;
+    if (tab === 'draw' && drawingRef.current) {
+      if (drawingRef.current.points.length > 1) {
+        setStrokes((prev) => [...prev, { id: makeId(), color: drawColor, size: brushSize, points: drawingRef.current.points }]);
+      }
+      drawingRef.current = null;
+    }
+  }
+
+  function undoStroke() {
+    setStrokes((prev) => prev.slice(0, -1));
+  }
+  function clearStrokes() {
+    setStrokes([]);
+  }
+
+  function addText() {
+    const id = makeId();
+    setTexts((prev) => [...prev, { id, text: 'Tap to edit', x: 0.5, y: 0.5, fontSize: 0.07, color: TEXT_COLORS[0] }]);
+    setActiveTextId(id);
+  }
+  function updateActiveText(patch) {
+    if (!activeTextId) return;
+    setTexts((prev) => prev.map((t) => (t.id === activeTextId ? { ...t, ...patch } : t)));
+  }
+  function deleteActiveText() {
+    if (!activeTextId) return;
+    setTexts((prev) => prev.filter((t) => t.id !== activeTextId));
+    setActiveTextId(null);
+  }
+  function handleTextPointerDown(e, id) {
+    e.stopPropagation();
+    setActiveTextId(id);
+    const t = texts.find((tx) => tx.id === id);
+    textDragRef.current = { startX: e.clientX, startY: e.clientY, origin: { x: t.x, y: t.y }, id };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
-  function handlePointerMove(e) {
-    if (!dragState.current || !frameRef.current) return;
+  function handleTextPointerMove(e) {
+    if (!textDragRef.current || !frameRef.current) return;
     const rect = frameRef.current.getBoundingClientRect();
-    const dx = (e.clientX - dragState.current.startX) / rect.width;
-    const dy = (e.clientY - dragState.current.startY) / rect.height;
-    // Dragging the image right/down should reveal more of the
-    // left/top edge — i.e. the crop window moves opposite the finger.
-    setPan({
-      x: clamp01(dragState.current.panStart.x - dx),
-      y: clamp01(dragState.current.panStart.y - dy),
-    });
+    const dx = (e.clientX - textDragRef.current.startX) / rect.width;
+    const dy = (e.clientY - textDragRef.current.startY) / rect.height;
+    const { id, origin } = textDragRef.current;
+    setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, x: clamp01(origin.x + dx), y: clamp01(origin.y + dy) } : t)));
   }
-  function handlePointerUp() {
-    dragState.current = null;
+  function handleTextPointerUp() {
+    textDragRef.current = null;
   }
 
   async function handleDone() {
@@ -109,7 +241,8 @@ export default function ImageEditor({ file, onCancel, onDone }) {
     setBusy(true);
     setError('');
     try {
-      const blob = await renderEditedImage(image, { x: pan.x, y: pan.y, scale: zoom }, aspect, presetId, adjustments);
+      const overlays = { strokes, texts };
+      const blob = await renderEditedImage(image, { x: pan.x, y: pan.y, scale: zoom }, aspect, presetId, adjustments, overlays);
       if (!blob) throw new Error('Could not process this image.');
       const previewUrl = URL.createObjectURL(blob);
       const edited = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg', lastModified: Date.now() });
@@ -120,6 +253,8 @@ export default function ImageEditor({ file, onCancel, onDone }) {
       setBusy(false);
     }
   }
+
+  const frameInteractive = tab === 'crop' || tab === 'draw';
 
   return (
     <div className="studio-overlay" onClick={busy ? undefined : onCancel}>
@@ -134,13 +269,13 @@ export default function ImageEditor({ file, onCancel, onDone }) {
             <div
               ref={frameRef}
               className="studio-frame"
-              onPointerDown={tab === 'crop' ? handlePointerDown : undefined}
-              onPointerMove={tab === 'crop' ? handlePointerMove : undefined}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerUp}
+              onPointerDown={frameInteractive ? handleFramePointerDown : undefined}
+              onPointerMove={frameInteractive ? handleFramePointerMove : (tab === 'text' ? handleTextPointerMove : undefined)}
+              onPointerUp={frameInteractive ? handleFramePointerUp : (tab === 'text' ? handleTextPointerUp : undefined)}
+              onPointerLeave={frameInteractive ? handleFramePointerUp : undefined}
               style={{
                 aspectRatio: String(aspectRatio),
-                cursor: tab === 'crop' ? 'grab' : 'default',
+                cursor: tab === 'crop' ? 'grab' : tab === 'draw' ? 'crosshair' : 'default',
                 maxHeight: '100%',
               }}
             >
@@ -167,12 +302,24 @@ export default function ImageEditor({ file, onCancel, onDone }) {
                   }}
                 />
               )}
+              {image && <canvas ref={drawCanvasRef} className="studio-draw-canvas" />}
+              {image && texts.map((t) => (
+                <div
+                  key={t.id}
+                  className={`studio-text-element${t.id === activeTextId ? ' active' : ''}`}
+                  style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${Math.max(8, t.fontSize * frameSize.width)}px`, color: t.color }}
+                  onPointerDown={(e) => handleTextPointerDown(e, t.id)}
+                  onClick={(e) => { e.stopPropagation(); setActiveTextId(t.id); }}
+                >
+                  {t.text}
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="studio-controls">
             <div className="studio-tabs">
-              <div className="studio-tab-highlight" style={{ transform: `translateX(${tabIndex * 100}%)` }} />
+              <div className="studio-tab-highlight" style={{ width: `calc(${100 / TABS.length}% - 2px)`, transform: `translateX(${tabIndex * 100}%)` }} />
               {TABS.map((t) => (
                 <button
                   key={t.id} type="button"
@@ -249,6 +396,77 @@ export default function ImageEditor({ file, onCancel, onDone }) {
               </div>
             )}
 
+            {tab === 'draw' && (
+              <>
+                <p className="studio-hint">Drag your finger or cursor over the photo to draw.</p>
+                <div className="studio-color-row">
+                  {DRAW_COLORS.map((c) => (
+                    <button
+                      key={c} type="button"
+                      className={`studio-color-swatch${drawColor === c ? ' active' : ''}`}
+                      style={{ background: c, border: c === '#ffffff' ? '2px solid rgba(255,255,255,0.3)' : undefined }}
+                      onClick={() => setDrawColor(c)}
+                      aria-label={`Brush color ${c}`}
+                    />
+                  ))}
+                </div>
+                <div className="studio-aspect-row">
+                  {BRUSH_SIZES.map((s) => (
+                    <button
+                      key={s.id} type="button" onClick={() => setBrushSize(s.value)}
+                      className={`studio-chip${brushSize === s.value ? ' active' : ''}`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="studio-icon-row">
+                  <button type="button" className="studio-icon-btn" onClick={undoStroke} disabled={strokes.length === 0}>Undo</button>
+                  <button type="button" className="studio-icon-btn danger" onClick={clearStrokes} disabled={strokes.length === 0}>Clear all</button>
+                </div>
+              </>
+            )}
+
+            {tab === 'text' && (
+              <>
+                <button type="button" className="studio-add-text-btn" onClick={addText}>+ Add text</button>
+                {activeText ? (
+                  <>
+                    <input
+                      type="text"
+                      className="studio-text-input"
+                      value={activeText.text}
+                      onChange={(e) => updateActiveText({ text: e.target.value })}
+                      placeholder="Type something…"
+                      maxLength={80}
+                    />
+                    <div className="studio-color-row">
+                      {TEXT_COLORS.map((c) => (
+                        <button
+                          key={c} type="button"
+                          className={`studio-color-swatch${activeText.color === c ? ' active' : ''}`}
+                          style={{ background: c, border: c === '#ffffff' ? '2px solid rgba(255,255,255,0.3)' : undefined }}
+                          onClick={() => updateActiveText({ color: c })}
+                          aria-label={`Text color ${c}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="studio-label-row"><span>Size</span><span>{Math.round(activeText.fontSize * 1000)}</span></div>
+                    <input
+                      type="range" min="0.03" max="0.14" step="0.002" value={activeText.fontSize}
+                      onChange={(e) => updateActiveText({ fontSize: parseFloat(e.target.value) })}
+                      className="studio-slider"
+                    />
+                    <div className="studio-icon-row">
+                      <button type="button" className="studio-icon-btn danger" onClick={deleteActiveText}>Delete text</button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="studio-hint">{texts.length > 0 ? 'Tap a text element on the photo to edit it, or drag it to reposition.' : 'Add text, then drag it anywhere on the photo.'}</p>
+                )}
+              </>
+            )}
+
             <button type="button" className="studio-done-btn" onClick={handleDone} disabled={busy || !image}>
               {busy ? 'Applying…' : 'Done'}
             </button>
@@ -257,6 +475,20 @@ export default function ImageEditor({ file, onCancel, onDone }) {
       </div>
     </div>
   );
+}
+
+function drawStrokeOnCanvas(ctx, stroke, canvasW, canvasH) {
+  if (!stroke.points || stroke.points.length < 2) return;
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth = Math.max(1, stroke.size * canvasW);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(stroke.points[0].x * canvasW, stroke.points[0].y * canvasH);
+  for (let i = 1; i < stroke.points.length; i++) {
+    ctx.lineTo(stroke.points[i].x * canvasW, stroke.points[i].y * canvasH);
+  }
+  ctx.stroke();
 }
 
 function clamp01(n) {

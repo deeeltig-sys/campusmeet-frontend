@@ -27,11 +27,21 @@ export function buildFilterString(presetId, adjustments) {
 }
 
 /**
- * Renders the edited image (crop rect + zoom/pan + filter + adjustments)
- * into a single flattened canvas and resolves a Blob — this is the
- * "baked in at publish time" step that matches how FB/IG actually work:
- * once posted, the filter/crop can't be re-opened and re-edited, only
- * the caption/metadata can.
+ * Renders the edited image (crop rect + zoom/pan + filter + adjustments
+ * + freehand drawing + text overlays) into a single flattened canvas
+ * and resolves a Blob — this is the "baked in at publish time" step
+ * that matches how FB/IG actually work: once posted, none of this can
+ * be re-opened and re-edited, only the caption/metadata can.
+ *
+ * Strokes and text overlays are stored in coordinates NORMALIZED to
+ * the visible frame (0-1, x left-to-right / y top-to-bottom) at the
+ * moment they were drawn — since the frame always shows the current
+ * crop/pan/zoom, those normalized coordinates map directly onto the
+ * final output canvas at the same relative position, regardless of
+ * output resolution. The one caveat: if crop/zoom/pan changes AFTER
+ * something is drawn, the frame's visible content shifts under
+ * already-placed strokes/text — same limitation most lightweight
+ * editors have, which is why Draw/Text are the last two tabs.
  *
  * @param {HTMLImageElement} image - loaded source image
  * @param {{x:number,y:number,scale:number}} transform - pan (x/y in
@@ -39,8 +49,11 @@ export function buildFilterString(presetId, adjustments) {
  * @param {string} aspect - 'original' | '1:1' | '4:5' | '16:9'
  * @param {string} presetId - one of FILTER_PRESETS ids
  * @param {{brightness:number,contrast:number,saturation:number}} adjustments
+ * @param {{strokes:Array,texts:Array}} [overlays] - strokes: [{color,
+ *   size, points:[{x,y}]}], texts: [{text,x,y,fontSize,color}] — all
+ *   coordinates/sizes normalized 0-1 relative to the frame
  */
-export async function renderEditedImage(image, transform, aspect, presetId, adjustments) {
+export async function renderEditedImage(image, transform, aspect, presetId, adjustments, overlays = null) {
   const naturalW = image.naturalWidth;
   const naturalH = image.naturalHeight;
 
@@ -81,6 +94,44 @@ export async function renderEditedImage(image, transform, aspect, presetId, adju
   const ctx = canvas.getContext('2d');
   ctx.filter = buildFilterString(presetId, adjustments);
   ctx.drawImage(image, srcX, srcY, cropW, cropH, 0, 0, outW, outH);
+
+  // Overlays are drawn AFTER the photo filter, with filter reset to
+  // 'none' first — a red drawn line should stay red even if the photo
+  // underneath it is set to the B&W filter, exactly like FB/IG.
+  if (overlays) {
+    ctx.filter = 'none';
+
+    for (const stroke of overlays.strokes || []) {
+      if (!stroke.points || stroke.points.length < 2) continue;
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = Math.max(1, stroke.size * outW);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x * outW, stroke.points[0].y * outH);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x * outW, stroke.points[i].y * outH);
+      }
+      ctx.stroke();
+    }
+
+    for (const t of overlays.texts || []) {
+      if (!t.text || !t.text.trim()) continue;
+      const px = Math.max(8, t.fontSize * outW);
+      ctx.font = `700 ${px}px var(--font-body), Inter, sans-serif`;
+      ctx.fillStyle = t.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // A soft shadow keeps text readable over busy photo backgrounds
+      // without needing a background pill, matching IG's default text style.
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = px * 0.12;
+      ctx.shadowOffsetY = px * 0.03;
+      ctx.fillText(t.text, t.x * outW, t.y * outH);
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+    }
+  }
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
   return blob;
