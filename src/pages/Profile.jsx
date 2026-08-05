@@ -8,6 +8,7 @@ import ProfileStrengthMeter, { computeProfileStrength, STRONG_PROFILE_THRESHOLD 
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 import FollowListModal from '../components/FollowListModal';
 import HighlightsRow from '../components/HighlightsRow';
+import BadgesRow from '../components/BadgesRow';
 import HighlightViewer from '../components/HighlightViewer';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
 import { getPushSubscriptionState, enablePush, disablePush, isPushSupported } from '../utils/push';
@@ -238,6 +239,7 @@ export default function Profile() {
       {error && <div className="banner-error">{error}</div>}
 
       <HighlightsRow userId={user.id} onOpenHighlight={setOpenHighlightId} />
+      <BadgesRow userId={user.id} />
 
       <ProfileStrengthMeter user={user} postCount={postCount} />
 
@@ -315,6 +317,9 @@ export default function Profile() {
           </button>
           <button type="button" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/insights')}>
             Insights
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/quests')}>
+            Quests
           </button>
         </div>
       </div>

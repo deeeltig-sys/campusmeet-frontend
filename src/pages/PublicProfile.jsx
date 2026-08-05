@@ -10,6 +10,7 @@ import BackHeader from '../components/BackHeader';
 import PostGrid from '../components/PostGrid';
 import FollowListModal from '../components/FollowListModal';
 import HighlightsRow from '../components/HighlightsRow';
+import BadgesRow from '../components/BadgesRow';
 import HighlightViewer from '../components/HighlightViewer';
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaSnapchat, FaTiktok, FaXTwitter,
@@ -164,6 +165,7 @@ export default function PublicProfile() {
           </div>
 
           <HighlightsRow userId={userId} onOpenHighlight={setOpenHighlightId} />
+          <BadgesRow userId={userId} />
 
           {!blocked && (
             <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>

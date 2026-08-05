@@ -12,6 +12,7 @@ import { UsersAPI, FollowsAPI } from '../api/client';
 export default function SuggestedPeople() {
   const [people, setPeople] = useState([]);
   const [followingIds, setFollowingIds] = useState(() => new Set());
+  const [errorIds, setErrorIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -28,6 +29,11 @@ export default function SuggestedPeople() {
     // Optimistic — same pattern as reactions: flip the button immediately,
     // only revert if the request actually fails.
     setFollowingIds((prev) => new Set(prev).add(userId));
+    setErrorIds((prev) => {
+      const next = new Set(prev);
+      next.delete(userId);
+      return next;
+    });
     try {
       await FollowsAPI.follow(userId);
     } catch {
@@ -36,6 +42,10 @@ export default function SuggestedPeople() {
         next.delete(userId);
         return next;
       });
+      // Same "don't fail silently" fix as FollowButton/FriendButton —
+      // a brief inline note under the card instead of the button just
+      // quietly flipping back with no explanation.
+      setErrorIds((prev) => new Set(prev).add(userId));
     }
   }
 
@@ -120,6 +130,9 @@ export default function SuggestedPeople() {
               >
                 {following ? 'Following' : 'Follow'}
               </button>
+              {errorIds.has(person.id) && (
+                <span style={{ fontSize: '0.6rem', color: '#b3261e' }}>Couldn't follow — try again</span>
+              )}
             </div>
           );
         })}

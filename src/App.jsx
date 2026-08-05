@@ -31,6 +31,7 @@ import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
 import Insights from './pages/Insights';
+import Quests from './pages/Quests';
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -86,6 +87,7 @@ function AppRoutes() {
         <Route path="/events/create" element={<ProtectedLayout><CreateEvent /></ProtectedLayout>} />
         <Route path="/events/:eventId" element={<ProtectedLayout><EventDetail /></ProtectedLayout>} />
         <Route path="/insights" element={<ProtectedLayout><Insights /></ProtectedLayout>} />
+        <Route path="/quests" element={<ProtectedLayout><Quests /></ProtectedLayout>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

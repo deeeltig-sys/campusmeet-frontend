@@ -482,3 +482,13 @@ export const PushAPI = {
   subscribe: (subscription) => request('/api/push/subscribe', { method: 'POST', body: { subscription }, auth: true }),
   unsubscribe: (endpoint) => request('/api/push/subscribe', { method: 'DELETE', body: { endpoint }, auth: true }),
 };
+
+// ---- Reputation: badges (public) + quests (own account only) ----
+export const BadgesAPI = {
+  list: () => request('/api/badges'),
+  forUser: (userId) => request(`/api/badges/users/${userId}`),
+};
+
+export const QuestsAPI = {
+  mine: () => request('/api/quests/mine', { auth: true }),
+};
