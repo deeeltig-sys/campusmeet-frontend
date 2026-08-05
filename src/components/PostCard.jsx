@@ -4,19 +4,20 @@ import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { ReactionIcon, CommentIcon } from './icons';
+import { ReactionIcon, CommentIcon, REACTION_ICONS } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
 import PostImageCarousel from './PostImageCarousel';
 
-// Reaction buttons use plain emoji, not the custom line-icon SVGs from
-// icons.jsx — only these 4 buttons.
+// Reaction buttons — same SVG set ReactorsModal already uses, so the
+// picker and the "who reacted" breakdown read as one consistent icon
+// system instead of emoji on one screen and line-art on the other.
 const REACTIONS = [
-  { type: 'fire', emoji: '🔥', label: 'Fire' },
-  { type: 'cosign', emoji: '🤝', label: 'Cosign' },
-  { type: 'doubt', emoji: '👎', label: 'Doubt' },
-  { type: 'yawa', emoji: '🚫', label: 'Yawa' },
+  { type: 'fire', label: 'Fire' },
+  { type: 'cosign', label: 'Cosign' },
+  { type: 'doubt', label: 'Doubt' },
+  { type: 'yawa', label: 'Yawa' },
 ];
 
 export default function PostCard({ post, onReact, onEditSave, onDeletePost, onShowReactors, onShowComments }) {
@@ -100,8 +101,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   function renderReactionBar() {
     return (
       <div className="reaction-bar" role="group" aria-label="React to this post">
-        {REACTIONS.map(({ type, emoji, label }) => {
+        {REACTIONS.map(({ type, label }) => {
           const active = user_reaction === type;
+          const Icon = REACTION_ICONS[type];
           return (
             <button
               key={type}
@@ -113,7 +115,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
               onClick={() => onReact?.(post.id, type)}
               disabled={!REACTION_TYPES.includes(type)}
             >
-              <span className="reaction-emoji" aria-hidden="true">{emoji}</span>
+              <Icon size={19} color={active ? 'var(--gold-bright)' : 'var(--maroon)'} />
             </button>
           );
         })}

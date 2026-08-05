@@ -208,9 +208,7 @@ a { color: inherit; text-decoration: none; }
 .reaction-btn:hover { transform: translateY(-1px); border-color: var(--gold); }
 .reaction-btn:active { transform: scale(0.94); }
 .reaction-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.reaction-emoji {
-  font-size: 1.1rem;
-  line-height: 1;
+.reaction-btn svg {
   transform: translateY(-0.5px);
 }
 /* Persistent "you reacted with this" state — stays on until the user
@@ -223,7 +221,7 @@ a { color: inherit; text-decoration: none; }
   transform: scale(1.06);
 }
 .reaction-btn.active:hover { transform: scale(1.06) translateY(-1px); }
-.reaction-btn.active .reaction-emoji {
+.reaction-btn.active svg {
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.25));
 }
 
