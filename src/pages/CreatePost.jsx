@@ -22,6 +22,7 @@ export default function CreatePost() {
   const [optimizing, setOptimizing] = useState(false);
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
+  const [audience, setAudience] = useState('public'); // 'public' | 'friends'
   const [editingFile, setEditingFile] = useState(null); // raw File pending crop/filter/adjust
   const [editingIndex, setEditingIndex] = useState(null); // null = adding new photo; a number = re-editing that slot
   const fileInputRef = useRef(null);
@@ -195,6 +196,16 @@ export default function CreatePost() {
     });
   }
 
+  function moveImage(index, direction) {
+    setImages((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  }
+
   function clearAllImages() {
     images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     setImages([]);
@@ -235,7 +246,7 @@ export default function CreatePost() {
         }
       }
       setUploadStage('Publishing…');
-      const payload = { content: content.trim() };
+      const payload = { content: content.trim(), audience };
       if (image_urls) payload.image_urls = image_urls;
       if (showPoll) {
         payload.poll_options = pollOptions.map((o) => o.trim()).filter(Boolean);
@@ -308,7 +319,7 @@ export default function CreatePost() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={togglePoll}
@@ -317,6 +328,31 @@ export default function CreatePost() {
           >
             {showPoll ? 'Remove poll' : 'Add a poll'}
           </button>
+
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              {audience === 'friends' ? (
+                <path d="M9 12a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5M16 8a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM14.5 14c2.8.4 5.5 2.4 5.5 6" stroke="var(--maroon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              ) : (
+                <>
+                  <circle cx="12" cy="12" r="9" stroke="var(--ink-soft)" strokeWidth="1.6" />
+                  <path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3z" stroke="var(--ink-soft)" strokeWidth="1.4" />
+                </>
+              )}
+            </svg>
+            <select
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+              style={{
+                fontSize: 'var(--fs-sm)', border: '1px solid var(--line)', borderRadius: 999,
+                padding: '5px 10px', background: '#fff', color: 'var(--ink)', cursor: 'pointer',
+              }}
+              aria-label="Who can see this post"
+            >
+              <option value="public">Public</option>
+              <option value="friends">Friends</option>
+            </select>
+          </div>
         </div>
 
         {showPoll && (
@@ -361,6 +397,16 @@ export default function CreatePost() {
               {images.map((img, i) => (
                 <div key={img.previewUrl} className="image-preview" style={{ position: 'relative', flexShrink: 0, width: 96, height: 96 }}>
                   <img src={img.previewUrl} alt={`Selected photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+
+                  {images.length > 1 && (
+                    <span style={{
+                      position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff',
+                      fontSize: '0.6rem', fontFamily: 'var(--font-mono)', borderRadius: 999, padding: '1px 6px',
+                    }}>
+                      {i + 1}
+                    </span>
+                  )}
+
                   <button
                     type="button"
                     className="image-preview-remove"
@@ -370,6 +416,38 @@ export default function CreatePost() {
                   >
                     &times;
                   </button>
+
+                  {images.length > 1 && (
+                    <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, display: 'flex', justifyContent: 'space-between', transform: 'translateY(-50%)', padding: '0 2px' }}>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, -1)}
+                        disabled={i === 0}
+                        aria-label={`Move photo ${i + 1} earlier`}
+                        style={{
+                          width: 20, height: 20, borderRadius: '50%', border: 'none', cursor: i === 0 ? 'default' : 'pointer',
+                          background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.7rem', opacity: i === 0 ? 0.3 : 1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                        }}
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, 1)}
+                        disabled={i === images.length - 1}
+                        aria-label={`Move photo ${i + 1} later`}
+                        style={{
+                          width: 20, height: 20, borderRadius: '50%', border: 'none', cursor: i === images.length - 1 ? 'default' : 'pointer',
+                          background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.7rem', opacity: i === images.length - 1 ? 0.3 : 1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                        }}
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => openEditFor(i)}

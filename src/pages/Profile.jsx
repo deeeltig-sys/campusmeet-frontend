@@ -10,6 +10,7 @@ import FollowListModal from '../components/FollowListModal';
 import HighlightsRow from '../components/HighlightsRow';
 import HighlightViewer from '../components/HighlightViewer';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
+import { getPushSubscriptionState, enablePush, disablePush, isPushSupported } from '../utils/push';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
 import campmeetLogo from '../assets/campmeet-logo.png';
@@ -26,6 +27,8 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
+  const [pushState, setPushState] = useState('unsupported'); // 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'
+  const [pushBusy, setPushBusy] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [openHighlightId, setOpenHighlightId] = useState(null);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -52,6 +55,32 @@ export default function Profile() {
     PostsAPI.byUser(user.id).then((data) => setPostCount(Array.isArray(data) ? data.length : 0)).catch(() => {});
     FriendsAPI.list().then((data) => setFriendCount(Array.isArray(data) ? data.length : 0)).catch(() => {});
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!isPushSupported()) {
+      setPushState('unsupported');
+      return;
+    }
+    getPushSubscriptionState().then(setPushState).catch(() => setPushState('unsupported'));
+  }, []);
+
+  async function handlePushToggle() {
+    setPushBusy(true);
+    try {
+      if (pushState === 'subscribed') {
+        await disablePush();
+        setPushState('unsubscribed');
+      } else {
+        await enablePush();
+        setPushState('subscribed');
+      }
+    } catch (err) {
+      setError(err.message || 'Could not update notification settings.');
+      getPushSubscriptionState().then(setPushState).catch(() => {});
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   if (!user) return null;
 
@@ -311,6 +340,24 @@ export default function Profile() {
               Change
             </button>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--sp-3)', paddingTop: 'var(--sp-3)', borderTop: '1px solid var(--line)' }}>
+          <div>
+            <p style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, margin: 0 }}>Push notifications</p>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>
+              {pushState === 'subscribed' ? 'On for this device' : pushState === 'denied' ? 'Blocked in browser settings' : 'Get notified even when the app is closed'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={pushState === 'subscribed' ? 'btn' : 'btn btn-primary'}
+            style={{ padding: '6px 14px', fontSize: 'var(--fs-sm)' }}
+            onClick={handlePushToggle}
+            disabled={pushBusy || pushState === 'denied' || pushState === 'unsupported'}
+          >
+            {pushBusy ? '…' : pushState === 'subscribed' ? 'Turn off' : 'Turn on'}
+          </button>
         </div>
       </div>
 

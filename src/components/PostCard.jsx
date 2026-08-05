@@ -139,8 +139,15 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             <VerifiedBadge verified={author.verified} size={15} />
           </div>
           {created_at && (
-            <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
+            <time style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
               {new Date(created_at).toLocaleString()}
+              {post.audience === 'friends' && (
+                <span title="Friends only" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 12a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5M16 8a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM14.5 14c2.8.4 5.5 2.4 5.5 6" stroke="var(--ink-soft)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              )}
             </time>
           )}
         </div>

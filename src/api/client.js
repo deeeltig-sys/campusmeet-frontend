@@ -475,3 +475,10 @@ export const HighlightsAPI = {
 export const InsightsAPI = {
   get: () => request('/api/stats/insights', { auth: true }),
 };
+
+// ---- Web Push ----
+export const PushAPI = {
+  vapidPublicKey: () => request('/api/push/vapid-public-key'),
+  subscribe: (subscription) => request('/api/push/subscribe', { method: 'POST', body: { subscription }, auth: true }),
+  unsubscribe: (endpoint) => request('/api/push/subscribe', { method: 'DELETE', body: { endpoint }, auth: true }),
+};
