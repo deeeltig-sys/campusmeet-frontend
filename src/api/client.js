@@ -287,6 +287,12 @@ export const NotificationsAPI = {
 export const ConversationsAPI = {
   list: (filter = 'active') => request(`/api/conversations?filter=${filter}`, { auth: true }),
   activeContacts: (limit = 12) => request(`/api/conversations/active-contacts?limit=${limit}`, { auth: true }),
+  // Covers a new message, a reply, AND a message request from someone
+  // not yet accepted (a "spam"/stranger message still creates a real
+  // messages row with recipient_id = you, read_at = null — this one
+  // query already covers all three cases, no separate request-count
+  // needed).
+  unreadCount: () => request('/api/conversations/unread-count', { auth: true }),
   start: (userId) => request('/api/conversations', { method: 'POST', body: { user_id: userId }, auth: true }),
   accept: (conversationId) => request(`/api/conversations/${conversationId}/accept`, { method: 'POST', auth: true }),
   messages: (conversationId) => request(`/api/conversations/${conversationId}/messages`, { auth: true }),

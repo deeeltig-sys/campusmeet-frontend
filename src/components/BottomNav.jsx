@@ -1,19 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { NotificationsAPI } from '../api/client';
+import { NotificationsAPI, ConversationsAPI } from '../api/client';
 import { Dawuro, Nkonsonkonson } from './AdinkraIcons';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
   { to: '/friends', label: 'Friends', icon: FriendsIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
-  { to: '/notifications', label: 'Alerts', icon: BellIcon, badge: true },
-  { to: '/inbox', label: 'Chats', icon: InboxIcon },
+  { to: '/notifications', label: 'Alerts', icon: BellIcon, badge: 'notifications' },
+  { to: '/inbox', label: 'Chats', icon: InboxIcon, badge: 'chats' },
   { to: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
 export default function BottomNav() {
   const [unread, setUnread] = useState(0);
+  const [unreadChats, setUnreadChats] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,37 +39,66 @@ export default function BottomNav() {
     };
   }, []);
 
+  // Chats gets its own badge and its own poll, independent of Alerts —
+  // a new message, a reply, or a message request from someone not yet
+  // accepted should all surface here, the same way any of those show
+  // up in Alerts, without the two counts being mixed into one number.
+  useEffect(() => {
+    let cancelled = false;
+    function pollChats() {
+      ConversationsAPI.unreadCount()
+        .then((data) => { if (!cancelled) setUnreadChats(data?.count || 0); })
+        .catch(() => {});
+    }
+    pollChats();
+    const interval = setInterval(pollChats, 30000);
+    // Conversation.jsx marks messages read as soon as that thread is
+    // opened (see routes/messages.py's GET /messages handler) — same
+    // "don't wait for the next 30s tick" pattern as notifications.
+    window.addEventListener('campusmeet:messages-read', pollChats);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('campusmeet:messages-read', pollChats);
+    };
+  }, []);
+
+  const badgeCounts = { notifications: unread, chats: unreadChats };
+
   return (
     <nav className="bottom-nav">
-      {tabs.map(({ to, label, icon: Icon, badge }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className="bottom-nav-tab"
-          onClick={(e) => {
-            // Tapping Feed while already ON Feed is a dead click by
-            // default (react-router won't re-navigate to the same
-            // route) — that's what the CTO flagged. This makes it act
-            // like Instagram/X: tapping home again refreshes.
-            if (to === '/feed' && window.location.pathname === '/feed') {
-              window.dispatchEvent(new CustomEvent('campusmeet:refresh-feed'));
-            }
-          }}
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--maroon-deep)' : 'var(--ink-soft)',
-          })}
-        >
-          {({ isActive }) => (
-            <>
-              <div style={{ position: 'relative' }}>
-                <Icon active={isActive} />
-                {badge && unread > 0 && <span style={styles.badge}>{unread > 9 ? '9+' : unread}</span>}
-              </div>
-              <span className="bottom-nav-label">{label}</span>
-            </>
-          )}
-        </NavLink>
-      ))}
+      {tabs.map(({ to, label, icon: Icon, badge }) => {
+        const count = badge ? badgeCounts[badge] : 0;
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            className="bottom-nav-tab"
+            onClick={(e) => {
+              // Tapping Feed while already ON Feed is a dead click by
+              // default (react-router won't re-navigate to the same
+              // route) — that's what the CTO flagged. This makes it act
+              // like Instagram/X: tapping home again refreshes.
+              if (to === '/feed' && window.location.pathname === '/feed') {
+                window.dispatchEvent(new CustomEvent('campusmeet:refresh-feed'));
+              }
+            }}
+            style={({ isActive }) => ({
+              color: isActive ? 'var(--maroon-deep)' : 'var(--ink-soft)',
+            })}
+          >
+            {({ isActive }) => (
+              <>
+                <div style={{ position: 'relative' }}>
+                  <Icon active={isActive} />
+                  {count > 0 && <span style={styles.badge}>{count > 9 ? '9+' : count}</span>}
+                </div>
+                <span className="bottom-nav-label">{label}</span>
+              </>
+            )}
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

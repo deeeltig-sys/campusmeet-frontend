@@ -329,10 +329,10 @@ export default function Feed() {
           architecture decision made visible: defaults to your own
           campus so a new university's feed doesn't open into a wall
           of strangers from wherever onboarded first. */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-3)' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-3)', overflowX: 'auto', flexWrap: 'nowrap', WebkitOverflowScrolling: 'touch' }}>
         {[
           { key: 'campus', label: 'My Campus' },
-          { key: 'national', label: 'All Campuses' },
+          { key: 'national', label: 'All' },
         ].map((opt) => (
           <button
             key={opt.key}

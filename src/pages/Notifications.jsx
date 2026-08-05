@@ -52,6 +52,11 @@ export default function Notifications() {
     if (!n.read) {
       NotificationsAPI.markRead(n.id).catch(() => {});
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+      // BottomNav.jsx listens for this to refresh the Alerts badge
+      // right away instead of sitting stale until its next 30s poll —
+      // it was already listening for this event, it just never
+      // actually got dispatched anywhere.
+      window.dispatchEvent(new CustomEvent('campusmeet:notifications-read'));
     }
     if ((n.type === 'follow' || n.type === 'friend_accept') && n.actor_id) {
       navigate(`/profile/${n.actor_id}`);

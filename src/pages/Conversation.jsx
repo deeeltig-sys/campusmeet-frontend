@@ -73,6 +73,11 @@ export default function Conversation() {
         ConversationsAPI.list('requests'),
       ]);
       setMessages(Array.isArray(msgs) ? msgs : []);
+      // ConversationsAPI.messages() is what triggers the backend to
+      // mark incoming unread messages as read (routes/messages.py's
+      // GET /messages handler) — this tells BottomNav.jsx to refresh
+      // the Chats badge right away instead of waiting up to 30s.
+      window.dispatchEvent(new CustomEvent('campusmeet:messages-read'));
 
       let found = [
         ...(Array.isArray(activeList) ? activeList : []),
