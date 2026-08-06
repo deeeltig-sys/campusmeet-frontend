@@ -16,6 +16,7 @@ import VerifiedBadge from './VerifiedBadge';
 export default function RightRail() {
   const [people, setPeople] = useState([]);
   const [addedIds, setAddedIds] = useState(() => new Set());
+  const [errorIds, setErrorIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -30,6 +31,11 @@ export default function RightRail() {
 
   async function handleAdd(userId) {
     setAddedIds((prev) => new Set(prev).add(userId)); // optimistic, same pattern as SuggestedPeople's follow button
+    setErrorIds((prev) => {
+      const next = new Set(prev);
+      next.delete(userId);
+      return next;
+    });
     try {
       await FriendsAPI.send(userId);
     } catch {
@@ -38,6 +44,11 @@ export default function RightRail() {
         next.delete(userId);
         return next;
       });
+      // Same "don't fail silently" fix applied everywhere else a
+      // follow/friend action lives — a button that reverts with zero
+      // explanation is what made the underlying RPC-grants bug so
+      // hard to spot in the first place.
+      setErrorIds((prev) => new Set(prev).add(userId));
     }
   }
 
@@ -121,20 +132,25 @@ export default function RightRail() {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleAdd(person.id)}
-                disabled={added}
-                style={{
-                  fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '5px 10px', borderRadius: 999,
-                  border: added ? '1px solid var(--line)' : 'none',
-                  background: added ? 'transparent' : 'var(--maroon)',
-                  color: added ? 'var(--ink-soft)' : '#fff',
-                  cursor: added ? 'default' : 'pointer', flexShrink: 0,
-                }}
-              >
-                {added ? 'Sent' : 'Add'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => handleAdd(person.id)}
+                  disabled={added}
+                  style={{
+                    fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '5px 10px', borderRadius: 999,
+                    border: added ? '1px solid var(--line)' : 'none',
+                    background: added ? 'transparent' : 'var(--maroon)',
+                    color: added ? 'var(--ink-soft)' : '#fff',
+                    cursor: added ? 'default' : 'pointer',
+                  }}
+                >
+                  {added ? 'Sent' : 'Add'}
+                </button>
+                {errorIds.has(person.id) && (
+                  <span style={{ fontSize: '0.6rem', color: '#b3261e' }}>Failed — try again</span>
+                )}
+              </div>
             </div>
           );
         })}

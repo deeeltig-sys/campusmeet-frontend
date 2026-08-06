@@ -42,6 +42,8 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [savingBookmark, setSavingBookmark] = useState(false);
   const [fullscreenUrl, setFullscreenUrl] = useState(null);
   const menuRef = useRef(null);
+  const cardRef = useRef(null);
+  const hasRegisteredView = useRef(false);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -51,6 +53,48 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
+
+  // View tracking — this was previously never wired up anywhere at
+  // all: PostsAPI.registerView existed in the API client but no
+  // component ever called it, so view_count could never move past 0
+  // no matter how much a post was actually seen. Fires once per post
+  // per mount, the first time at least half the card has been
+  // visible for a beat (not just flickered past while scrolling fast).
+  useEffect(() => {
+    if (!post?.id || !cardRef.current) return;
+    hasRegisteredView.current = false;
+
+    const el = cardRef.current;
+    let dwellTimer = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !hasRegisteredView.current) {
+          dwellTimer = setTimeout(() => {
+            if (hasRegisteredView.current) return;
+            hasRegisteredView.current = true;
+            PostsAPI.registerView(post.id).catch(() => {
+              // Not worth surfacing to the person scrolling — a missed
+              // view count is a metrics gap, not something they need
+              // to know about or retry.
+            });
+            observer.disconnect();
+          }, 800);
+        } else if (!entry.isIntersecting && dwellTimer) {
+          clearTimeout(dwellTimer);
+          dwellTimer = null;
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => {
+      if (dwellTimer) clearTimeout(dwellTimer);
+      observer.disconnect();
+    };
+  }, [post?.id]);
 
   function startEdit() {
     setEditDraft(content);
@@ -124,7 +168,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   }
 
   return (
-    <article className="card post-card">
+    <article ref={cardRef} className="card post-card">
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
         <Link to={`/profile/${post.author_id}`} className="avatar-circle">
           {author.avatar_url ? (
@@ -149,6 +193,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
                     <path d="M9 12a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5M16 8a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM14.5 14c2.8.4 5.5 2.4 5.5 6" stroke="var(--ink-soft)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
+              )}
+              {isOwn && typeof post.view_count === 'number' && (
+                <span style={{ color: 'var(--ink-soft)' }}>· {post.view_count} {post.view_count === 1 ? 'view' : 'views'}</span>
               )}
             </time>
           )}
