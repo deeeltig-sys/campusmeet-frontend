@@ -180,7 +180,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+              <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
             </Link>
             <VerifiedBadge verified={author.verified} size={15} />
           </div>

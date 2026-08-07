@@ -224,7 +224,7 @@ function PersonRow({ person, onClick, action }) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
+          <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
           <VerifiedBadge verified={person.verified} size={13} />
         </div>
       </div>
@@ -269,7 +269,7 @@ function SuggestionCard({ person, onClick, onAdd, onDismiss }) {
       </button>
       <div style={{ padding: 'var(--sp-2) var(--sp-3) var(--sp-3)' }}>
         <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-          <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
+          <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
           <VerifiedBadge verified={person.verified} size={12} />
         </button>
         {typeof person.mutual_friends === 'number' && (

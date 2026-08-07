@@ -246,7 +246,7 @@ export default function Search() {
               {person.avatar_url ? <img src={person.avatar_url} alt="" /> : (person.full_name ? person.full_name.charAt(0) : '?')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
+              <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{person.full_name || 'Student'}</strong>
               <VerifiedBadge verified={person.verified} size={14} />
             </div>
           </Link>

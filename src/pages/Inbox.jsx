@@ -311,7 +311,7 @@ function ConversationRow({ conv, tab, onPressStart, onPressEnd, onRowClick, sele
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <strong style={{ fontSize: 'var(--fs-sm)' }}>{other.full_name || 'Student'}</strong>
+          <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{other.full_name || 'Student'}</strong>
           <VerifiedBadge verified={other.verified} size={13} />
         </div>
         {conv.is_request ? (

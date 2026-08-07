@@ -71,4 +71,12 @@
   --shadow-raised: 0 8px 28px rgba(0, 0, 0, 0.5);
   --surface: #241A17;
   --danger-bg: rgba(224, 102, 107, 0.15);
+
+  /* Diamond name treatment — dark mode only. Cool icy-white/blue facet
+     gradient for display names, distinct from the warm --gold family
+     which stays reserved for CTAs/accents per the existing system. */
+  --diamond-1: #EAF6FF;
+  --diamond-2: #FFFFFF;
+  --diamond-3: #BFE3FF;
+  --diamond-glow: rgba(191, 227, 255, 0.35);
 }
