@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PostsAPI } from '../api/client';
 import VerifiedBadge from './VerifiedBadge';
-import { REACTION_ICONS } from './icons';
+import { REACTION_EMOJI } from './icons';
 
 // Same four reactions/labels PostCard.jsx uses on the reaction bar
 // itself — kept in sync deliberately so "Yawa" here means the same
@@ -68,7 +68,6 @@ export default function ReactorsModal({ postId, onClose }) {
               All {reactors.length}
             </button>
             {REACTION_TABS.filter((r) => countsByType[r.type]).map((r) => {
-              const Icon = REACTION_ICONS[r.type];
               const active = filter === r.type;
               return (
                 <button
@@ -83,7 +82,7 @@ export default function ReactorsModal({ postId, onClose }) {
                     color: active ? '#fff' : 'var(--ink-soft)', cursor: 'pointer',
                   }}
                 >
-                  {Icon && <Icon size={13} color={active ? '#fff' : 'var(--maroon)'} />}
+                  <span style={{ fontSize: '13px', lineHeight: 1 }}>{REACTION_EMOJI[r.type]}</span>
                   {r.label} {countsByType[r.type]}
                 </button>
               );
@@ -102,7 +101,6 @@ export default function ReactorsModal({ postId, onClose }) {
             <p style={{ color: 'var(--ink-soft)' }}>No one yet.</p>
           ) : (
             visibleReactors.map((r, i) => {
-              const Icon = REACTION_ICONS[r.type];
               return (
                 <button
                   type="button"
@@ -118,7 +116,7 @@ export default function ReactorsModal({ postId, onClose }) {
                     <span style={{ fontSize: 'var(--fs-sm)' }}>{r.full_name || 'Student'}</span>
                     <VerifiedBadge verified={r.verified} size={13} />
                   </div>
-                  {Icon && <Icon size={17} color="var(--maroon)" />}
+                  <span style={{ fontSize: '17px', lineHeight: 1 }}>{REACTION_EMOJI[r.type]}</span>
                 </button>
               );
             })

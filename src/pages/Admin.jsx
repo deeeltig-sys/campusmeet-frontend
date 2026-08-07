@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { AdminAPI, UsersAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import GoldSparkle from '../components/GoldSparkle';
-import { YawaIcon } from '../components/icons';
+import { REACTION_EMOJI } from '../components/icons';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -523,7 +523,7 @@ function VelocityPanel() {
             <p style={{ margin: '0 0 var(--sp-2)', fontSize: 'var(--fs-sm)' }}>{r.content_preview || '(no preview available)'}</p>
             <div style={{ display: 'flex', gap: 'var(--sp-4)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <YawaIcon size={14} color="var(--maroon)" /> {r.yawa_count_window} in window
+                {REACTION_EMOJI.yawa} {r.yawa_count_window} in window
               </span>
               <span>{r.per_hour}/hr</span>
             </div>

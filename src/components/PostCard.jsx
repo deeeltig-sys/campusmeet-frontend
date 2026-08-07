@@ -4,15 +4,16 @@ import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { ReactionIcon, CommentIcon, REACTION_ICONS } from './icons';
+import { ReactionIcon, CommentIcon, REACTION_EMOJI } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
 import PostImageCarousel from './PostImageCarousel';
 
-// Reaction buttons — same SVG set ReactorsModal already uses, so the
-// picker and the "who reacted" breakdown read as one consistent icon
-// system instead of emoji on one screen and line-art on the other.
+// Reaction buttons — real emoji, matching how they render on every
+// actual post (see franklin.png). The line-art REACTION_ICONS set in
+// ./icons is kept for other spots (count chips, admin stats) but the
+// reaction buttons themselves are emoji, full stop.
 const REACTIONS = [
   { type: 'fire', label: 'Fire' },
   { type: 'cosign', label: 'Cosign' },
@@ -147,7 +148,6 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       <div className="reaction-bar" role="group" aria-label="React to this post">
         {REACTIONS.map(({ type, label }) => {
           const active = user_reaction === type;
-          const Icon = REACTION_ICONS[type];
           return (
             <button
               key={type}
@@ -158,8 +158,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
               title={label}
               onClick={() => onReact?.(post.id, type)}
               disabled={!REACTION_TYPES.includes(type)}
+              style={{ fontSize: '19px', lineHeight: 1 }}
             >
-              <Icon size={19} color={active ? 'var(--gold-bright)' : 'var(--maroon)'} />
+              {REACTION_EMOJI[type]}
             </button>
           );
         })}

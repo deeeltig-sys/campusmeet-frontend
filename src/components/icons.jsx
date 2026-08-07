@@ -89,3 +89,18 @@ export const REACTION_ICONS = {
   doubt: DoubtIcon,
   yawa: YawaIcon,
 };
+
+// Reactions render as real emoji (not the line-art set above) — matches
+// how they've always looked in practice on real posts, and emoji here
+// carry tone that a stroked outline can't: 🔥 reads as genuine heat,
+// 🤝 as an actual co-sign/backing, 👎 as real doubt, 🚫 as "this ain't
+// it" — losing that to a uniform icon style was a net loss, not a
+// cleanup. Comment/reaction *count* icons (ReactionIcon, CommentIcon
+// above) stay as line-art since those are just UI chrome, not the
+// reaction itself.
+export const REACTION_EMOJI = {
+  fire: '🔥',
+  cosign: '🤝',
+  doubt: '👎',
+  yawa: '🚫',
+};
