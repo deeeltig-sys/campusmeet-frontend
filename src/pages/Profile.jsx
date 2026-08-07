@@ -12,6 +12,7 @@ import BadgesRow from '../components/BadgesRow';
 import HighlightViewer from '../components/HighlightViewer';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
 import { getPushSubscriptionState, enablePush, disablePush, isPushSupported } from '../utils/push';
+import { getInitialTheme, setTheme } from '../utils/theme';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
 import campmeetLogo from '../assets/campmeet-logo.png';
@@ -30,6 +31,7 @@ export default function Profile() {
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
   const [pushState, setPushState] = useState('unsupported'); // 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'
   const [pushBusy, setPushBusy] = useState(false);
+  const [theme, setThemeState] = useState(getInitialTheme);
   const [showFollowers, setShowFollowers] = useState(false);
   const [openHighlightId, setOpenHighlightId] = useState(null);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -81,6 +83,12 @@ export default function Profile() {
     } finally {
       setPushBusy(false);
     }
+  }
+
+  function handleThemeToggle() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next); // applies data-theme + persists to localStorage
+    setThemeState(next);
   }
 
   if (!user) return null;
@@ -362,6 +370,23 @@ export default function Profile() {
             disabled={pushBusy || pushState === 'denied' || pushState === 'unsupported'}
           >
             {pushBusy ? '…' : pushState === 'subscribed' ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--sp-3)', paddingTop: 'var(--sp-3)', borderTop: '1px solid var(--line)' }}>
+          <div>
+            <p style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, margin: 0 }}>Dark mode</p>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>
+              {theme === 'dark' ? 'On' : 'Off'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={theme === 'dark' ? 'btn' : 'btn btn-primary'}
+            style={{ padding: '6px 14px', fontSize: 'var(--fs-sm)' }}
+            onClick={handleThemeToggle}
+          >
+            {theme === 'dark' ? 'Turn off' : 'Turn on'}
           </button>
         </div>
       </div>

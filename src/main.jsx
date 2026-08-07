@@ -6,6 +6,13 @@ import { OtaKit } from '@otakit/capacitor-updater'
 import './styles/global.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { getInitialTheme, applyTheme } from './utils/theme.js'
+
+// Must run before the first paint, not inside a component — a
+// useEffect-based theme toggle would render one light frame first on
+// every load for anyone who picked dark, which is exactly the
+// flash-of-wrong-theme this line exists to avoid.
+applyTheme(getInitialTheme());
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

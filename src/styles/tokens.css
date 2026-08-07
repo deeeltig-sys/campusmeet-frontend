@@ -44,4 +44,31 @@
 
   --shadow-card: 0 2px 14px rgba(74, 14, 33, 0.08);
   --shadow-raised: 0 8px 28px rgba(74, 14, 33, 0.16);
+  --surface: #fff;
+  --danger-bg: #FBEAEA;
+}
+
+/* Dark mode — every component already reads color through these
+   variables (never a hardcoded hex), which is exactly what makes this
+   a single override block instead of a per-component rewrite. Keeps
+   the maroon/gold brand identity; only the base surfaces flip. */
+[data-theme="dark"] {
+  --maroon: #A63A5C;
+  --maroon-deep: #D4899E;
+  --maroon-light: rgba(166, 58, 92, 0.18);
+  --gold: #D4AF37;
+  --gold-bright: #F0D080;
+  --bronze: #C99A46;
+  --ivory: #16100E;
+  --ivory-dim: #201714;
+  --ink: #F3ECE6;
+  --ink-soft: #B8ACA5;
+  --line: rgba(255, 255, 255, 0.12);
+  --success: #4CA870;
+  --danger: #E0666B;
+
+  --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.35);
+  --shadow-raised: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --surface: #241A17;
+  --danger-bg: rgba(224, 102, 107, 0.15);
 }
