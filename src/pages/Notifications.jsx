@@ -10,6 +10,7 @@ const NOTIF_TEXT = {
   message: (name) => `${name} sent you a message`,
   friend_request: (name) => `${name} sent you a friend request`,
   friend_accept: (name) => `${name} accepted your friend request`,
+  mention: (name) => `${name} tagged you in a post`,
 };
 
 // Builds the "X and 12 others liked your post" line for grouped
@@ -67,7 +68,7 @@ export default function Notifications() {
       navigate('/friends', { state: { tab: 'requests' } });
     } else if (n.type === 'message' && n.target_id) {
       navigate(`/inbox/messages/${n.target_id}`);
-    } else if ((n.type === 'comment' || n.type === 'comment_reply' || n.type === 'reaction') && n.target_id) {
+    } else if ((n.type === 'comment' || n.type === 'comment_reply' || n.type === 'reaction' || n.type === 'mention') && n.target_id) {
       navigate(`/post/${n.target_id}`);
     }
   }
