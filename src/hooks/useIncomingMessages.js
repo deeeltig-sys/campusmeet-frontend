@@ -20,28 +20,33 @@ export function useIncomingMessages(userId, onMessage) {
     const client = getRealtimeClient();
     if (!client) return;
 
-    syncRealtimeAuth();
-
-    const channel = client
-      .channel(`incoming-messages-${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const row = payload.new;
-          // Realtime's column filter only supports one eq condition,
-          // and "sender isn't me" is a not-equal — so filter client-side
-          // instead. RLS already limits what actually reaches us to
-          // messages in conversations this user is part of.
-          if (row && row.sender_id !== userId) {
-            onMessageRef.current?.(row);
-          }
-        },
-      )
-      .subscribe();
+    let channel = null;
+    try {
+      syncRealtimeAuth();
+      channel = client
+        .channel(`incoming-messages-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            const row = payload.new;
+            // Realtime's column filter only supports one eq condition,
+            // and "sender isn't me" is a not-equal — so filter client-side
+            // instead. RLS already limits what actually reaches us to
+            // messages in conversations this user is part of.
+            if (row && row.sender_id !== userId) {
+              onMessageRef.current?.(row);
+            }
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Realtime subscription failed — polling fallback still covers this:', err);
+    }
 
     return () => {
-      client.removeChannel(channel);
+      if (channel) client.removeChannel(channel);
     };
   }, [userId]);
 }
@@ -61,22 +66,27 @@ export function useConversationMessages(conversationId, onMessage) {
     const client = getRealtimeClient();
     if (!client) return;
 
-    syncRealtimeAuth();
-
-    const channel = client
-      .channel(`conversation-${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT', schema: 'public', table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => onMessageRef.current?.(payload.new),
-      )
-      .subscribe();
+    let channel = null;
+    try {
+      syncRealtimeAuth();
+      channel = client
+        .channel(`conversation-${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT', schema: 'public', table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => onMessageRef.current?.(payload.new),
+        )
+        .subscribe();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Realtime subscription failed — polling fallback still covers this:', err);
+    }
 
     return () => {
-      client.removeChannel(channel);
+      if (channel) client.removeChannel(channel);
     };
   }, [conversationId]);
 }

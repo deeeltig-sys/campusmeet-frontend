@@ -13,21 +13,33 @@ import { getToken } from '../api/client';
 // vars to the client bundle): VITE_SUPABASE_URL and
 // VITE_SUPABASE_ANON_KEY — the same anon key already used by the
 // backend's SUPABASE_ANON_KEY, safe to expose client-side by design.
-// If either is missing, realtime is simply unavailable and every hook
-// in useIncomingMessages.js no-ops instead of throwing, so the app
-// still works exactly as it did before (existing polling keeps
-// covering for it).
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const realtimeAvailable = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+// If either is missing OR malformed, realtime is simply unavailable
+// and every hook in useIncomingMessages.js no-ops instead of throwing,
+// so the app still works exactly as it did before (existing polling
+// keeps covering for it). This used to call createClient() unguarded
+// at module scope — a stray space/newline from pasting the value into
+// Netlify's UI made the URL constructor throw, which crashed the
+// ENTIRE app (this module is imported by BottomNav, which is on every
+// page) via the global ErrorBoundary in main.jsx. Trimmed + try/catch
+// now, specifically so a bad env value degrades to "no realtime"
+// instead of "no app".
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 let client = null;
-if (realtimeAvailable) {
-  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  try {
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Realtime client failed to initialize — falling back to polling only:', err);
+    client = null;
+  }
 }
+
+export const realtimeAvailable = client !== null;
 
 /** Re-applies the current access token to the realtime socket. Call
  * this right before opening a new subscription — access tokens expire
@@ -36,7 +48,13 @@ if (realtimeAvailable) {
 export function syncRealtimeAuth() {
   if (!client) return;
   const token = getToken();
-  if (token) client.realtime.setAuth(token);
+  if (!token) return;
+  try {
+    client.realtime.setAuth(token);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Realtime auth sync failed:', err);
+  }
 }
 
 export function getRealtimeClient() {
