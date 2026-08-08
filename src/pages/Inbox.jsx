@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ConversationsAPI, BlocksAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useIncomingMessages } from '../hooks/useIncomingMessages';
 import VerifiedBadge from '../components/VerifiedBadge';
 import ReportModal from '../components/ReportModal';
 
@@ -28,6 +30,7 @@ function timeAgo(iso) {
 }
 
 export default function Inbox() {
+  const { user } = useAuth();
   const [tab, setTab] = useState('active');
   const [conversations, setConversations] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -57,6 +60,14 @@ export default function Inbox() {
     setSelected(new Set());
     loadConversations(tab).finally(() => setLoading(false));
   }, [tab, loadConversations]);
+
+  // Realtime: a new message anywhere refreshes this list right away
+  // (updates unread bold/badge and reorders by last_message_at)
+  // instead of waiting for the user to leave and reopen the tab. Falls
+  // back to nothing if realtime isn't configured — the list still
+  // loads correctly on open/tab-change either way, just without the
+  // live nudge.
+  useIncomingMessages(user?.id, () => loadConversations(tab));
 
   // Quiet background refresh so a new message bumps its conversation to
   // the top / updates the preview without the user pulling to refresh —

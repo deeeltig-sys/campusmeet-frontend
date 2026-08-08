@@ -327,6 +327,17 @@ function ReportsPanel() {
   }
 
   const visible = filter === 'all' ? reports : reports.filter((r) => r.status === filter);
+  // Oldest first for the pending queue specifically — a triage queue
+  // should surface whatever's been waiting longest, not whatever was
+  // just reported. Other filters keep the backend's newest-first order.
+  if (filter === 'pending') {
+    visible.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
+  const OVERDUE_HOURS = 24;
+  function hoursPending(createdAt) {
+    return (Date.now() - new Date(createdAt).getTime()) / 3600000;
+  }
 
   return (
     <>
@@ -366,7 +377,7 @@ function ReportsPanel() {
                   color: r.status === 'pending' ? 'var(--maroon-deep)' : 'var(--ink-soft)',
                 }}
               >
-                {r.status}
+                {r.status === 'pending' && hoursPending(r.created_at) >= OVERDUE_HOURS ? 'Overdue' : r.status}
               </span>
             </div>
             <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '0 0 var(--sp-3)' }}>

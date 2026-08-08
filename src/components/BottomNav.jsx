@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NotificationsAPI, ConversationsAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useIncomingMessages } from '../hooks/useIncomingMessages';
 import { Dawuro, Nkonsonkonson } from './AdinkraIcons';
 
 const tabs = [
@@ -13,6 +15,7 @@ const tabs = [
 ];
 
 export default function BottomNav() {
+  const { user } = useAuth();
   const [unread, setUnread] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
 
@@ -62,6 +65,17 @@ export default function BottomNav() {
       window.removeEventListener('campusmeet:messages-read', pollChats);
     };
   }, []);
+
+  // Realtime layer on top of the poll above: when it's available, a
+  // new message bumps the badge within a second or two instead of
+  // waiting up to 30s. The poll itself is left untouched as the
+  // fallback — if a campus network blocks websockets, this hook just
+  // no-ops and the existing 30s poll keeps working exactly as before.
+  useIncomingMessages(user?.id, () => {
+    ConversationsAPI.unreadCount()
+      .then((data) => setUnreadChats(data?.count || 0))
+      .catch(() => {});
+  });
 
   const badgeCounts = { notifications: unread, chats: unreadChats };
 

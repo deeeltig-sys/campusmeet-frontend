@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConversationMessages } from '../hooks/useIncomingMessages';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 
 function timeLabel(iso) {
@@ -107,10 +108,11 @@ export default function Conversation() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Near-real-time without websocket infra: quietly re-fetch the thread
-  // every few seconds while it's open. Only touches state when the
-  // message count actually changed, so it doesn't fight the user's
-  // scroll position or flicker on every tick.
+  // Fallback poll — kept even now that realtime (below) exists, since
+  // some campus networks block websockets outright and this is the
+  // safety net for that case. Only touches state when the message
+  // count actually changed, so it doesn't fight the user's scroll
+  // position or flicker on every tick.
   useEffect(() => {
     if (!conversationId) return;
     const interval = setInterval(async () => {
@@ -125,6 +127,14 @@ export default function Conversation() {
     }, 4000);
     return () => clearInterval(interval);
   }, [conversationId]);
+
+  // Realtime: appends a new message the instant it's inserted, instead
+  // of waiting for the next 4s poll tick above. Safe to run alongside
+  // the poll — both key off message id/count, so neither duplicates
+  // what the other already added (see hooks/useIncomingMessages.js).
+  useConversationMessages(conversationId, (row) => {
+    setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+  });
 
   // Polls whether the other participant is currently typing. Kept
   // separate from the message poll so a slow/failed typing check never
