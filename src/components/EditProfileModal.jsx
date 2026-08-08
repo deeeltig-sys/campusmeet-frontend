@@ -2,21 +2,28 @@ import { useState, useEffect } from 'react';
 import { ProfileAPI } from '../api/client';
 
 const MAX_BIO_LENGTH = 280;
+const MAX_NAME_LENGTH = 80;
 const LEVEL_OPTIONS = ['Level 100', 'Level 200', 'Level 300', 'Level 400', 'Graduate', 'Alumni'];
 
 export default function EditProfileModal({ user, onClose, onSaved, onOpenSocialLinks }) {
+  const [name, setName] = useState(user?.full_name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [level, setLevel] = useState(user?.level_of_study || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { setBio(user?.bio || ''); setLevel(user?.level_of_study || ''); }, [user]);
+  useEffect(() => { setName(user?.full_name || ''); setBio(user?.bio || ''); setLevel(user?.level_of_study || ''); }, [user]);
 
   async function handleSave() {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError('Name cannot be empty — a nickname is fine.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
-      await ProfileAPI.updateMe({ bio: bio.trim(), level_of_study: level });
+      await ProfileAPI.updateMe({ full_name: trimmedName, bio: bio.trim(), level_of_study: level });
       onSaved?.();
       onClose();
     } catch (err) {
@@ -37,6 +44,21 @@ export default function EditProfileModal({ user, onClose, onSaved, onOpenSocialL
         </div>
 
         {error && <div className="banner-error">{error}</div>}
+
+        <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
+          <label htmlFor="edit-name">Name</label>
+          <input
+            id="edit-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
+            placeholder="Real name or nickname — your call"
+            style={{
+              width: '100%', padding: '10px 12px', border: '1px solid var(--line)',
+              borderRadius: 10, fontFamily: 'inherit', fontSize: 'var(--fs-sm)', boxSizing: 'border-box',
+            }}
+          />
+        </div>
 
         <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
           <label htmlFor="edit-bio">Bio</label>

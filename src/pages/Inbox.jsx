@@ -304,6 +304,7 @@ export default function Inbox() {
 
 function ConversationRow({ conv, tab, onPressStart, onPressEnd, onRowClick, selectMode, selected, onToggleSelect, onUnhide, onRestore }) {
   const other = conv.other_user || {};
+  const hasUnread = (conv.unread_count || 0) > 0;
   const rowContent = (
     <>
       <div className="avatar-circle">
@@ -317,15 +318,28 @@ function ConversationRow({ conv, tab, onPressStart, onPressEnd, onRowClick, sele
         {conv.is_request ? (
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--bronze)' }}>Message request</span>
         ) : conv.last_message_preview ? (
-          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{
+            fontSize: 'var(--fs-xs)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            color: hasUnread ? 'var(--ink)' : 'var(--ink-soft)', fontWeight: hasUnread ? 700 : 400,
+          }}>
             {conv.last_message_preview}
           </p>
         ) : null}
       </div>
       {conv.last_message_at && (
-        <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)', flexShrink: 0 }}>
-          {timeAgo(conv.last_message_at)}
-        </time>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+          <time style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: hasUnread ? 'var(--maroon)' : 'var(--ink-soft)', fontWeight: hasUnread ? 700 : 400 }}>
+            {timeAgo(conv.last_message_at)}
+          </time>
+          {hasUnread && (
+            <span style={{
+              minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: 'var(--maroon)', color: '#fff',
+              fontSize: '0.625rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+            }}>
+              {conv.unread_count > 9 ? '9+' : conv.unread_count}
+            </span>
+          )}
+        </div>
       )}
     </>
   );

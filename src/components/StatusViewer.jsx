@@ -7,6 +7,22 @@ import AddToHighlightModal from './AddToHighlightModal';
 
 const SLIDE_DURATION_MS = 5000;
 
+// Same short-form ("m" / "h" / "d") shape Inbox.jsx uses for message
+// timestamps — kept local to this file rather than a shared util since
+// there's no existing time-formatting module to extend without
+// reaching into unrelated code.
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
+
 export default function StatusViewer({ groups, startIndex, onClose }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -139,9 +155,16 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
         </button>
         <span
           onClick={() => { onClose?.(); navigate(isOwn ? '/profile' : `/profile/${group.author.id}`); }}
-          style={{ color: '#fff', fontSize: 'var(--fs-sm)', fontWeight: 600, flex: 1, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'baseline', gap: 6, flex: 1, cursor: 'pointer', minWidth: 0 }}
         >
-          {group.author.full_name}
+          <span style={{ color: '#fff', fontSize: 'var(--fs-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {group.author.full_name}
+          </span>
+          {current.created_at && (
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 'var(--fs-xs)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+              {timeAgo(current.created_at)}
+            </span>
+          )}
         </span>
         {isOwn && (
           <>
