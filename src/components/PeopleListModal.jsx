@@ -57,7 +57,7 @@ export default function PeopleListModal({ title, fetcher, emptyText = 'No one he
                   {p.avatar_url ? <img src={p.avatar_url} alt="" /> : (p.full_name ? p.full_name.charAt(0) : '?')}
                 </div>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 'var(--fs-sm)' }}>{p.full_name || 'Student'}</span>
+                  <span className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{p.full_name || 'Student'}</span>
                   <VerifiedBadge verified={p.verified} size={13} />
                 </div>
                 {renderSubtext && (

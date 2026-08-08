@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
-import { REACTION_TYPES, PostsAPI } from '../api/client';
+import { REACTION_TYPES, PostsAPI, SITE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { ReactionIcon, CommentIcon, REACTION_EMOJI } from './icons';
+import { ReactionIcon, CommentIcon, ShareIcon, REACTION_EMOJI } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
@@ -42,7 +42,34 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [saved, setSaved] = useState(!!post.saved);
   const [savingBookmark, setSavingBookmark] = useState(false);
   const [fullscreenUrl, setFullscreenUrl] = useState(null);
+  const [justShared, setJustShared] = useState(false);
   const menuRef = useRef(null);
+
+  // /p/:postId, not /post/:postId — the public unauthenticated preview
+  // route, not the in-app one. See PublicPostView.jsx / App.jsx.
+  async function handleShare() {
+    const url = `${SITE_URL}/p/${post.id}`;
+    const shareData = {
+      title: 'CampusMEET',
+      text: author.full_name ? `${author.full_name} on CampusMEET` : 'Check this out on CampusMEET',
+      url,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User backed out of the native share sheet — not an error worth surfacing.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setJustShared(true);
+      setTimeout(() => setJustShared(false), 2000);
+    } catch {
+      // Clipboard API unavailable/blocked — nothing more we can do silently.
+    }
+  }
   const cardRef = useRef(null);
   const hasRegisteredView = useRef(false);
 
@@ -301,6 +328,14 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             onClick={() => onShowComments?.(post.id)}
           >
             <CommentIcon size={15} /> {comment_count}
+          </button>
+          <button
+            type="button"
+            className="reaction-count-btn"
+            onClick={handleShare}
+            title="Share this post"
+          >
+            <ShareIcon size={15} /> {justShared ? 'Copied!' : 'Share'}
           </button>
         </div>
       </footer>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import campmeetLogo from '../assets/campmeet-logo.png';
 
@@ -10,6 +10,9 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get('next');
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/feed';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,7 +20,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate('/feed');
+      navigate(next);
     } catch (err) {
       setError(err.message || 'Could not sign in. Check your details and try again.');
     } finally {

@@ -59,6 +59,17 @@ export function ReactionIcon({ size = 15, color = 'var(--ink-soft)' }) {
   );
 }
 
+export function ShareIcon({ size = 15, color = 'var(--ink-soft)' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8.5 12.5l7-4.5m-7 5.5l7 4.5M6.5 15a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18 8a2 2 0 100-4 2 2 0 000 4zM18 20a2 2 0 100-4 2 2 0 000 4z"
+        stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CommentIcon({ size = 15, color = 'var(--ink-soft)' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">

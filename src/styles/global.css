@@ -85,6 +85,62 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-gold:hover { box-shadow: 0 6px 22px rgba(212, 175, 55, 0.5); }
 .btn-block { width: 100%; }
+.btn-sm { padding: 8px 14px; font-size: var(--fs-sm); }
+
+/* ============================================================
+   Public shared-post page (/p/:postId) — unauthenticated visitors
+   from a WhatsApp/FB/IG/X link. No BottomNav/RightRail here since
+   this route sits outside ProtectedLayout on purpose.
+   ============================================================ */
+.public-post-screen {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: 88px; /* room for the fixed CTA bar below */
+}
+.public-post-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.public-post-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  text-decoration: none;
+  color: var(--maroon-deep);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.public-post-body {
+  padding: var(--sp-4);
+}
+.public-post-cta-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+@media (min-width: 768px) {
+  .public-post-cta-bar {
+    max-width: 640px;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+  }
+}
 
 .field {
   display: flex;

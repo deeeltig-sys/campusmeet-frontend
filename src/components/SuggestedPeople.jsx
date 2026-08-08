@@ -106,6 +106,7 @@ export default function SuggestedPeople() {
               </button>
               <span
                 onClick={() => navigate(`/profile/${person.id}`)}
+                className="name-shine"
                 style={{
                   fontSize: 'var(--fs-xs)', fontWeight: 600, cursor: 'pointer',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',

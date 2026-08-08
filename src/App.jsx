@@ -32,6 +32,7 @@ import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
 import Insights from './pages/Insights';
 import Quests from './pages/Quests';
+import PublicPostView from './pages/PublicPostView';
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -66,6 +67,10 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* Public shared-post link — intentionally outside ProtectedLayout.
+            Distinct from /post/:postId (the in-app view for logged-in
+            users), which stays untouched. */}
+        <Route path="/p/:postId" element={<PublicPostView />} />
 
         <Route path="/feed" element={<ProtectedLayout><Feed /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><Search /></ProtectedLayout>} />

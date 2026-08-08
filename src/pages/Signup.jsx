@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UniversitiesAPI } from '../api/client';
 import campmeetLogo from '../assets/campmeet-logo.png';
@@ -13,6 +13,12 @@ export default function Signup() {
   const [busy, setBusy] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Only ever an in-app path we generated ourselves (e.g. /post/abc123
+  // from a shared-link signup) — never redirect to an absolute/external
+  // URL from a query param.
+  const rawNext = searchParams.get('next');
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/feed';
 
   useEffect(() => {
     // Still fetched for the autocomplete suggestions — typing "K" should
@@ -47,10 +53,12 @@ export default function Signup() {
       const payload = { ...form, university_name: trimmed };
       const res = await signup(payload);
       if (res?.access_token) {
-        navigate('/feed');
+        navigate(next);
       } else {
-        // Some Supabase configs require email confirmation before a session exists.
-        navigate('/login');
+        // Some Supabase configs require email confirmation before a session
+        // exists — carry `next` through so logging in afterward still lands
+        // them back on the post rather than losing that context.
+        navigate(next !== '/feed' ? `/login?next=${encodeURIComponent(next)}` : '/login');
       }
     } catch (err) {
       setError(err.message || 'Could not create your account. Please try again.');

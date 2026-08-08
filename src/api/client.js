@@ -2,6 +2,11 @@
 // Change this ONE line if you ever move off Render or add a custom domain.
 export const API_BASE = 'https://campus-backend-tz9q.onrender.com';
 
+// Same idea, for the frontend's own public URL — used to build shareable
+// /p/:postId links. Change this ONE line if a custom domain replaces
+// the Netlify subdomain.
+export const SITE_URL = 'https://campusmeetx.netlify.app';
+
 const TOKEN_KEY = 'campmeet_token';
 const REFRESH_KEY = 'campmeet_refresh';
 
@@ -115,6 +120,11 @@ async function request(path, { method = 'GET', body, auth = false, _retried = fa
 
 // Matches VALID_REACTIONS in models/reaction.py exactly.
 export const REACTION_TYPES = ['fire', 'cosign', 'doubt', 'yawa'];
+
+// ---- Public (no auth — shared post links) ----
+export const PublicAPI = {
+  getPost: (postId) => request(`/api/public/posts/${postId}`),
+};
 
 // ---- Auth ----
 export const AuthAPI = {

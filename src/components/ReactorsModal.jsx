@@ -113,7 +113,7 @@ export default function ReactorsModal({ postId, onClose }) {
                     {r.avatar_url ? <img src={r.avatar_url} alt="" /> : (r.full_name ? r.full_name.charAt(0) : '?')}
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 'var(--fs-sm)' }}>{r.full_name || 'Student'}</span>
+                    <span className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{r.full_name || 'Student'}</span>
                     <VerifiedBadge verified={r.verified} size={13} />
                   </div>
                   <span style={{ fontSize: '17px', lineHeight: 1 }}>{REACTION_EMOJI[r.type]}</span>

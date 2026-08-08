@@ -154,6 +154,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
           </button>
           <span
             onClick={() => c.author_id && navigate(`/profile/${c.author_id}`)}
+            className="name-shine"
             style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, cursor: c.author_id ? 'pointer' : 'default' }}
           >
             {c.author_full_name || 'Student'}
