@@ -357,6 +357,19 @@ export const AdminAPI = {
     request(`/api/admin/users/${userId}/role`, { method: 'POST', body: { role }, auth: true }),
 };
 
+// ---- Okyeame (owner-only platform announcements) ----
+export const OkyeameAPI = {
+  announce: (content, imageUrl) =>
+    request('/api/okyeame/announce', { method: 'POST', body: { content, image_url: imageUrl }, auth: true }),
+};
+
+// ---- CampusMEET HQ (public acknowledgment feed, owner-only writes) ----
+export const SpotlightsAPI = {
+  list: () => request('/api/spotlights'),
+  create: (payload) => request('/api/spotlights', { method: 'POST', body: payload, auth: true }),
+  remove: (id) => request(`/api/spotlights/${id}`, { method: 'DELETE', auth: true }),
+};
+
 // ---- Statuses (24hr Stories) ----
 export const StatusesAPI = {
   list: () => request('/api/statuses', { auth: true }),

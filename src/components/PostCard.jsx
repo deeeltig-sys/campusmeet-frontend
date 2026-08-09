@@ -9,6 +9,7 @@ import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
 import PostImageCarousel from './PostImageCarousel';
+import GoldSparkle from './GoldSparkle';
 
 // Reaction buttons — real emoji, matching how they render on every
 // actual post (see franklin.png). The line-art REACTION_ICONS set in
@@ -30,6 +31,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
     full_name: post.author_full_name,
     verified: post.author_verified_at != null || post.author_verified,
     avatar_url: post.author_avatar_url,
+    is_official: post.author_is_official,
   };
 
   const isOwn = user?.id === post.author_id;
@@ -208,7 +210,16 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+              {author.is_official ? (
+                <span style={{ position: 'relative', display: 'inline-block' }}>
+                  <strong style={{ fontSize: 'var(--fs-sm)', color: 'var(--gold-bright)' }}>
+                    {author.full_name || 'Okyeame'}
+                  </strong>
+                  <GoldSparkle count={3} className="sparkle-field--badge" />
+                </span>
+              ) : (
+                <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+              )}
             </Link>
             <VerifiedBadge verified={author.verified} size={15} />
           </div>

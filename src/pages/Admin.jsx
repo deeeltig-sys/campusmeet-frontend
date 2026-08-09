@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AdminAPI, UsersAPI } from '../api/client';
+import { AdminAPI, UsersAPI, OkyeameAPI, SpotlightsAPI } from '../api/client';
 import BackHeader from '../components/BackHeader';
 import GoldSparkle from '../components/GoldSparkle';
 import { REACTION_EMOJI } from '../components/icons';
@@ -485,6 +485,27 @@ function VelocityPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [windowHours, setWindowHours] = useState(6);
+  const [showPasscode, setShowPasscode] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [passcodeError, setPasscodeError] = useState('');
+  const [unlocked, setUnlocked] = useState(false);
+
+  // Not real security — see OkyeameHQPanel below and lib/decorators.py's
+  // require_owner. This just keeps the panel from rendering for anyone
+  // who's not deliberately looking for it; the actual gate is is_owner
+  // on the server, checked on every request the panel makes.
+  const OKYEAME_PASSCODE = '9510';
+
+  function checkPasscode() {
+    if (passcodeInput === OKYEAME_PASSCODE) {
+      setUnlocked(true);
+      setShowPasscode(false);
+      setPasscodeInput('');
+      setPasscodeError('');
+    } else {
+      setPasscodeError('Incorrect.');
+    }
+  }
 
   const load = useCallback(async (hours) => {
     setLoading(true);
@@ -500,6 +521,10 @@ function VelocityPanel() {
   }, []);
 
   useEffect(() => { load(windowHours); }, [load, windowHours]);
+
+  if (unlocked) {
+    return <OkyeameHQPanel onClose={() => setUnlocked(false)} />;
+  }
 
   return (
     <>
@@ -541,6 +566,258 @@ function VelocityPanel() {
           </div>
         ))
       )}
+
+      {/* Deliberately unlabeled and easy to overlook — not a feature
+          button, just a faint mark in the corner of this tab. */}
+      <div style={{ textAlign: 'right', marginTop: 'var(--sp-5)' }}>
+        <button
+          type="button"
+          onClick={() => setShowPasscode(true)}
+          style={{
+            background: 'none', border: 'none', color: 'var(--ink-soft)', opacity: 0.3,
+            fontSize: '0.75rem', cursor: 'pointer', padding: 6,
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {showPasscode && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => { setShowPasscode(false); setPasscodeInput(''); setPasscodeError(''); }}
+        >
+          <div
+            className="card"
+            style={{ width: 260, padding: 'var(--sp-4)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="password"
+              inputMode="numeric"
+              autoFocus
+              value={passcodeInput}
+              onChange={(e) => { setPasscodeInput(e.target.value); setPasscodeError(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') checkPasscode(); }}
+              placeholder="····"
+              style={{
+                width: '100%', textAlign: 'center', fontSize: '1.25rem', letterSpacing: '0.3em',
+                padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10,
+                fontFamily: 'var(--font-mono)', boxSizing: 'border-box',
+              }}
+            />
+            {passcodeError && (
+              <p style={{ color: '#b3261e', fontSize: 'var(--fs-xs)', textAlign: 'center', marginTop: 6 }}>{passcodeError}</p>
+            )}
+            <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--sp-3)' }} onClick={checkPasscode}>
+              Enter
+            </button>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+// Okyeame — reachable only through VelocityPanel's hidden passcode
+// gate above, and every call this panel makes is separately enforced
+// server-side by @require_owner (lib/decorators.py) regardless of how
+// someone got the UI to render. Two owner-only tools live here: post
+// an announcement as the Okyeame account, and manage CampusMEET HQ.
+function OkyeameHQPanel({ onClose }) {
+  const [section, setSection] = useState('announce');
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' }}>
+        <span style={{ position: 'relative', display: 'inline-block' }}>
+          <strong style={{ fontSize: 'var(--fs-lg)', color: 'var(--gold-bright)' }}>Okyeame</strong>
+          <GoldSparkle count={4} />
+        </span>
+        <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
+      </div>
+
+      <div className="tab-row" style={{ marginBottom: 'var(--sp-4)' }}>
+        <button type="button" className={`tab-btn${section === 'announce' ? ' active' : ''}`} onClick={() => setSection('announce')}>
+          Announce
+        </button>
+        <button type="button" className={`tab-btn${section === 'hq' ? ' active' : ''}`} onClick={() => setSection('hq')}>
+          CampusMEET HQ
+        </button>
+      </div>
+
+      {section === 'announce' ? <AnnouncePanel /> : <SpotlightsPanel />}
+    </div>
+  );
+}
+
+function AnnouncePanel() {
+  const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  async function handlePost() {
+    if (!content.trim()) return;
+    setPosting(true);
+    setError('');
+    setSuccess(false);
+    try {
+      await OkyeameAPI.announce(content.trim(), imageUrl.trim() || undefined);
+      setContent('');
+      setImageUrl('');
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message || 'Could not post announcement.');
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  return (
+    <div>
+      <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-3)' }}>
+        Posts to the main feed as Okyeame, reaching every university regardless of campus scoping.
+      </p>
+      {error && <div className="banner-error">{error}</div>}
+      {success && (
+        <div className="card" style={{ marginBottom: 'var(--sp-3)', color: 'var(--gold-bright)' }}>
+          Posted.
+        </div>
+      )}
+      <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
+        <label htmlFor="okyeame-content">Message</label>
+        <textarea
+          id="okyeame-content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={5}
+          style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}
+        />
+      </div>
+      <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
+        <label htmlFor="okyeame-image">Image URL (optional)</label>
+        <input
+          id="okyeame-image"
+          type="text"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}
+        />
+      </div>
+      <button type="button" className="btn btn-primary" disabled={posting || !content.trim()} onClick={handlePost}>
+        {posting ? 'Posting…' : 'Post as Okyeame'}
+      </button>
+    </div>
+  );
+}
+
+function SpotlightsPanel() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [subjectName, setSubjectName] = useState('');
+  const [subjectRole, setSubjectRole] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [body, setBody] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setItems(await SpotlightsAPI.list());
+    } catch (err) {
+      setError(err.message || 'Could not load CampusMEET HQ.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleCreate() {
+    if (!subjectName.trim() || !body.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      await SpotlightsAPI.create({
+        subject_name: subjectName.trim(),
+        subject_role: subjectRole.trim() || undefined,
+        photo_url: photoUrl.trim() || undefined,
+        body: body.trim(),
+      });
+      setSubjectName(''); setSubjectRole(''); setPhotoUrl(''); setBody('');
+      await load();
+    } catch (err) {
+      setError(err.message || 'Could not add to CampusMEET HQ.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await SpotlightsAPI.remove(id);
+      setItems((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      setError(err.message || 'Could not remove.');
+    }
+  }
+
+  return (
+    <div>
+      <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-3)' }}>
+        Public — visible to everyone as CampusMEET HQ, not just donors, anyone worth acknowledging.
+      </p>
+      {error && <div className="banner-error">{error}</div>}
+
+      <div className="card" style={{ marginBottom: 'var(--sp-4)', padding: 'var(--sp-3)' }}>
+        <div className="field" style={{ marginBottom: 'var(--sp-2)' }}>
+          <label htmlFor="sp-name">Name</label>
+          <input id="sp-name" type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </div>
+        <div className="field" style={{ marginBottom: 'var(--sp-2)' }}>
+          <label htmlFor="sp-role">Role / description (optional)</label>
+          <input id="sp-role" type="text" value={subjectRole} onChange={(e) => setSubjectRole(e.target.value)}
+            placeholder="e.g. Lecturer, Computer Science"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </div>
+        <div className="field" style={{ marginBottom: 'var(--sp-2)' }}>
+          <label htmlFor="sp-photo">Photo URL (optional)</label>
+          <input id="sp-photo" type="text" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </div>
+        <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
+          <label htmlFor="sp-body">Story</label>
+          <textarea id="sp-body" value={body} onChange={(e) => setBody(e.target.value)} rows={4}
+            style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </div>
+        <button type="button" className="btn btn-primary" disabled={saving || !subjectName.trim() || !body.trim()} onClick={handleCreate}>
+          {saving ? 'Adding…' : 'Add to CampusMEET HQ'}
+        </button>
+      </div>
+
+      {loading ? (
+        <p style={{ color: 'var(--ink-soft)' }}>Loading…</p>
+      ) : items.length === 0 ? (
+        <p style={{ color: 'var(--ink-soft)' }}>Nothing here yet.</p>
+      ) : (
+        items.map((s) => (
+          <div key={s.id} className="card" style={{ marginBottom: 'var(--sp-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <strong>{s.subject_name}</strong>
+              {s.subject_role && <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0' }}>{s.subject_role}</p>}
+              <p style={{ fontSize: 'var(--fs-sm)', margin: '4px 0 0' }}>{s.body}</p>
+            </div>
+            <button type="button" className="btn btn-ghost" onClick={() => handleDelete(s.id)}>Remove</button>
+          </div>
+        ))
+      )}
+    </div>
   );
 }

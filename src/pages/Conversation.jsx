@@ -239,7 +239,7 @@ export default function Conversation() {
   }
 
   return (
-    <div className="screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+    <div className="screen conversation-screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: 'var(--sp-5) var(--sp-4) 0', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
           <button
@@ -387,7 +387,7 @@ export default function Conversation() {
               {conv?.other_user?.full_name ? `${conv.other_user.full_name} is typing…` : 'Typing…'}
             </div>
           )}
-          <div className="comment-composer">
+          <div className="message-composer">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

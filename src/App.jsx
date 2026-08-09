@@ -34,6 +34,7 @@ import Insights from './pages/Insights';
 import Quests from './pages/Quests';
 import PublicPostView from './pages/PublicPostView';
 import Leaderboard from './pages/Leaderboard';
+import CampusMeetHQ from './pages/CampusMeetHQ';
 import Collections from './pages/Collections';
 import CollectionDetail from './pages/CollectionDetail';
 
@@ -97,6 +98,7 @@ function AppRoutes() {
         <Route path="/insights" element={<ProtectedLayout><Insights /></ProtectedLayout>} />
         <Route path="/quests" element={<ProtectedLayout><Quests /></ProtectedLayout>} />
         <Route path="/leaderboard" element={<ProtectedLayout><Leaderboard /></ProtectedLayout>} />
+        <Route path="/campusmeet-hq" element={<ProtectedLayout><CampusMeetHQ /></ProtectedLayout>} />
         <Route path="/collections" element={<ProtectedLayout><Collections /></ProtectedLayout>} />
         <Route path="/collections/:collectionId" element={<ProtectedLayout><CollectionDetail /></ProtectedLayout>} />
 

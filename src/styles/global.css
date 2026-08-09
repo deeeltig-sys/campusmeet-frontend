@@ -20,7 +20,8 @@ a { color: inherit; text-decoration: none; }
 .app-shell {
   max-width: 480px;
   margin: 0 auto;
-  height: 100vh;
+  height: 100vh; /* fallback for browsers without dvh support */
+  height: 100dvh; /* accounts for mobile browser chrome/keyboard — 100vh doesn't, and can push fixed-position content (bottom nav, message composer) outside the actually-visible area */
   overflow: hidden;
   background: var(--ivory);
   display: flex;
@@ -482,7 +483,7 @@ a { color: inherit; text-decoration: none; }
 .comment-composer {
   display: flex;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4);
   border-top: 1px solid var(--line);
   background: var(--ivory);
   flex-shrink: 0;
@@ -492,12 +493,39 @@ a { color: inherit; text-decoration: none; }
   resize: none;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
+  padding: var(--sp-3);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  min-height: 44px;
+  max-height: 120px;
+}
+.comment-composer textarea:focus { outline: none; border-color: var(--gold); }
+
+/* Message input (Conversation.jsx) — deliberately kept separate from
+   .comment-composer above. Was the same shared class until now; that
+   meant enlarging the comment box (requested) would have silently
+   resized the message box too (not requested, and working against
+   the mobile visibility fix below — a bigger box makes more of it
+   sit behind the fixed bottom nav, not less). */
+.message-composer {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--line);
+  background: var(--ivory);
+  flex-shrink: 0;
+}
+.message-composer textarea {
+  flex: 1;
+  resize: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
   padding: var(--sp-2) var(--sp-3);
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   max-height: 90px;
 }
-.comment-composer textarea:focus { outline: none; border-color: var(--gold); }
+.message-composer textarea:focus { outline: none; border-color: var(--gold); }
 
 /* ---- New posts pill (FB/IG/X pattern) ---- */
 .new-posts-pill {
@@ -955,6 +983,17 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 767px) {
   .screen {
     padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+  /* Conversation.jsx sets padding: 0 inline (intentional — full-bleed
+     message thread), which also zeroes out the rule above meant to
+     clear the fixed .bottom-nav. That left the message composer
+     sitting directly underneath the nav bar, hidden by it — this is
+     the mobile "can't see the message box" bug. Inline styles beat
+     stylesheet rules by default, so !important is the only way to
+     win back just the bottom edge without touching the intentional
+     top/left/right zeroing. */
+  .conversation-screen {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
   }
 }
 .bottom-nav-tab {
