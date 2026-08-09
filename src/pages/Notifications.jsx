@@ -73,11 +73,38 @@ export default function Notifications() {
     }
   }
 
+  const hasUnread = notifications.some((n) => !n.read);
+
+  async function handleMarkAllRead() {
+    // Optimistic — flips every row read immediately rather than waiting
+    // on the round trip, same pattern as the single-tap markRead above.
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    window.dispatchEvent(new CustomEvent('campusmeet:notifications-read'));
+    try {
+      await NotificationsAPI.markAllRead();
+    } catch (err) {
+      // Best-effort — a failed bulk mark-read isn't worth reverting the
+      // whole list back to unread and confusing the person further.
+    }
+  }
+
   return (
     <div className="screen">
-      <header style={{ marginBottom: 'var(--sp-4)' }}>
-        <p className="eyebrow">Notifications</p>
-        <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's new</h1>
+      <header style={{ marginBottom: 'var(--sp-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--sp-3)' }}>
+        <div>
+          <p className="eyebrow">Notifications</p>
+          <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)' }}>What's new</h1>
+        </div>
+        {hasUnread && (
+          <button
+            type="button"
+            onClick={handleMarkAllRead}
+            className="btn btn-ghost"
+            style={{ fontSize: 'var(--fs-xs)', padding: '6px 12px', whiteSpace: 'nowrap' }}
+          >
+            Mark all read
+          </button>
+        )}
       </header>
 
       {error && <div className="banner-error">{error}</div>}
