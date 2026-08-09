@@ -207,34 +207,38 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             author.full_name ? author.full_name.charAt(0) : '?'
           )}
         </Link>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              {author.is_official ? (
-                <span style={{ position: 'relative', display: 'inline-block' }}>
-                  <strong style={{ fontSize: 'var(--fs-sm)', color: 'var(--gold-bright)' }}>
-                    {author.full_name || 'Okyeame'}
-                  </strong>
-                  <GoldSparkle count={3} className="sparkle-field--badge" />
-                </span>
-              ) : (
-                <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
-              )}
-            </Link>
-            <VerifiedBadge verified={author.verified} size={15} />
-          </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
+          <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {author.is_official ? (
+              <span style={{ position: 'relative', display: 'inline-block' }}>
+                <strong style={{ fontSize: 'var(--fs-sm)', color: 'var(--gold-bright)' }}>
+                  {author.full_name || 'Okyeame'}
+                </strong>
+                <GoldSparkle count={3} className="sparkle-field--badge" />
+              </span>
+            ) : (
+              <strong className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{author.full_name || 'Student'}</strong>
+            )}
+            <VerifiedBadge verified={author.verified} size={13} />
+          </Link>
           {created_at && (
-            <time style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
-              {new Date(created_at).toLocaleString()}
+            <time
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem', color: 'var(--ink-soft)', whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+              }}
+            >
+              · {new Date(created_at).toLocaleString()}
               {post.audience === 'friends' && (
-                <span title="Friends only" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <span title="Friends only" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M9 12a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5M16 8a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM14.5 14c2.8.4 5.5 2.4 5.5 6" stroke="var(--ink-soft)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
               )}
               {isOwn && typeof post.view_count === 'number' && (
-                <span style={{ color: 'var(--ink-soft)' }}>· {post.view_count} {post.view_count === 1 ? 'view' : 'views'}</span>
+                <span style={{ color: 'var(--ink-soft)', flexShrink: 0 }}>· {post.view_count} {post.view_count === 1 ? 'view' : 'views'}</span>
               )}
             </time>
           )}
@@ -324,7 +328,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
 
       <footer className="reaction-footer">
         {renderReactionBar()}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
           <button
             type="button"
             className="reaction-count-btn"
@@ -344,9 +348,10 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             type="button"
             className="reaction-count-btn"
             onClick={handleShare}
-            title="Share this post"
+            title={justShared ? 'Copied!' : 'Share this post'}
+            aria-label={justShared ? 'Link copied' : 'Share this post'}
           >
-            <ShareIcon size={15} /> {justShared ? 'Copied!' : 'Share'}
+            <ShareIcon size={15} /> {justShared && <span style={{ fontSize: '0.7rem' }}>Copied!</span>}
           </button>
         </div>
       </footer>
