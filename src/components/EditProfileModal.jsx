@@ -2,21 +2,49 @@ import { useState, useEffect } from 'react';
 import { ProfileAPI } from '../api/client';
 
 const MAX_BIO_LENGTH = 280;
+const MAX_NAME_LENGTH = 80;
+const MIN_NAME_LENGTH = 3; // matches backend sanitize_full_name — kept as one named constant here too, not a magic number
 const LEVEL_OPTIONS = ['Level 100', 'Level 200', 'Level 300', 'Level 400', 'Graduate', 'Alumni'];
 
+function validateName(raw) {
+  const trimmed = raw.trim();
+  if (trimmed.length < MIN_NAME_LENGTH) {
+    return 'Too short — use your real name or a nickname, not just initials.';
+  }
+  if (!/[a-zA-Z]/.test(trimmed)) {
+    return 'Your name needs actual letters in it, not just numbers.';
+  }
+  return '';
+}
+
 export default function EditProfileModal({ user, onClose, onSaved, onOpenSocialLinks }) {
+  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [nameError, setNameError] = useState('');
   const [bio, setBio] = useState(user?.bio || '');
   const [level, setLevel] = useState(user?.level_of_study || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { setBio(user?.bio || ''); setLevel(user?.level_of_study || ''); }, [user]);
+  useEffect(() => {
+    setFullName(user?.full_name || '');
+    setBio(user?.bio || '');
+    setLevel(user?.level_of_study || '');
+  }, [user]);
 
   async function handleSave() {
+    // Same rule as the backend's sanitize_full_name, checked client-side
+    // first so the person gets instant feedback instead of a round trip
+    // just to find out "AB" isn't a valid name.
+    const nameProblem = validateName(fullName);
+    if (nameProblem) {
+      setNameError(nameProblem);
+      return;
+    }
+    setNameError('');
     setSaving(true);
     setError('');
     try {
-      await ProfileAPI.updateMe({ bio: bio.trim(), level_of_study: level });
+      await ProfileAPI.updateMe({ full_name: fullName.trim(), bio: bio.trim(), level_of_study: level });
       onSaved?.();
       onClose();
     } catch (err) {
@@ -37,6 +65,32 @@ export default function EditProfileModal({ user, onClose, onSaved, onOpenSocialL
         </div>
 
         {error && <div className="banner-error">{error}</div>}
+
+        <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
+          <label htmlFor="edit-name">Name</label>
+          <input
+            id="edit-name"
+            type="text"
+            value={fullName}
+            onChange={(e) => {
+              setFullName(e.target.value.slice(0, MAX_NAME_LENGTH));
+              if (nameError) setNameError('');
+            }}
+            placeholder="Your real name or a nickname"
+            style={{
+              width: '100%', padding: '10px 12px', border: `1px solid ${nameError ? 'var(--danger)' : 'var(--line)'}`,
+              borderRadius: 10, fontFamily: 'inherit', fontSize: 'var(--fs-sm)',
+              background: 'var(--surface)', color: 'var(--ink)', boxSizing: 'border-box',
+            }}
+          />
+          {nameError ? (
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--danger)', marginTop: 4 }}>{nameError}</p>
+          ) : (
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
+              No initials or numbers-only — a real name or nickname people can recognize you by.
+            </p>
+          )}
+        </div>
 
         <div className="field" style={{ marginBottom: 'var(--sp-3)' }}>
           <label htmlFor="edit-bio">Bio</label>

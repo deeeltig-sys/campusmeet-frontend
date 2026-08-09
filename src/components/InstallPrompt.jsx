@@ -12,21 +12,75 @@ const REPROMPT_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // Android/desktop — 3 days
 // often until they've actually installed.
 const IOS_REPROMPT_AFTER_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-function isStandalone() {
+export function isStandalone() {
   return (
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone === true // iOS Safari's own flag, no matchMedia equivalent
   );
 }
 
-function isIOS() {
+export function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+// The actual fix for "no native install prompt on iOS": a real
+// step-by-step visual guide instead of one line of banner text people
+// skim past. Exported so Profile.jsx can open the exact same guide
+// from a permanent Settings row — someone who dismissed the banner
+// (or missed it entirely, easy to do on a single toast) still has a
+// deliberate place to find these steps later, rather than the banner
+// being their only shot at ever seeing them.
+export function IOSInstallGuide({ onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380 }}>
+        <div className="modal-sheet-header">
+          <strong style={{ fontFamily: 'var(--font-display)', color: 'var(--maroon-deep)' }}>Add to Home Screen</strong>
+          <button type="button" className="modal-sheet-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', margin: '0 0 var(--sp-4)' }}>
+          iPhone doesn't let apps trigger this automatically — Apple only allows it through Safari's own menu. Two taps, once you know where:
+        </p>
+
+        <div style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'flex-start', marginBottom: 'var(--sp-3)' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%', background: 'var(--maroon)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0,
+          }}>1</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--maroon-deep)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3v12" />
+              <path d="M8 7l4-4 4 4" />
+              <rect x="5" y="10" width="14" height="11" rx="2" />
+            </svg>
+            <p style={{ margin: 0, fontSize: 'var(--fs-sm)' }}>
+              Tap the <strong>Share</strong> icon in Safari's toolbar (this square-with-an-arrow, usually at the bottom of the screen)
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'flex-start', marginBottom: 'var(--sp-4)' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%', background: 'var(--maroon)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0,
+          }}>2</div>
+          <p style={{ margin: 0, fontSize: 'var(--fs-sm)' }}>
+            Scroll down the menu that opens and tap <strong>"Add to Home Screen"</strong> — CampusMEET's icon lands right on your home screen, opening full-screen like a real app from then on
+          </p>
+        </div>
+
+        <button type="button" className="btn btn-primary btn-block" onClick={onClose}>Got it</button>
+      </div>
+    </div>
+  );
 }
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState(null); // 'android-desktop' | 'ios' | null
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return; // already installed — never show anything
@@ -75,9 +129,19 @@ export default function InstallPrompt() {
     setVisible(false);
   }
 
-  if (!visible) return null;
+  if (!visible) {
+    // Even with the banner dismissed/not shown, someone could still
+    // have the guide open (opened from Profile's permanent row via a
+    // separate <IOSInstallGuide> render, or a lingering state edge
+    // case) — but that's handled by Profile.jsx rendering its own
+    // instance, so this component genuinely renders nothing once its
+    // own banner is dismissed. Kept as an explicit early return rather
+    // than folding into the JSX below so the no-op case stays obvious.
+    return null;
+  }
 
   return (
+    <>
     <div
       style={{
         position: 'fixed', left: 'var(--sp-3)', right: 'var(--sp-3)', bottom: 'calc(74px + env(safe-area-inset-bottom) + var(--sp-3))',
@@ -87,16 +151,30 @@ export default function InstallPrompt() {
         boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
       }}
     >
-      <div style={{ flex: 1 }}>
+      <div
+        style={{ flex: 1, cursor: platform === 'ios' ? 'pointer' : 'default' }}
+        onClick={() => { if (platform === 'ios') setShowIOSGuide(true); }}
+        role={platform === 'ios' ? 'button' : undefined}
+        tabIndex={platform === 'ios' ? 0 : undefined}
+      >
         <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-sm)' }}>
           {platform === 'ios' ? "Don't miss your school's rank" : 'Install CampusMEET'}
         </p>
         <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'rgba(255,255,255,0.8)' }}>
           {platform === 'ios'
-            ? 'Add to Home Screen to get alerts the moment a rival school overtakes yours — tap Share, then "Add to Home Screen"'
+            ? 'Add to Home Screen for alerts the moment a rival school overtakes yours — tap here for the 2-step guide'
             : 'Add it to your home screen for quick access, like an app'}
         </p>
       </div>
+      {platform === 'ios' && (
+        <button
+          type="button"
+          onClick={() => setShowIOSGuide(true)}
+          style={{ background: 'var(--gold-bright)', color: 'var(--maroon-deep)', border: 'none', borderRadius: 999, padding: '8px 16px', fontWeight: 700, fontSize: 'var(--fs-xs)', cursor: 'pointer', flexShrink: 0 }}
+        >
+          Show me
+        </button>
+      )}
       {platform === 'android-desktop' && (
         <button
           type="button"
@@ -119,5 +197,7 @@ export default function InstallPrompt() {
         {platform === 'ios' ? 'Later' : '×'}
       </button>
     </div>
+      {showIOSGuide && <IOSInstallGuide onClose={() => setShowIOSGuide(false)} />}
+    </>
   );
 }

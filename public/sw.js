@@ -14,8 +14,18 @@
 // request (Supabase, the Render backend, Paystack, Google Fonts) —
 // user data must always be live, never served from a cache.
 
-const SHELL_CACHE = 'campusmeet-shell-v1';
-const STATIC_CACHE = 'campusmeet-static-v1';
+// Bump BOTH version strings below on every deploy that changes CSS/JS —
+// this is the only thing that makes a returning visitor's browser (or
+// an already-installed PWA) actually fetch the new files instead of
+// silently serving whatever got cached on their first visit, no matter
+// how many times Netlify redeploys. This exact gap was the reason the
+// dark-mode diamond name fix wasn't visible on the live site after
+// shipping — the code was correct, the cache was just never told a
+// new version existed. Any short unique string works (today's date,
+// a counter, a commit hash) — it only has to change, the format never
+// matters to the logic below.
+const SHELL_CACHE = 'campusmeet-shell-v2-2026-08-09';
+const STATIC_CACHE = 'campusmeet-static-v2-2026-08-09';
 const CURRENT_CACHES = [SHELL_CACHE, STATIC_CACHE];
 
 self.addEventListener('install', () => {

@@ -12,6 +12,7 @@ import BadgesRow from '../components/BadgesRow';
 import HighlightViewer from '../components/HighlightViewer';
 import { ProfileAPI, AuthAPI, PostsAPI, FriendsAPI } from '../api/client';
 import { getPushSubscriptionState, enablePush, disablePush, isPushSupported } from '../utils/push';
+import { isIOS, isStandalone, IOSInstallGuide } from '../components/InstallPrompt';
 import { getInitialTheme, setTheme } from '../utils/theme';
 import VerifiedBadge from '../components/VerifiedBadge';
 import GoldSparkle from '../components/GoldSparkle';
@@ -29,6 +30,7 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showSettingsWallpaper, setShowSettingsWallpaper] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [pushState, setPushState] = useState('unsupported'); // 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'
   const [pushBusy, setPushBusy] = useState(false);
   const [theme, setThemeState] = useState(getInitialTheme);
@@ -420,7 +422,27 @@ export default function Profile() {
             {theme === 'dark' ? 'Turn off' : 'Turn on'}
           </button>
         </div>
+        {isIOS() && !isStandalone() && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--sp-3)', paddingTop: 'var(--sp-3)', borderTop: '1px solid var(--line)' }}>
+            <div>
+              <p style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, margin: 0 }}>Add to Home Screen</p>
+              <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', margin: '2px 0 0' }}>
+                Needed for push alerts to work on iPhone
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '6px 14px', fontSize: 'var(--fs-sm)' }}
+              onClick={() => setShowIOSGuide(true)}
+            >
+              Show me how
+            </button>
+          </div>
+        )}
       </div>
+
+      {showIOSGuide && <IOSInstallGuide onClose={() => setShowIOSGuide(false)} />}
 
       {showSettingsWallpaper && (
         <WallpaperModal

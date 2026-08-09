@@ -120,7 +120,7 @@ export default function RightRail() {
                     padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%',
                   }}
                 >
-                  <span style={{
+                  <span className="name-shine" style={{
                     fontSize: 'var(--fs-sm)', fontWeight: 600, overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
