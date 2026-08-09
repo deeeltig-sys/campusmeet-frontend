@@ -284,56 +284,6 @@ export default function Feed() {
             Admin
           </button>
         )}
-
-        <button
-          type="button"
-          onClick={() => navigate('/groups')}
-          aria-label="Groups"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, marginLeft: 'auto' }}
-        >
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-            <circle cx="8" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
-            <circle cx="17" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
-            <path d="M2.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-            <path d="M11.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/events')}
-          aria-label="Events"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
-        >
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="5" width="18" height="16" rx="2" stroke="var(--ink)" strokeWidth="2" />
-            <path d="M3 10h18" stroke="var(--ink)" strokeWidth="2" />
-            <path d="M8 3v4M16 3v4" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/campusmeet-hq')}
-          aria-label="CampusMEET HQ"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
-        >
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2l7 3v6c0 5-3 8.5-7 11-4-2.5-7-6-7-11V5l7-3z" fill="var(--gold-bright)" />
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/search')}
-          aria-label="Search"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink)" strokeWidth="2" />
-            <path d="M20 20l-4.35-4.35" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
       </header>
 
       {/* Campus/National scope toggle — the actual multi-university
@@ -360,6 +310,63 @@ export default function Feed() {
             {opt.label}
           </button>
         ))}
+
+        {/* Moved down from the header row, which was cramming logo +
+            brand name + admin pill + these 4 icons into one line and
+            overflowing on narrow phone screens. Living here means they
+            share the scope toggle's existing horizontal-scroll safety
+            net instead of needing their own. */}
+        <div style={{ display: 'flex', gap: 4, marginLeft: 'auto', flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => navigate('/groups')}
+            aria-label="Groups"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6 }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <circle cx="8" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
+              <circle cx="17" cy="9" r="3" stroke="var(--ink)" strokeWidth="2" />
+              <path d="M2.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M11.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/events')}
+            aria-label="Events"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6 }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="5" width="18" height="16" rx="2" stroke="var(--ink)" strokeWidth="2" />
+              <path d="M3 10h18" stroke="var(--ink)" strokeWidth="2" />
+              <path d="M8 3v4M16 3v4" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/campusmeet-hq')}
+            aria-label="CampusMEET HQ"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6 }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l7 3v6c0 5-3 8.5-7 11-4-2.5-7-6-7-11V5l7-3z" fill="var(--gold-bright)" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/search')}
+            aria-label="Search"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--ink)" strokeWidth="2" />
+              <path d="M20 20l-4.35-4.35" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <StatusStrip />
