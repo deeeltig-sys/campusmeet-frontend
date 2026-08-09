@@ -1,17 +1,45 @@
 import { Link } from 'react-router-dom';
 
 const HASHTAG_RE = /#([A-Za-z0-9_]{2,50})/g;
+// http(s)://... or bare www.something — the two shapes people actually
+// paste. Deliberately excludes trailing sentence punctuation (a period,
+// comma, closing paren etc. right after a URL is almost always part of
+// the sentence, not the link) by trimming it off after matching rather
+// than trying to exclude it in the regex itself, which gets unreadable
+// fast once you account for URLs that legitimately end in a paren.
+const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
 
-// Splits post content on #hashtags (always) and @mentions (when a
-// `mentions` list is passed) and renders each as a profile/hashtag
-// link. There's no @username handle system in this schema — a
-// mention is recorded server-side as an explicit {id, full_name} the
-// composer's autocomplete picked, not parsed from free text — so
-// here we look for that exact name substring in the content rather
-// than matching a pattern the way hashtags work. Both token types are
-// found first, then merged and sorted by position so overlapping or
+// Strips sentence punctuation that isn't part of the URL. Handles
+// closing parens specially — an unmatched trailing ')' almost always
+// closes the sentence, not the link, but a URL like
+// wikipedia.org/wiki/Foo_(bar) has a legitimate one, so it only gets
+// trimmed when there's no matching '(' earlier in the same match.
+function trimTrailingPunctuation(url) {
+  let trimmed = url.replace(/[.,!?;:'"\]}]+$/, '');
+  while (trimmed.endsWith(')')) {
+    const opens = (trimmed.match(/\(/g) || []).length;
+    const closes = (trimmed.match(/\)/g) || []).length;
+    if (closes > opens) {
+      trimmed = trimmed.slice(0, -1);
+    } else {
+      break;
+    }
+  }
+  return trimmed;
+}
+const TRAILING_PUNCT_RE = /[.,!?;:)\]}'"]+$/;
+
+// Splits post content on #hashtags (always), @mentions (when a
+// `mentions` list is passed), and any http(s)/www URL (always) —
+// rendering each as a real link instead of static text. There's no
+// @username handle system in this schema — a mention is recorded
+// server-side as an explicit {id, full_name} the composer's
+// autocomplete picked, not parsed from free text — so here we look
+// for that exact name substring in the content rather than matching a
+// pattern the way hashtags and URLs work. All token types are found
+// first, then merged and sorted by position so overlapping or
 // out-of-order matches never happen.
-export default function HashtagText({ text, mentions }) {
+export default function HashtagText({ text, mentions, linkColor = 'var(--maroon)' }) {
   if (!text) return null;
 
   const tokens = [];
@@ -37,7 +65,7 @@ export default function HashtagText({ text, mentions }) {
           key={key}
           to={`/hashtag/${tag.toLowerCase()}`}
           onClick={(e) => e.stopPropagation()}
-          style={{ color: 'var(--maroon)', fontWeight: 600, textDecoration: 'none' }}
+          style={{ color: linkColor, fontWeight: 600, textDecoration: 'none' }}
         >
           #{tag}
         </Link>
@@ -64,13 +92,42 @@ export default function HashtagText({ text, mentions }) {
             key={key}
             to={`/profile/${m.id}`}
             onClick={(e) => e.stopPropagation()}
-            style={{ color: 'var(--maroon)', fontWeight: 600, textDecoration: 'none' }}
+            style={{ color: linkColor, fontWeight: 600, textDecoration: 'none' }}
           >
             {needle}
           </Link>
         ),
       });
     }
+  }
+
+  URL_RE.lastIndex = 0;
+  let urlMatch;
+  while ((urlMatch = URL_RE.exec(text)) !== null) {
+    const raw = urlMatch[1];
+    const clean = trimTrailingPunctuation(raw);
+    if (!clean) continue;
+    const start = urlMatch.index;
+    const end = start + clean.length;
+    const overlaps = tokens.some((t) => start < t.end && end > t.start);
+    if (overlaps) continue; // e.g. a URL that happens to contain a '#' fragment matching the hashtag pattern
+    const href = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+    tokens.push({
+      start,
+      end,
+      render: (key) => (
+        <a
+          key={key}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{ color: linkColor, textDecoration: 'underline', wordBreak: 'break-word' }}
+        >
+          {clean}
+        </a>
+      ),
+    });
   }
 
   if (tokens.length === 0) return text;

@@ -156,9 +156,9 @@ export const PostsAPI = {
     request(`/api/posts/${postId}/reactions`, { method: 'POST', body: { type }, auth: true }),
   unreact: (postId) => request(`/api/posts/${postId}/reactions`, { method: 'DELETE', auth: true }),
   reactors: (postId) => request(`/api/posts/${postId}/reactions`),
-  save: (postId) => request(`/api/posts/${postId}/save`, { method: 'POST', auth: true }),
+  save: (postId, collectionId) => request(`/api/posts/${postId}/save`, { method: 'POST', body: { collection_id: collectionId || null }, auth: true }),
   unsave: (postId) => request(`/api/posts/${postId}/save`, { method: 'DELETE', auth: true }),
-  saved: () => request('/api/posts/saved', { auth: true }),
+  saved: (collectionId) => request(`/api/posts/saved${collectionId ? `?collection_id=${collectionId}` : ''}`, { auth: true }),
   vote: (postId, optionId) => request(`/api/posts/${postId}/vote`, { method: 'POST', body: { option_id: optionId }, auth: true }),
   unvote: (postId) => request(`/api/posts/${postId}/vote`, { method: 'DELETE', auth: true }),
 
@@ -501,4 +501,15 @@ export const BadgesAPI = {
 
 export const QuestsAPI = {
   mine: () => request('/api/quests/mine', { auth: true }),
+};
+
+export const LeaderboardAPI = {
+  weekly: (scope = 'university') => request(`/api/leaderboard?scope=${scope}`, { auth: true }),
+};
+
+export const CollectionsAPI = {
+  list: () => request('/api/collections', { auth: true }),
+  create: (title) => request('/api/collections', { method: 'POST', body: { title }, auth: true }),
+  rename: (collectionId, title) => request(`/api/collections/${collectionId}`, { method: 'PATCH', body: { title }, auth: true }),
+  delete: (collectionId) => request(`/api/collections/${collectionId}`, { method: 'DELETE', auth: true }),
 };

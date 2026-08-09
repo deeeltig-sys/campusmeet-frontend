@@ -66,6 +66,9 @@ export default function RightRail() {
           <button type="button" onClick={() => navigate('/insights')} className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '6px 8px' }}>
             Insights
           </button>
+          <button type="button" onClick={() => navigate('/leaderboard')} className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '6px 8px' }}>
+            Leaderboard
+          </button>
         </div>
       </div>
 
@@ -117,7 +120,7 @@ export default function RightRail() {
                     padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%',
                   }}
                 >
-                  <span className="name-shine" style={{
+                  <span style={{
                     fontSize: 'var(--fs-sm)', fontWeight: 600, overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>

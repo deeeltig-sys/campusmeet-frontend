@@ -11,8 +11,10 @@ import { PostsAPI } from '../api/client';
  * mode="posts" (default) — this person's own posts, requires userId.
  * mode="saved" — the CALLER's bookmarked posts (only ever their own —
  * there's no "view someone else's saved posts", same as IG/X).
+ * collectionId (optional, mode="saved" only) — narrows to one saved
+ * collection instead of everything the caller has ever bookmarked.
  */
-export default function PostGrid({ userId, mode = 'posts' }) {
+export default function PostGrid({ userId, mode = 'posts', collectionId }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -21,13 +23,13 @@ export default function PostGrid({ userId, mode = 'posts' }) {
     if (mode === 'posts' && !userId) return;
     let cancelled = false;
     setLoading(true);
-    const fetcher = mode === 'saved' ? PostsAPI.saved() : PostsAPI.byUser(userId);
+    const fetcher = mode === 'saved' ? PostsAPI.saved(collectionId) : PostsAPI.byUser(userId);
     fetcher
       .then((data) => { if (!cancelled) setPosts(Array.isArray(data) ? data : []); })
       .catch(() => { if (!cancelled) setPosts([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [userId, mode]);
+  }, [userId, mode, collectionId]);
 
   if (loading) {
     return <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginTop: 'var(--sp-4)' }}>Loading posts…</p>;

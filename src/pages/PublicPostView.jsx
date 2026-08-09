@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { PublicAPI } from '../api/client';
 import PostCard from '../components/PostCard';
 import campmeetLogo from '../assets/campmeet-logo.png';
@@ -20,6 +20,8 @@ import campmeetLogo from '../assets/campmeet-logo.png';
 export default function PublicPostView() {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref');
   const [post, setPost] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,11 @@ export default function PublicPostView() {
     return () => { cancelled = true; };
   }, [postId]);
 
-  const goSignup = () => navigate(`/signup?next=/post/${postId}`);
+  const goSignup = () => {
+    const params = new URLSearchParams({ next: `/post/${postId}` });
+    if (ref) params.set('ref', ref);
+    navigate(`/signup?${params.toString()}`);
+  };
 
   return (
     <div className="screen public-post-screen">

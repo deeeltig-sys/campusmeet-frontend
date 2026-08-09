@@ -33,6 +33,9 @@ import EventDetail from './pages/EventDetail';
 import Insights from './pages/Insights';
 import Quests from './pages/Quests';
 import PublicPostView from './pages/PublicPostView';
+import Leaderboard from './pages/Leaderboard';
+import Collections from './pages/Collections';
+import CollectionDetail from './pages/CollectionDetail';
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -93,6 +96,9 @@ function AppRoutes() {
         <Route path="/events/:eventId" element={<ProtectedLayout><EventDetail /></ProtectedLayout>} />
         <Route path="/insights" element={<ProtectedLayout><Insights /></ProtectedLayout>} />
         <Route path="/quests" element={<ProtectedLayout><Quests /></ProtectedLayout>} />
+        <Route path="/leaderboard" element={<ProtectedLayout><Leaderboard /></ProtectedLayout>} />
+        <Route path="/collections" element={<ProtectedLayout><Collections /></ProtectedLayout>} />
+        <Route path="/collections/:collectionId" element={<ProtectedLayout><CollectionDetail /></ProtectedLayout>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

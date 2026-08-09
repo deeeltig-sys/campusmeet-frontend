@@ -51,6 +51,8 @@ export default function Signup() {
       // what makes signing up from outside Ghana possible without us
       // pre-seeding every institution on earth.
       const payload = { ...form, university_name: trimmed };
+      const ref = searchParams.get('ref');
+      if (ref) payload.referred_by = ref;
       const res = await signup(payload);
       if (res?.access_token) {
         navigate(next);

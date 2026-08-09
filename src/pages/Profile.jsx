@@ -275,6 +275,16 @@ export default function Profile() {
       </div>
 
       <div style={{ marginBottom: 'var(--sp-5)' }}>
+        {tab === 'saved' && (
+          <button
+            type="button"
+            onClick={() => navigate('/collections')}
+            className="btn btn-ghost"
+            style={{ marginBottom: 'var(--sp-3)', fontSize: 'var(--fs-sm)' }}
+          >
+            Organize into collections →
+          </button>
+        )}
         <PostGrid userId={user.id} mode={tab === 'saved' ? 'saved' : 'posts'} />
       </div>
 
@@ -313,6 +323,27 @@ export default function Profile() {
           onClose={() => setOpenHighlightId(null)}
         />
       )}
+
+      <div
+        className="card"
+        style={{
+          marginBottom: 'var(--sp-4)', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', cursor: 'pointer',
+        }}
+        onClick={() => navigate('/leaderboard')}
+      >
+        <div>
+          <p className="eyebrow" style={{ marginBottom: 4 }}>This week</p>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 'var(--fs-lg)', color: 'var(--maroon-deep)' }}>
+            {user?.weekly_points ?? 0} points
+          </p>
+          <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)' }}>
+            {user?.points_tier || 'Newcomer'}
+            {user?.weekly_rank ? ` \u00B7 #${user.weekly_rank} this week` : ''}
+          </p>
+        </div>
+        <span style={{ color: 'var(--gold)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>Leaderboard \u2192</span>
+      </div>
 
       <div className="card" style={{ marginBottom: 'var(--sp-4)' }}>
         <p className="eyebrow" style={{ marginBottom: 'var(--sp-3)' }}>Explore</p>

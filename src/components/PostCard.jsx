@@ -48,7 +48,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   // /p/:postId, not /post/:postId — the public unauthenticated preview
   // route, not the in-app one. See PublicPostView.jsx / App.jsx.
   async function handleShare() {
-    const url = `${SITE_URL}/p/${post.id}`;
+    const url = user ? `${SITE_URL}/p/${post.id}?ref=${user.id}` : `${SITE_URL}/p/${post.id}`;
     const shareData = {
       title: 'CampusMEET',
       text: author.full_name ? `${author.full_name} on CampusMEET` : 'Check this out on CampusMEET',
