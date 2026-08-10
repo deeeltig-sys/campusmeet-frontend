@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
+import { useIsOnline } from '../hooks/usePresence';
 import VerifiedBadge from '../components/VerifiedBadge';
 import ReportModal from '../components/ReportModal';
 
@@ -316,10 +317,22 @@ export default function Inbox() {
 function ConversationRow({ conv, tab, onPressStart, onPressEnd, onRowClick, selectMode, selected, onToggleSelect, onUnhide, onRestore }) {
   const other = conv.other_user || {};
   const hasUnread = (conv.unread_count || 0) > 0;
+  const isOnline = useIsOnline(other.id);
   const rowContent = (
     <>
-      <div className="avatar-circle">
-        {other.avatar_url ? <img src={other.avatar_url} alt="" /> : (other.full_name ? other.full_name.charAt(0) : '?')}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div className="avatar-circle">
+          {other.avatar_url ? <img src={other.avatar_url} alt="" /> : (other.full_name ? other.full_name.charAt(0) : '?')}
+        </div>
+        {isOnline && (
+          <span
+            aria-label="Online"
+            style={{
+              position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
+              borderRadius: '50%', background: '#4ade80', border: '2px solid var(--ivory)',
+            }}
+          />
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

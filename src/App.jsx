@@ -5,6 +5,8 @@ import RightRail from './components/RightRail';
 import UpdateBanner from './components/UpdateBanner';
 import InstallPrompt from './components/InstallPrompt';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
+import { useEffect } from 'react';
+import { initPresence, teardownPresence } from './hooks/usePresence';
 
 import Splash from './pages/Splash';
 import Onboarding from './pages/Onboarding';
@@ -41,6 +43,17 @@ import CollectionDetail from './pages/CollectionDetail';
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Presence tracking starts the moment a real user is known, and
+  // tears down on logout — mounted once here rather than per-page, so
+  // "online" status stays live across navigation instead of resetting
+  // every time someone switches screens.
+  useEffect(() => {
+    if (user?.id) {
+      initPresence(user.id);
+    }
+    return () => { if (!user?.id) teardownPresence(); };
+  }, [user?.id]);
 
   if (loading) {
     return <div className="screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading…</div>;

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConversationMessages } from '../hooks/useIncomingMessages';
+import { useIsOnline } from '../hooks/usePresence';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 
 function timeLabel(iso) {
@@ -12,6 +13,43 @@ function timeLabel(iso) {
   const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   return sameDay ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${time}`;
 }
+
+// ---- Tier 1: Messenger/IG-style rendering helpers ----
+
+// Consecutive messages from the same sender, within this window of
+// each other, render as one visual cluster: tight spacing between
+// them, and the avatar/timestamp only show once per cluster (on the
+// last bubble) instead of on every single message — this is the
+// biggest single visual difference between a "chat log" feel and an
+// actual Messenger/IG feel.
+const CLUSTER_WINDOW_MS = 5 * 60 * 1000;
+
+function buildClusters(messages) {
+  const clusters = [];
+  let current = null;
+  for (const m of messages) {
+    const prev = current?.messages[current.messages.length - 1];
+    const sameSender = prev && prev.sender_id === m.sender_id;
+    const withinWindow = prev && new Date(m.created_at) - new Date(prev.created_at) <= CLUSTER_WINDOW_MS;
+    if (current && sameSender && withinWindow) {
+      current.messages.push(m);
+    } else {
+      current = { sender_id: m.sender_id, messages: [m] };
+      clusters.push(current);
+    }
+  }
+  return clusters;
+}
+
+// Matches a message that's ONLY emoji (optionally a few, optionally
+// with whitespace between) — these render oversized with no bubble at
+// all, the same "no words needed" treatment Messenger/IG/WhatsApp give
+// a bare 🔥 or 😂 reply.
+const EMOJI_ONLY_RE = /^(\p{Extended_Pictographic}\uFE0F?\s*){1,3}$/u;
+function isEmojiOnlyMessage(text) {
+  return typeof text === 'string' && text.trim().length > 0 && EMOJI_ONLY_RE.test(text.trim());
+}
+
 
 // Samples a custom wallpaper photo to decide whether bubbles/text need
 // light or dark treatment — "reshuffle text colors for a clearer view
@@ -50,6 +88,7 @@ export default function Conversation() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [conv, setConv] = useState(null);
+  const isOtherOnline = useIsOnline(conv?.other_user?.id);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -262,11 +301,23 @@ export default function Conversation() {
               onClick={() => navigate(`/profile/${conv.other_user.id}`)}
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
             >
-              <div className="avatar-circle" style={{ width: 32, height: 32 }}>
-                {conv.other_user.avatar_url ? (
-                  <img src={conv.other_user.avatar_url} alt="" />
-                ) : (
-                  (conv.other_user.full_name || '?').charAt(0)
+              <div style={{ position: 'relative', width: 32, height: 32 }}>
+                <div className="avatar-circle" style={{ width: 32, height: 32 }}>
+                  {conv.other_user.avatar_url ? (
+                    <img src={conv.other_user.avatar_url} alt="" />
+                  ) : (
+                    (conv.other_user.full_name || '?').charAt(0)
+                  )}
+                </div>
+                {isOtherOnline && (
+                  <span
+                    aria-label="Online"
+                    title="Online"
+                    style={{
+                      position: 'absolute', bottom: -1, right: -1, width: 10, height: 10,
+                      borderRadius: '50%', background: '#4ade80', border: '2px solid var(--ivory)',
+                    }}
+                  />
                 )}
               </div>
               <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
@@ -326,39 +377,85 @@ export default function Conversation() {
             {isRecipientOfPendingRequest ? 'This is a message request.' : 'Say hello.'}
           </p>
         ) : (
-          messages.map((m) => {
-            const mine = m.sender_id === user?.id;
+          buildClusters(messages).map((cluster, ci) => {
+            const mine = cluster.sender_id === user?.id;
+            const lastMsg = cluster.messages[cluster.messages.length - 1];
             return (
               <div
-                key={m.id}
+                key={lastMsg.id}
                 style={{
                   display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start',
-                  marginBottom: 'var(--sp-2)', padding: '0 var(--sp-1)',
+                  alignItems: 'flex-end', gap: 6,
+                  marginTop: ci === 0 ? 0 : 'var(--sp-3)', // real gap BETWEEN clusters
+                  padding: '0 var(--sp-1)',
                 }}
               >
-                <div style={{ maxWidth: '75%' }}>
-                  <div
-                    style={{
-                      padding: '8px 12px', borderRadius: 'var(--radius-md)',
-                      background: mine ? 'var(--maroon)' : (isDarkBg ? 'rgba(255,255,255,0.92)' : 'var(--ivory-dim)'),
-                      color: mine ? '#fff' : 'var(--ink)',
-                      fontSize: 'var(--fs-sm)',
-                    }}
-                  >
-                    {m.content}
+                {/* Avatar only on the other person's side, only once
+                    per cluster (anchored to the last/bottom bubble) —
+                    not repeated on every message like a plain chat log. */}
+                {!mine && (
+                  <div className="avatar-circle" style={{ width: 24, height: 24, fontSize: '0.7rem', flexShrink: 0 }}>
+                    {conv?.other_user?.avatar_url ? (
+                      <img src={conv.other_user.avatar_url} alt="" />
+                    ) : (
+                      conv?.other_user?.full_name?.charAt(0) || '?'
+                    )}
                   </div>
+                )}
+
+                <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                  {cluster.messages.map((m, mi) => {
+                    const isFirst = mi === 0;
+                    const isLast = mi === cluster.messages.length - 1;
+                    const emojiOnly = isEmojiOnlyMessage(m.content);
+
+                    // Corner shaping: the "joined" edge between two
+                    // consecutive bubbles from the same person flattens,
+                    // same visual grammar as Messenger/IG clustering —
+                    // only the outermost corners of the whole cluster
+                    // stay fully rounded.
+                    const radius = 'var(--radius-md)';
+                    const flat = '4px';
+                    const borderRadius = mine
+                      ? `${isFirst ? radius : flat} ${radius} ${isLast ? radius : flat} ${radius}`
+                      : `${radius} ${isFirst ? radius : flat} ${radius} ${isLast ? radius : flat}`;
+
+                    return (
+                      <div key={m.id}>
+                        {emojiOnly ? (
+                          <div style={{ fontSize: '2.4rem', lineHeight: 1.1, textAlign: mine ? 'right' : 'left' }}>
+                            {m.content}
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              padding: '8px 12px', borderRadius,
+                              background: mine ? 'var(--maroon)' : (isDarkBg ? 'rgba(255,255,255,0.92)' : 'var(--ivory-dim)'),
+                              color: mine ? '#fff' : 'var(--ink)',
+                              fontSize: 'var(--fs-sm)',
+                            }}
+                          >
+                            {m.content}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Timestamp/read-receipt shown once per cluster, on
+                      the last bubble — not repeated per message. */}
                   <div style={{
                     display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', gap: 4,
                     marginTop: 2, alignItems: 'center',
                   }}>
                     <span style={{ fontSize: '0.625rem', color: isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)' }}>
-                      {timeLabel(m.created_at)}
+                      {timeLabel(lastMsg.created_at)}
                     </span>
                     {mine && (
-                      <span aria-label={m.read_at ? 'Read' : 'Sent'} title={m.read_at ? 'Read' : 'Sent'}>
+                      <span aria-label={lastMsg.read_at ? 'Read' : 'Sent'} title={lastMsg.read_at ? 'Read' : 'Sent'}>
                         <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
-                          <path d="M1 5l3 3L9 2" stroke={m.read_at ? '#4fa8e8' : (isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)')} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                          {m.read_at && <path d="M6 5l3 3L15 2" stroke="#4fa8e8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
+                          <path d="M1 5l3 3L9 2" stroke={lastMsg.read_at ? '#4fa8e8' : (isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)')} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          {lastMsg.read_at && <path d="M6 5l3 3L15 2" stroke="#4fa8e8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
                         </svg>
                       </span>
                     )}
