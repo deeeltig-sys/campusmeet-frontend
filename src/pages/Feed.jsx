@@ -38,11 +38,22 @@ export default function Feed() {
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
 
   // ---- Initial load ----
+  // feedSeedRef holds one seed per feed "session" — set fresh here on
+  // every real load/refresh, then reused unchanged by loadMore below.
+  // Without this, each infinite-scroll page got its own independent
+  // random order from the backend (see feed_seeded_pagination_migration.sql)
+  // and the whole feed would silently reshuffle under the person's thumb
+  // on any re-fetch — this is what "react on a post and it disappears"
+  // actually was.
+  const feedSeedRef = useRef(null);
+
   const load = useCallback(async () => {
     setError('');
     try {
+      feedSeedRef.current = null; // fresh load always gets a brand-new seed from the backend
       const data = await PostsAPI.feed(PAGE_SIZE, 0, scope);
       const list = Array.isArray(data) ? data : data?.posts || [];
+      feedSeedRef.current = data?.seed ?? null;
       setPosts(list);
       setOffset(list.length);
       setHasMore(list.length === PAGE_SIZE);
@@ -162,7 +173,7 @@ export default function Feed() {
     if (loadingMore || !hasMore || refreshing) return;
     setLoadingMore(true);
     try {
-      const data = await PostsAPI.feed(PAGE_SIZE, offset, scope);
+      const data = await PostsAPI.feed(PAGE_SIZE, offset, scope, feedSeedRef.current);
       const list = Array.isArray(data) ? data : data?.posts || [];
       setPosts((prev) => [...prev, ...list]);
       setOffset((prev) => prev + list.length);

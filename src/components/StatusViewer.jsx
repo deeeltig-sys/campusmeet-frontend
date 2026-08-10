@@ -7,6 +7,12 @@ import AddToHighlightModal from './AddToHighlightModal';
 import HashtagText from './HashtagText';
 
 const SLIDE_DURATION_MS = 5000;
+const REACTIONS = [
+  { type: 'fire', emoji: '🔥' },
+  { type: 'cosign', emoji: '🤝' },
+  { type: 'doubt', emoji: '👎' },
+  { type: 'yawa', emoji: '🚫' },
+];
 
 export default function StatusViewer({ groups, startIndex, onClose }) {
   const { user } = useAuth();
@@ -18,6 +24,11 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   const rafRef = useRef(null);
   const startRef = useRef(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  // Reaction state is tracked locally per status id rather than
+  // mutating the `groups` prop directly (unlike handleDelete below) —
+  // reactions change on every tap and need their own re-render without
+  // fighting the auto-advance effect's dependency on groupIndex/statusIndex.
+  const [reactionState, setReactionState] = useState({});
 
   const group = groups[groupIndex];
   const current = group?.statuses?.[statusIndex];
@@ -108,6 +119,30 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   if (!current) return null;
 
   const isTextStatus = current.content_type === 'text';
+  const myReaction = reactionState[current.id]?.user_reaction ?? current.user_reaction ?? null;
+  const reactionCount = reactionState[current.id]?.reaction_count ?? current.reaction_count ?? 0;
+
+  async function handleReact(type) {
+    const wasSame = myReaction === type;
+    const nextReaction = wasSame ? null : type;
+    const hadAny = myReaction != null;
+    const delta = wasSame ? -1 : hadAny ? 0 : 1;
+
+    setReactionState((prev) => ({
+      ...prev,
+      [current.id]: { user_reaction: nextReaction, reaction_count: reactionCount + delta },
+    }));
+    try {
+      if (wasSame) {
+        await StatusesAPI.unreact(current.id);
+      } else {
+        await StatusesAPI.react(current.id, type);
+      }
+    } catch {
+      // Best-effort — a failed status reaction isn't worth interrupting
+      // the story-viewing flow with an error state.
+    }
+  }
 
   return (
     <div
@@ -144,6 +179,20 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
         >
           {group.author.full_name}
         </span>
+        {/* Public view count, visible to anyone viewing the status —
+            not the private "who viewed" list (that's still author-only
+            via the Highlight/viewers flow). This is the TikTok-style
+            social-proof number: seeing "312 views" climb is what pulls
+            people back to check their own status again. */}
+        {typeof current.view_count === 'number' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.8" />
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+            {current.view_count}
+          </span>
+        )}
         {isOwn && (
           <>
             <button type="button" onClick={() => setShowHighlightPicker(true)} aria-label="Add to highlight" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
@@ -190,6 +239,38 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           onClose={() => setShowHighlightPicker(false)}
         />
       )}
+
+      {/* Reaction bar — same four types as post reactions, one live
+          reaction per person, tap again to remove. Kept off the main
+          tap-zone area (bottom edge only) so it doesn't fight the
+          prev/next tap zones above it. */}
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3)' }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {REACTIONS.map(({ type, emoji }) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => handleReact(type)}
+            aria-pressed={myReaction === type}
+            style={{
+              width: 38, height: 38, borderRadius: '50%', fontSize: '1.1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: myReaction === type ? '2px solid var(--gold-bright)' : '1.5px solid rgba(255,255,255,0.3)',
+              background: myReaction === type ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.3)',
+              cursor: 'pointer',
+            }}
+          >
+            {emoji}
+          </button>
+        ))}
+        {reactionCount > 0 && (
+          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+            {reactionCount}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -140,8 +140,8 @@ export const AuthAPI = {
 
 // ---- Posts / Feed ----
 export const PostsAPI = {
-  feed: (limit = 30, offset = 0, scope = 'campus') =>
-    request(`/api/posts/feed?limit=${limit}&offset=${offset}&scope=${scope}`),
+  feed: (limit = 30, offset = 0, scope = 'campus', seed = null) =>
+    request(`/api/posts/feed?limit=${limit}&offset=${offset}&scope=${scope}${seed ? `&seed=${seed}` : ''}`),
   explore: (limit = 30) => request(`/api/posts/explore?limit=${limit}`, { auth: true }),
   byUser: (userId, limit = 60, offset = 0) =>
     request(`/api/posts/by-user/${userId}?limit=${limit}&offset=${offset}`),
@@ -377,6 +377,9 @@ export const StatusesAPI = {
   markViewed: (statusId) => request(`/api/statuses/${statusId}/view`, { method: 'POST', auth: true }),
   viewers: (statusId) => request(`/api/statuses/${statusId}/viewers`, { auth: true }),
   delete: (statusId) => request(`/api/statuses/${statusId}`, { method: 'DELETE', auth: true }),
+  react: (statusId, type) => request(`/api/statuses/${statusId}/react`, { method: 'POST', body: { type }, auth: true }),
+  unreact: (statusId) => request(`/api/statuses/${statusId}/react`, { method: 'DELETE', auth: true }),
+  shareToStory: (postId) => request(`/api/statuses/from-post/${postId}`, { method: 'POST', auth: true }),
   // multipart, same pattern as PostsAPI.uploadImage.
   uploadImage: async (file) => {
     const token = getToken();

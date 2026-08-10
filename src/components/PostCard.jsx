@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
-import { REACTION_TYPES, PostsAPI, SITE_URL } from '../api/client';
+import { REACTION_TYPES, PostsAPI, StatusesAPI, SITE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { ReactionIcon, CommentIcon, ShareIcon, REACTION_EMOJI } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
@@ -45,7 +45,24 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [savingBookmark, setSavingBookmark] = useState(false);
   const [fullscreenUrl, setFullscreenUrl] = useState(null);
   const [justShared, setJustShared] = useState(false);
+  const [sharingToStory, setSharingToStory] = useState(false);
+  const [sharedToStory, setSharedToStory] = useState(false);
   const menuRef = useRef(null);
+
+  async function handleShareToStory() {
+    if (sharingToStory || sharedToStory) return;
+    setSharingToStory(true);
+    try {
+      await StatusesAPI.shareToStory(post.id);
+      setSharedToStory(true);
+      setTimeout(() => setSharedToStory(false), 3000);
+    } catch {
+      // Silent — the person can just try again, not worth an error banner
+      // for what's a low-stakes secondary action.
+    } finally {
+      setSharingToStory(false);
+    }
+  }
 
   // /p/:postId, not /post/:postId — the public unauthenticated preview
   // route, not the in-app one. See PublicPostView.jsx / App.jsx.
@@ -352,6 +369,20 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             aria-label={justShared ? 'Link copied' : 'Share this post'}
           >
             <ShareIcon size={15} /> {justShared && <span style={{ fontSize: '0.7rem' }}>Copied!</span>}
+          </button>
+          <button
+            type="button"
+            className="reaction-count-btn"
+            onClick={handleShareToStory}
+            disabled={sharingToStory}
+            title={sharedToStory ? 'Added to your story' : 'Share to your story'}
+            aria-label={sharedToStory ? 'Added to your story' : 'Share to your story'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M12 9v6M9 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            {sharedToStory && <span style={{ fontSize: '0.7rem' }}>Added!</span>}
           </button>
         </div>
       </footer>
