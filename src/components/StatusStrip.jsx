@@ -60,6 +60,29 @@ export default function StatusStrip() {
         />
       );
     }
+    if (status.content_type === 'post' && status.shared_post) {
+      if (status.shared_post.image_url) {
+        return (
+          <img
+            src={status.shared_post.image_url} alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        );
+      }
+      return (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'var(--maroon)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10,
+        }}>
+          <span style={{
+            color: '#fff', fontSize: '0.7rem', fontWeight: 600, textAlign: 'center',
+            overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical',
+          }}>
+            {status.shared_post.content}
+          </span>
+        </div>
+      );
+    }
     return (
       <div style={{
         position: 'absolute', inset: 0, background: status.background_color || 'var(--maroon)',

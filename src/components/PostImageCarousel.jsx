@@ -11,7 +11,7 @@ function resolveUrl(img) {
   return typeof img === 'string' ? img : img?.url;
 }
 
-export default function PostImageCarousel({ images, onImageTap }) {
+export default function PostImageCarousel({ images, onImageTap, onPressStart, onPressEnd, showHeartBurst }) {
   const trackRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -39,6 +39,10 @@ export default function PostImageCarousel({ images, onImageTap }) {
               key={url || i}
               type="button"
               onClick={() => url && onImageTap?.(url)}
+              onPointerDown={onPressStart}
+              onPointerUp={onPressEnd}
+              onPointerLeave={onPressEnd}
+              onPointerCancel={onPressEnd}
               style={{
                 flex: '0 0 100%', scrollSnapAlign: 'start', border: 'none', padding: 0,
                 cursor: 'zoom-in', display: 'block', width: '100%',
@@ -49,6 +53,10 @@ export default function PostImageCarousel({ images, onImageTap }) {
           );
         })}
       </div>
+
+      {showHeartBurst && (
+        <span className="heart-burst" aria-hidden="true">❤️</span>
+      )}
 
       {images.length > 1 && (
         <>

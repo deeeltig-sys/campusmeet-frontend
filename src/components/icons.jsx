@@ -15,6 +15,17 @@ export function FireIcon({ size = 18, color = 'var(--maroon)' }) {
   );
 }
 
+export function HeartIcon({ size = 18, color = 'var(--maroon)' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 20.5s-7.5-4.6-10-9.3C.5 8 2 4.5 5.5 4c2.2-.3 4 .9 6.5 3.6C14.5 4.9 16.3 3.7 18.5 4c3.5.5 5 4 3.5 7.2-2.5 4.7-10 9.3-10 9.3z"
+        stroke={color} strokeWidth="1.7" strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CosignIcon({ size = 18, color = 'var(--maroon)' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -95,23 +106,25 @@ export function SendIcon({ size = 20, color = '#fff' }) {
 }
 
 export const REACTION_ICONS = {
+  like: HeartIcon,
   fire: FireIcon,
   cosign: CosignIcon,
-  doubt: DoubtIcon,
   yawa: YawaIcon,
 };
 
 // Reactions render as real emoji (not the line-art set above) — matches
 // how they've always looked in practice on real posts, and emoji here
-// carry tone that a stroked outline can't: 🔥 reads as genuine heat,
-// 🤝 as an actual co-sign/backing, 👎 as real doubt, 🚫 as "this ain't
-// it" — losing that to a uniform icon style was a net loss, not a
-// cleanup. Comment/reaction *count* icons (ReactionIcon, CommentIcon
-// above) stay as line-art since those are just UI chrome, not the
-// reaction itself.
+// carry tone that a stroked outline can't: ❤️ as the lead reaction
+// (everyone's default reflex, per FB/IG/WhatsApp), 🔥 reads as genuine
+// heat, 🤝 as an actual co-sign/backing, 👎 as Yawa's side-eye/doubt
+// (the old 'doubt' reaction's icon, now carried by Yawa since 'doubt'
+// itself was folded into Like) — losing that to a uniform icon style
+// was a net loss, not a cleanup. Comment/reaction *count* icons
+// (ReactionIcon, CommentIcon above) stay as line-art since those are
+// just UI chrome, not the reaction itself.
 export const REACTION_EMOJI = {
+  like: '❤️',
   fire: '🔥',
   cosign: '🤝',
-  doubt: '👎',
-  yawa: '🚫',
+  yawa: '👎',
 };

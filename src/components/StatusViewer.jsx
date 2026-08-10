@@ -4,15 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { StatusesAPI } from '../api/client';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import AddToHighlightModal from './AddToHighlightModal';
+import StatusViewersModal from './StatusViewersModal';
 import HashtagText from './HashtagText';
 
 const SLIDE_DURATION_MS = 5000;
-const REACTIONS = [
-  { type: 'fire', emoji: '🔥' },
-  { type: 'cosign', emoji: '🤝' },
-  { type: 'doubt', emoji: '👎' },
-  { type: 'yawa', emoji: '🚫' },
-];
 
 export default function StatusViewer({ groups, startIndex, onClose }) {
   const { user } = useAuth();
@@ -24,11 +19,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   const rafRef = useRef(null);
   const startRef = useRef(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
-  // Reaction state is tracked locally per status id rather than
-  // mutating the `groups` prop directly (unlike handleDelete below) —
-  // reactions change on every tap and need their own re-render without
-  // fighting the auto-advance effect's dependency on groupIndex/statusIndex.
-  const [reactionState, setReactionState] = useState({});
+  const [showViewers, setShowViewers] = useState(false);
 
   const group = groups[groupIndex];
   const current = group?.statuses?.[statusIndex];
@@ -42,7 +33,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   // Auto-advance — a per-status progress bar that fills over
   // SLIDE_DURATION_MS, same visual language as IG/Snapchat stories.
   useEffect(() => {
-    if (!current || paused || showHighlightPicker) return;
+    if (!current || paused || showHighlightPicker || showViewers) return;
     setProgress(0);
     startRef.current = performance.now();
     function tick(now) {
@@ -58,7 +49,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupIndex, statusIndex, paused, showHighlightPicker]);
+  }, [groupIndex, statusIndex, paused, showHighlightPicker, showViewers]);
 
   function goNextStatus() {
     if (!group) return;
@@ -119,30 +110,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   if (!current) return null;
 
   const isTextStatus = current.content_type === 'text';
-  const myReaction = reactionState[current.id]?.user_reaction ?? current.user_reaction ?? null;
-  const reactionCount = reactionState[current.id]?.reaction_count ?? current.reaction_count ?? 0;
-
-  async function handleReact(type) {
-    const wasSame = myReaction === type;
-    const nextReaction = wasSame ? null : type;
-    const hadAny = myReaction != null;
-    const delta = wasSame ? -1 : hadAny ? 0 : 1;
-
-    setReactionState((prev) => ({
-      ...prev,
-      [current.id]: { user_reaction: nextReaction, reaction_count: reactionCount + delta },
-    }));
-    try {
-      if (wasSame) {
-        await StatusesAPI.unreact(current.id);
-      } else {
-        await StatusesAPI.react(current.id, type);
-      }
-    } catch {
-      // Best-effort — a failed status reaction isn't worth interrupting
-      // the story-viewing flow with an error state.
-    }
-  }
+  const isPostStatus = current.content_type === 'post';
 
   return (
     <div
@@ -179,20 +147,6 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
         >
           {group.author.full_name}
         </span>
-        {/* Public view count, visible to anyone viewing the status —
-            not the private "who viewed" list (that's still author-only
-            via the Highlight/viewers flow). This is the TikTok-style
-            social-proof number: seeing "312 views" climb is what pulls
-            people back to check their own status again. */}
-        {typeof current.view_count === 'number' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.8" />
-              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-            </svg>
-            {current.view_count}
-          </span>
-        )}
         {isOwn && (
           <>
             <button type="button" onClick={() => setShowHighlightPicker(true)} aria-label="Add to highlight" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '0.8rem' }}>
@@ -228,10 +182,64 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
               <HashtagText text={current.text_content} linkColor="var(--gold-bright)" />
             </p>
           </div>
+        ) : isPostStatus && current.shared_post ? (
+          <button
+            type="button"
+            onClick={() => { onClose?.(); navigate(`/post/${current.shared_post.id}`); }}
+            style={{
+              background: 'var(--ivory)', border: 'none', borderRadius: 'var(--radius-lg)', cursor: 'pointer',
+              width: '90%', maxWidth: 340, maxHeight: '80%', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+              textAlign: 'left', padding: 0,
+            }}
+          >
+            <div style={{ padding: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+              <div className="avatar-circle" style={{ width: 28, height: 28 }}>
+                {current.shared_post.author?.avatar_url
+                  ? <img src={current.shared_post.author.avatar_url} alt="" />
+                  : (current.shared_post.author?.full_name?.charAt(0) || '?')}
+              </div>
+              <strong style={{ fontSize: 'var(--fs-sm)' }}>{current.shared_post.author?.full_name || 'Student'}</strong>
+            </div>
+            {current.shared_post.image_url && (
+              <img src={current.shared_post.image_url} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover' }} />
+            )}
+            {current.shared_post.content && (
+              <p style={{ padding: 'var(--sp-3)', margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--ink)' }}>
+                {current.shared_post.content}
+              </p>
+            )}
+            <span style={{ padding: 'var(--sp-2) var(--sp-3) var(--sp-3)', fontSize: 'var(--fs-xs)', color: 'var(--maroon)', fontWeight: 600 }}>
+              View post →
+            </span>
+          </button>
         ) : (
           <img src={current.image_url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} draggable={false} />
         )}
       </div>
+
+      {isOwn && (
+        <button
+          type="button"
+          onClick={() => setShowViewers(true)}
+          style={{
+            background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--sp-3)', fontSize: 'var(--fs-sm)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />
+            <circle cx="12" cy="12" r="3" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />
+          </svg>
+          {current.view_count || 0} {current.view_count === 1 ? 'view' : 'views'}
+        </button>
+      )}
+
+      {showViewers && (
+        <StatusViewersModal
+          statusId={current.id}
+          onClose={() => setShowViewers(false)}
+        />
+      )}
 
       {showHighlightPicker && (
         <AddToHighlightModal
@@ -239,38 +247,6 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           onClose={() => setShowHighlightPicker(false)}
         />
       )}
-
-      {/* Reaction bar — same four types as post reactions, one live
-          reaction per person, tap again to remove. Kept off the main
-          tap-zone area (bottom edge only) so it doesn't fight the
-          prev/next tap zones above it. */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3)' }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        {REACTIONS.map(({ type, emoji }) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => handleReact(type)}
-            aria-pressed={myReaction === type}
-            style={{
-              width: 38, height: 38, borderRadius: '50%', fontSize: '1.1rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: myReaction === type ? '2px solid var(--gold-bright)' : '1.5px solid rgba(255,255,255,0.3)',
-              background: myReaction === type ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.3)',
-              cursor: 'pointer',
-            }}
-          >
-            {emoji}
-          </button>
-        ))}
-        {reactionCount > 0 && (
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-            {reactionCount}
-          </span>
-        )}
-      </div>
     </div>
   );
 }

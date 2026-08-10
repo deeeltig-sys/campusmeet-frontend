@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI, StatusesAPI, SITE_URL } from '../api/client';
@@ -10,20 +10,28 @@ import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
 import PostImageCarousel from './PostImageCarousel';
 import GoldSparkle from './GoldSparkle';
+import { formatCount } from '../utils/formatCount';
 
 // Reaction buttons — real emoji, matching how they render on every
 // actual post (see franklin.png). The line-art REACTION_ICONS set in
 // ./icons is kept for other spots (count chips, admin stats) but the
 // reaction buttons themselves are emoji, full stop.
 const REACTIONS = [
+  { type: 'like', label: 'Like' },
   { type: 'fire', label: 'Fire' },
   { type: 'cosign', label: 'Cosign' },
-  { type: 'doubt', label: 'Doubt' },
   { type: 'yawa', label: 'Yawa' },
 ];
 
+// Double-tap-to-like / long-press-to-view-full timing, matched to the
+// IG/WhatsApp feel this was modeled on.
+const DOUBLE_TAP_WINDOW_MS = 300; // max gap between two taps to count as one double-tap
+const SINGLE_TAP_DELAY_MS = 250;  // brief hold before committing to the single-tap (zoom) action, long enough to catch a following second tap
+const LONG_PRESS_MS = 500;        // press-and-hold threshold before it counts as a long-press
+
 export default function PostCard({ post, onReact, onEditSave, onDeletePost, onShowReactors, onShowComments }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { content, created_at, reaction_count = 0, comment_count = 0, user_reaction } = post;
 
@@ -44,23 +52,25 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   const [saved, setSaved] = useState(!!post.saved);
   const [savingBookmark, setSavingBookmark] = useState(false);
   const [fullscreenUrl, setFullscreenUrl] = useState(null);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [justShared, setJustShared] = useState(false);
-  const [sharingToStory, setSharingToStory] = useState(false);
-  const [sharedToStory, setSharedToStory] = useState(false);
+  const [addingToStory, setAddingToStory] = useState(false);
+  const [addedToStory, setAddedToStory] = useState(false);
   const menuRef = useRef(null);
 
-  async function handleShareToStory() {
-    if (sharingToStory || sharedToStory) return;
-    setSharingToStory(true);
+  async function handleAddToStory() {
+    setShowMenu(false);
+    setAddingToStory(true);
     try {
-      await StatusesAPI.shareToStory(post.id);
-      setSharedToStory(true);
-      setTimeout(() => setSharedToStory(false), 3000);
+      await StatusesAPI.create({ content_type: 'post', shared_post_id: post.id });
+      setAddedToStory(true);
+      setTimeout(() => setAddedToStory(false), 2500);
     } catch {
-      // Silent — the person can just try again, not worth an error banner
-      // for what's a low-stakes secondary action.
+      // Silent — same pattern as handleShare below for the native
+      // share sheet; a failed "add to story" isn't worth a blocking
+      // error banner over a single tap action.
     } finally {
-      setSharingToStory(false);
+      setAddingToStory(false);
     }
   }
 
@@ -91,6 +101,64 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   }
   const cardRef = useRef(null);
   const hasRegisteredView = useRef(false);
+
+  // ---- Image gestures: double-tap to like, long-press to view in
+  // full, single tap keeps the existing zoom behavior. ----
+  const lastTapAtRef = useRef(0);
+  const singleTapTimerRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const longPressFiredRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(singleTapTimerRef.current);
+      clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  function fireLikeBurst() {
+    // Double-tap always LIKES, never un-likes — matches Instagram (a
+    // double-tap on an already-liked post is a no-op on the reaction
+    // itself, just replays the heart animation).
+    if (user_reaction !== 'like') onReact?.(post.id, 'like');
+    setShowHeartBurst(true);
+    setTimeout(() => setShowHeartBurst(false), 700);
+  }
+
+  function handleImageTap(url) {
+    if (longPressFiredRef.current) {
+      // The long-press already fired (navigated away); this trailing
+      // tap/click is just the touch sequence finishing up — ignore it
+      // so we don't also pop the zoom viewer on top of the navigation.
+      longPressFiredRef.current = false;
+      return;
+    }
+    const now = Date.now();
+    if (now - lastTapAtRef.current < DOUBLE_TAP_WINDOW_MS) {
+      clearTimeout(singleTapTimerRef.current);
+      lastTapAtRef.current = 0;
+      fireLikeBurst();
+      return;
+    }
+    lastTapAtRef.current = now;
+    // Hold the single-tap (zoom) action briefly in case a second tap
+    // is on its way — same trade-off Instagram/WhatsApp make so a
+    // double-tap doesn't also trigger the single-tap action first.
+    singleTapTimerRef.current = setTimeout(() => setFullscreenUrl(url), SINGLE_TAP_DELAY_MS);
+  }
+
+  function handleImagePressStart() {
+    longPressFiredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressFiredRef.current = true;
+      clearTimeout(singleTapTimerRef.current);
+      navigate(`/post/${post.id}`);
+    }, LONG_PRESS_MS);
+  }
+
+  function handleImagePressEnd() {
+    clearTimeout(longPressTimerRef.current);
+  }
 
   useEffect(() => {
     if (!showMenu) return;
@@ -198,6 +266,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             <button
               key={type}
               type="button"
+              data-type={type}
               className={`reaction-btn${active ? ' active' : ''}`}
               aria-pressed={active}
               aria-label={active ? `${label} (your reaction)` : label}
@@ -206,7 +275,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
               disabled={!REACTION_TYPES.includes(type)}
               style={{ fontSize: '19px', lineHeight: 1 }}
             >
-              {REACTION_EMOJI[type]}
+              <span className="reaction-emoji">{REACTION_EMOJI[type]}</span>
             </button>
           );
         })}
@@ -254,8 +323,10 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
                   </svg>
                 </span>
               )}
-              {isOwn && typeof post.view_count === 'number' && (
-                <span style={{ color: 'var(--ink-soft)', flexShrink: 0 }}>· {post.view_count} {post.view_count === 1 ? 'view' : 'views'}</span>
+              {typeof post.view_count === 'number' && post.view_count > 0 && (
+                <span style={{ color: 'var(--ink-soft)', flexShrink: 0 }}>
+                  · {formatCount(post.view_count)} {post.view_count === 1 ? 'view' : 'views'}
+                </span>
               )}
             </time>
           )}
@@ -279,6 +350,9 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
           </button>
           {showMenu && (
             <div className="card" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 15, minWidth: 170, padding: 6 }}>
+              <button type="button" className="post-menu-item" onClick={handleAddToStory} disabled={addingToStory}>
+                {addingToStory ? 'Adding…' : addedToStory ? 'Added to your story ✓' : 'Add to Story'}
+              </button>
               <button type="button" className="post-menu-item" onClick={handleToggleSave}>
                 {saved ? 'Unsave' : 'Save'}
               </button>
@@ -329,17 +403,32 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       {post.poll && <PollBlock post={post} />}
 
       {post.images && post.images.length > 1 ? (
-        <PostImageCarousel images={post.images} onImageTap={setFullscreenUrl} />
+        <PostImageCarousel
+          images={post.images}
+          onImageTap={handleImageTap}
+          onPressStart={handleImagePressStart}
+          onPressEnd={handleImagePressEnd}
+          showHeartBurst={showHeartBurst}
+        />
       ) : (
         post.image_url && (
-          <button
-            type="button"
-            className="post-image-wrap"
-            onClick={() => setFullscreenUrl(post.image_url)}
-            style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
-          >
-            <img className="post-image" src={post.image_url} alt="" loading="lazy" />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="post-image-wrap"
+              onClick={() => handleImageTap(post.image_url)}
+              onPointerDown={handleImagePressStart}
+              onPointerUp={handleImagePressEnd}
+              onPointerLeave={handleImagePressEnd}
+              onPointerCancel={handleImagePressEnd}
+              style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
+            >
+              <img className="post-image" src={post.image_url} alt="" loading="lazy" />
+            </button>
+            {showHeartBurst && (
+              <span className="heart-burst" aria-hidden="true">❤️</span>
+            )}
+          </div>
         )
       )}
 
@@ -369,20 +458,6 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
             aria-label={justShared ? 'Link copied' : 'Share this post'}
           >
             <ShareIcon size={15} /> {justShared && <span style={{ fontSize: '0.7rem' }}>Copied!</span>}
-          </button>
-          <button
-            type="button"
-            className="reaction-count-btn"
-            onClick={handleShareToStory}
-            disabled={sharingToStory}
-            title={sharedToStory ? 'Added to your story' : 'Share to your story'}
-            aria-label={sharedToStory ? 'Added to your story' : 'Share to your story'}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M12 9v6M9 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            {sharedToStory && <span style={{ fontSize: '0.7rem' }}>Added!</span>}
           </button>
         </div>
       </footer>

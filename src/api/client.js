@@ -118,8 +118,9 @@ async function request(path, { method = 'GET', body, auth = false, _retried = fa
   return data;
 }
 
-// Matches VALID_REACTIONS in models/reaction.py exactly.
-export const REACTION_TYPES = ['fire', 'cosign', 'doubt', 'yawa'];
+// Matches VALID_REACTIONS in models/reaction.py exactly. 'like' leads
+// (was 'doubt', renamed via db/reaction_like_rename_migration.sql).
+export const REACTION_TYPES = ['like', 'fire', 'cosign', 'yawa'];
 
 // ---- Public (no auth — shared post links) ----
 export const PublicAPI = {

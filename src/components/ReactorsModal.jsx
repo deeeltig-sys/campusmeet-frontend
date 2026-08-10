@@ -8,9 +8,9 @@ import { REACTION_EMOJI } from './icons';
 // itself — kept in sync deliberately so "Yawa" here means the same
 // thing it means down on the post.
 const REACTION_TABS = [
+  { type: 'like', label: 'Like' },
   { type: 'fire', label: 'Fire' },
   { type: 'cosign', label: 'Cosign' },
-  { type: 'doubt', label: 'Doubt' },
   { type: 'yawa', label: 'Yawa' },
 ];
 

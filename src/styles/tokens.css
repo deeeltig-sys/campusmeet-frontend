@@ -14,6 +14,16 @@
   --success: #2E6B44;
   --danger: #A6272C;
 
+  /* Reaction accents — dormant state renders desaturated/dim (see
+     .reaction-btn .reaction-emoji in global.css), full color only
+     once that reaction is the user's active pick. Kept theme-flat
+     (not overridden in [data-theme="dark"]) since these read the
+     same as brand-adjacent "hot" colors on either background. */
+  --reaction-like: #E0245E;
+  --reaction-fire: #FF6A00;
+  --reaction-cosign: #E8B923;
+  --reaction-yawa: #E8B923;
+
   /* Type */
   --font-display: 'Fraunces', 'Georgia', serif;
   --font-body: 'Inter', -apple-system, sans-serif;

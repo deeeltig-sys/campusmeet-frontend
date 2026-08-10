@@ -270,18 +270,75 @@ a { color: inherit; text-decoration: none; }
 .reaction-btn svg {
   transform: translateY(-0.5px);
 }
+/* The emoji itself carries the dormant/active look — desaturated and
+   dimmed by default (reads close to an empty outline without actually
+   swapping to a different icon), flipping to full color/saturation the
+   instant that reaction is activated. A filter (not just opacity) is
+   what makes Fire genuinely look like it "lights up" rather than just
+   fading in, and it keeps every bit of the emoji's own character once
+   active instead of tinting it. */
+.reaction-btn .reaction-emoji {
+  display: inline-block;
+  filter: grayscale(1) opacity(0.45);
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+.reaction-btn.active .reaction-emoji {
+  filter: grayscale(0) opacity(1);
+  transform: scale(1.12);
+}
 /* Persistent "you reacted with this" state — stays on until the user
    taps the same button again to un-react, distinct from the plain
-   :hover/:active transient states above. */
+   :hover/:active transient states above. Ring/glow color follows the
+   specific reaction (red for Like, flame for Fire, gold for
+   Cosign/Yawa) instead of one flat maroon for every type. */
 .reaction-btn.active {
-  background: linear-gradient(180deg, var(--maroon), var(--maroon-deep));
+  background: var(--surface);
   border: 2px solid var(--gold-bright);
-  box-shadow: 0 0 0 2px var(--ivory), 0 3px 10px rgba(74, 14, 33, 0.32);
+  box-shadow: 0 0 0 2px var(--ivory), 0 3px 10px rgba(74, 14, 33, 0.18);
   transform: scale(1.06);
 }
 .reaction-btn.active:hover { transform: scale(1.06) translateY(-1px); }
 .reaction-btn.active svg {
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.25));
+}
+.reaction-btn[data-type="like"].active {
+  border-color: var(--reaction-like);
+  box-shadow: 0 0 0 2px var(--ivory), 0 0 10px rgba(224, 36, 94, 0.45);
+}
+.reaction-btn[data-type="fire"].active {
+  border-color: var(--reaction-fire);
+  box-shadow: 0 0 0 2px var(--ivory), 0 0 10px rgba(255, 106, 0, 0.5);
+}
+.reaction-btn[data-type="cosign"].active {
+  border-color: var(--reaction-cosign);
+  box-shadow: 0 0 0 2px var(--ivory), 0 0 10px rgba(232, 185, 35, 0.45);
+}
+.reaction-btn[data-type="yawa"].active {
+  border-color: var(--reaction-yawa);
+  box-shadow: 0 0 0 2px var(--ivory), 0 0 10px rgba(232, 185, 35, 0.45);
+}
+
+/* Double-tap-to-like heart burst — a single heart that pops in over
+   the tapped image and fades back out, same beat as Instagram's.
+   Purely decorative (aria-hidden), layered above the image via the
+   parent's position:relative. */
+.heart-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 4.5rem;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.6);
+  animation: heart-burst-pop 0.7s ease forwards;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
+}
+@keyframes heart-burst-pop {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.5); }
+  18%  { opacity: 1;   transform: translate(-50%, -50%) scale(1.15); }
+  32%  { opacity: 1;   transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1;   transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.05); }
 }
 
 .reaction-count {
