@@ -270,20 +270,16 @@ a { color: inherit; text-decoration: none; }
 .reaction-btn svg {
   transform: translateY(-0.5px);
 }
-/* The emoji itself carries the dormant/active look — desaturated and
-   dimmed by default (reads close to an empty outline without actually
-   swapping to a different icon), flipping to full color/saturation the
-   instant that reaction is activated. A filter (not just opacity) is
-   what makes Fire genuinely look like it "lights up" rather than just
-   fading in, and it keeps every bit of the emoji's own character once
-   active instead of tinting it. */
+/* Emoji stay full color at rest — no desaturation. Dormant/active is
+   carried by size and the border/glow on .reaction-btn.active below,
+   the same way the count badge distinguishes state without dimming
+   the icon itself. */
 .reaction-btn .reaction-emoji {
   display: inline-block;
-  filter: grayscale(1) opacity(0.45);
-  transition: filter 0.18s ease, transform 0.18s ease;
+  transform: scale(1);
+  transition: transform 0.18s ease;
 }
 .reaction-btn.active .reaction-emoji {
-  filter: grayscale(0) opacity(1);
   transform: scale(1.12);
 }
 /* Persistent "you reacted with this" state — stays on until the user

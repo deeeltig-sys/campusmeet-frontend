@@ -97,8 +97,33 @@ self.addEventListener('push', (event) => {
     icon: '/app-icon-512.png',
     badge: '/favicon.png',
     data: { url: data.url || '/' },
+    // tag groups repeat notifications from the same source into one
+    // slot instead of stacking (three reactions on the same post =
+    // one updated line, not three separate banners) — same as FB.
+    // renotify makes the update actually re-alert (vibrate again)
+    // even though it's replacing an existing tag, instead of silently
+    // updating text nobody notices.
+    tag: data.tag || undefined,
+    renotify: !!data.tag,
+    // Friend requests and messages stay put until acted on; a
+    // reaction/comment ping is fine to auto-dismiss.
+    requireInteraction: !!data.requireInteraction,
+    vibrate: [120, 60, 120],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // App-icon badge count, same as FB's red counter on the icon —
+      // best-effort only, most desktop browsers and some Android
+      // WebViews don't implement the Badging API at all, hence the
+      // guard and the swallowed rejection.
+      self.registration.getNotifications().then((open) => {
+        if ('setAppBadge' in self.navigator) {
+          return self.navigator.setAppBadge(open.length).catch(() => {});
+        }
+      }),
+    ])
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -110,6 +135,14 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url.includes(targetUrl) && 'focus' in client) return client.focus();
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
-    })
+    }).then(() =>
+      self.registration.getNotifications().then((open) => {
+        if ('setAppBadge' in self.navigator) {
+          return open.length > 0
+            ? self.navigator.setAppBadge(open.length).catch(() => {})
+            : self.navigator.clearAppBadge().catch(() => {});
+        }
+      })
+    )
   );
 });
