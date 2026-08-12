@@ -19,7 +19,7 @@ export default function HashtagFeed() {
       setPosts(Array.isArray(data?.posts) ? data.posts : []);
       setPostCount(data?.post_count || 0);
     } catch (err) {
-      setError(err.message || 'Could not load this tag.');
+      setError(err.message || "This tag won't load right now.");
     } finally {
       setLoading(false);
     }

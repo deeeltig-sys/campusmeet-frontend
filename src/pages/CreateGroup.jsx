@@ -27,7 +27,7 @@ export default function CreateGroup() {
       });
       navigate(`/groups/${group.id}`);
     } catch (err) {
-      setError(err.message || 'Could not create the group.');
+      setError(err.message || "That group wasn't created. Try again.");
     } finally {
       setBusy(false);
     }

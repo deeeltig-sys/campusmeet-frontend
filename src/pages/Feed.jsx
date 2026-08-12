@@ -60,7 +60,7 @@ export default function Feed() {
       latestSeenIdRef.current = list[0]?.id ?? null;
       setNewPostsAvailable(false);
     } catch (err) {
-      setError(err.message || 'Could not load the feed.');
+      setError(err.message || "Your feed isn't loading right now.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function Feed() {
       latestSeenIdRef.current = list[0]?.id ?? null;
       setNewPostsAvailable(false);
     } catch (err) {
-      setError(err.message || 'Could not refresh the feed.');
+      setError(err.message || "That refresh didn't work.");
     } finally {
       setRefreshing(false);
       setPullDistance(0);
@@ -241,7 +241,7 @@ export default function Feed() {
       await PostsAPI.softDelete(postId);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
     } catch (err) {
-      setError(err.message || 'Could not delete that post.');
+      setError(err.message || "That post wasn't deleted. Try again.");
     }
   }
 

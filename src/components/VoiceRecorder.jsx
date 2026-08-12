@@ -85,7 +85,7 @@ export default function VoiceRecorder({ conversationId, onSent, onError, onRecor
         // Privacy Badger, etc.) has nulled out navigator.mediaDevices
         // as an anti-fingerprinting measure. There's no OS-level
         // permission to grant here — the API itself isn't there.
-        onError?.('Voice notes need microphone access, which your browser is blocking entirely (often a privacy extension or shield setting) — try disabling it for this site, or use a different browser.');
+        onError?.("Your browser is blocking microphone access entirely — often a privacy extension or shield setting. Try turning it off for this site, or use a different browser.");
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -149,11 +149,11 @@ export default function VoiceRecorder({ conversationId, onSent, onError, onRecor
       // Anything else -> surface the real name so it's diagnosable
       // instead of hiding behind one generic sentence.
       const messages = {
-        NotAllowedError: 'Microphone access was denied for this site. Check the padlock/site-info icon next to the address bar and allow microphone access, then try again.',
-        NotFoundError: 'No microphone was found on this device.',
-        NotReadableError: 'Your microphone is being used by another app right now.',
+        NotAllowedError: "You didn't grant microphone access for this site. Check the padlock icon next to the address bar, allow it, and try again.",
+        NotFoundError: "This device doesn't have a microphone we can find.",
+        NotReadableError: "Another app is using your microphone right now.",
       };
-      onError?.(messages[err.name] || `Could not access the microphone (${err.name || 'unknown error'}).`);
+      onError?.(messages[err.name] || `Something's blocking microphone access (${err.name || 'unknown error'}).`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled, recording, uploading]);
@@ -198,7 +198,7 @@ export default function VoiceRecorder({ conversationId, onSent, onError, onRecor
       const msg = await ConversationsAPI.sendVoice(conversationId, blob, durationMs, waveform);
       onSent?.(msg);
     } catch (err) {
-      onError?.(err.message || 'Voice note failed to send.');
+      onError?.(err.message || "Your voice note didn't send.");
     } finally {
       setUploading(false);
     }

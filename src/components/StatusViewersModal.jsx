@@ -19,7 +19,7 @@ export default function StatusViewersModal({ statusId, onClose }) {
   useEffect(() => {
     StatusesAPI.viewers(statusId)
       .then((data) => setViewers(Array.isArray(data) ? data : []))
-      .catch((err) => setError(err.message || 'Could not load viewers.'))
+      .catch((err) => setError(err.message || "Viewers aren't loading right now."))
       .finally(() => setLoading(false));
   }, [statusId]);
 
@@ -30,7 +30,7 @@ export default function StatusViewersModal({ statusId, onClose }) {
       onClose?.();
       navigate(`/inbox/messages/${conv.conversation_id}`);
     } catch (err) {
-      setError(err.message || 'Could not start a conversation.');
+      setError(err.message || "Couldn't start that conversation. Try again.");
       setMessagingId(null);
     }
   }

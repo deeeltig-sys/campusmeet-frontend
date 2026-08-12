@@ -29,6 +29,15 @@ export default function SuggestedPeople() {
     // Optimistic — same pattern as reactions: flip the button immediately,
     // only revert if the request actually fails.
     setFollowingIds((prev) => new Set(prev).add(userId));
+    // The button flipping to "Following" was already optimistic, but the
+    // follower_count sitting right next to it wasn't — so a real follow
+    // action just sat there showing a stale number until the whole
+    // carousel got refetched (e.g. a full page reload). Bump it here,
+    // same optimistic-then-reconcile-or-revert shape as everything else
+    // in this handler.
+    setPeople((prev) => prev.map((p) => (
+      p.id === userId ? { ...p, follower_count: (p.follower_count || 0) + 1 } : p
+    )));
     setErrorIds((prev) => {
       const next = new Set(prev);
       next.delete(userId);
@@ -42,6 +51,11 @@ export default function SuggestedPeople() {
         next.delete(userId);
         return next;
       });
+      // Revert the count right alongside the button — a failed follow
+      // shouldn't leave the number one higher than it actually is.
+      setPeople((prev) => prev.map((p) => (
+        p.id === userId ? { ...p, follower_count: Math.max(0, (p.follower_count || 1) - 1) } : p
+      )));
       // Same "don't fail silently" fix as FollowButton/FriendButton —
       // a brief inline note under the card instead of the button just
       // quietly flipping back with no explanation.

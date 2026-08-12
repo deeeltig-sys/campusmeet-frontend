@@ -48,7 +48,7 @@ export default function EditProfileModal({ user, onClose, onSaved, onOpenSocialL
       onSaved?.();
       onClose();
     } catch (err) {
-      setError(err.message || 'Could not save your profile.');
+      setError(err.message || "Your profile changes didn't save. Try again.");
     } finally {
       setSaving(false);
     }

@@ -16,7 +16,7 @@ export default function ForgotPassword() {
       await AuthAPI.forgotPassword(email.trim().toLowerCase());
       setSent(true);
     } catch (err) {
-      setError(err.message || 'Could not send the reset email.');
+      setError(err.message || "That reset link didn't send. Try again.");
     } finally {
       setBusy(false);
     }

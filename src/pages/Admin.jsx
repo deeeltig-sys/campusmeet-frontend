@@ -86,7 +86,7 @@ function OverviewPanel() {
     try {
       setStats(await AdminAPI.stats());
     } catch (err) {
-      setError(err.message || 'Could not load stats.');
+      setError(err.message || "Stats aren't loading right now.");
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ function TeamPanel({ currentUserId, isAdmin }) {
       const data = await AdminAPI.staffList();
       setStaff(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Could not load the current team.');
+      setError(err.message || "The team list won't load right now.");
     }
   }, []);
 
@@ -161,7 +161,7 @@ function TeamPanel({ currentUserId, isAdmin }) {
       const data = await UsersAPI.search(query.trim());
       setResults(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Search failed.');
+      setError(err.message || "That search didn't return anything usable. Try again.");
     } finally {
       setSearching(false);
     }

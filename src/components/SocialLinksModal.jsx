@@ -36,7 +36,7 @@ export default function SocialLinksModal({ initialLinks, onClose, onSaved }) {
       setSaved(true);
       onSaved?.(socialLinks);
     } catch (err) {
-      setError(err.message || 'Could not save your social links.');
+      setError(err.message || "Your links didn't save. Try again.");
     } finally {
       setSaving(false);
     }

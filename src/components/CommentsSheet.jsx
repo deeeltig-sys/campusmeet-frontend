@@ -32,7 +32,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
       const data = await CommentsAPI.list(postId);
       setComments(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Could not load comments.');
+      setError(err.message || "Comments aren't loading right now.");
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
       setDraft('');
       onCommentCountChange?.(1);
     } catch (err) {
-      setError(err.message || 'Could not post your comment.');
+      setError(err.message || "Your comment didn't go through. Try again.");
     } finally {
       setPosting(false);
     }
@@ -90,7 +90,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
       setExpandedThreads((prev) => new Set(prev).add(topLevelId));
       onCommentCountChange?.(1);
     } catch (err) {
-      setError(err.message || 'Could not post your reply.');
+      setError(err.message || "Your reply didn't go through. Try again.");
     } finally {
       setPostingReply(false);
     }
@@ -117,7 +117,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
       setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
       setEditingId(null);
     } catch (err) {
-      setError(err.message || 'Could not save your edit.');
+      setError(err.message || "That edit didn't save. Try again.");
     }
   }
 
@@ -130,7 +130,7 @@ export default function CommentsSheet({ postId, onClose, onCommentCountChange })
       setComments((prev) => prev.filter((c) => c.id !== commentId && c.parent_comment_id !== commentId));
       onCommentCountChange?.(-1);
     } catch (err) {
-      setError(err.message || 'Could not delete that comment.');
+      setError(err.message || "That comment didn't delete.");
     }
   }
 

@@ -36,7 +36,7 @@ export default function CreateEvent() {
       });
       navigate(`/events/${event.id}`);
     } catch (err) {
-      setError(err.message || 'Could not create the event.');
+      setError(err.message || "That event wasn't created. Try again.");
     } finally {
       setBusy(false);
     }

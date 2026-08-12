@@ -693,14 +693,56 @@ a { color: inherit; text-decoration: none; }
 
 .velocity-row { margin-bottom: var(--sp-3); }
 
+/* Error banner — deliberately not a generic red-box-with-triangle
+   pattern (every other app uses that). Reads instead as a small wax
+   seal stamped onto the edge of an ivory card, in the same
+   maroon-deep + gold pairing used for the platform's premium/seal
+   moments elsewhere (see the Gold sparkle motif comment below and
+   PostCard's monogram reaction seal) — restrained here to a plain
+   maroon/gold circle rather than the animated sparkle, since that
+   effect is reserved for celebratory moments, not failures. */
 .banner-error {
-  background: var(--danger-bg);
-  border: 1px solid var(--danger);
-  color: var(--danger);
-  padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--radius-sm);
+  position: relative;
+  background: var(--ivory);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) 46px;
   font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink);
   margin-bottom: var(--sp-4);
+}
+.banner-error::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--maroon-deep);
+  border: 2px solid var(--gold);
+  box-shadow: var(--shadow-card);
+}
+.banner-error::after {
+  content: '!';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--gold-bright);
+  font-size: 1rem;
+  pointer-events: none;
 }
 
 ::selection { background: var(--gold); color: var(--maroon-deep); }
@@ -1172,83 +1214,6 @@ a { color: inherit; text-decoration: none; }
    only makes sense for the desktop sidebar shape. */
 .bottom-nav-toggle {
   display: none;
-}
-
-/* Quest summary card — desktop only, full stop. Not just visually
-   collapsed on mobile, not rendered there at all in spirit (the
-   component still mounts and fetches, but nothing here ever shows on
-   a screen under 768px). */
-.quest-nav-card {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .quest-nav-card {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    margin-top: auto;
-    padding: 10px;
-    border: 1px solid var(--line);
-    background: var(--ivory-dim);
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    /* Collapsed rail (76px): just the fern icon, centered, no text —
-       matches how the icon tabs above it look at this width. */
-    justify-content: center;
-  }
-  .quest-nav-card-icon {
-    display: flex;
-    flex-shrink: 0;
-    color: var(--maroon);
-  }
-  .quest-nav-card-body {
-    display: none;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-  .quest-nav-card-title {
-    font-size: var(--fs-xs);
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .quest-nav-card-progress {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .quest-nav-card-bar {
-    flex: 1;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--line);
-    overflow: hidden;
-  }
-  .quest-nav-card-fill {
-    display: block;
-    height: 100%;
-    border-radius: 999px;
-    background: var(--maroon);
-  }
-  .quest-nav-card-count {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: var(--ink-soft);
-    flex-shrink: 0;
-  }
-  /* Expanded rail (220px, same trigger as the icon tabs' labels
-     fading in) — the card actually fills the width here, title and
-     progress bar readable, same as any other .card on the right rail. */
-  .bottom-nav--expanded .quest-nav-card {
-    justify-content: flex-start;
-  }
-  .bottom-nav--expanded .quest-nav-card-body {
-    display: flex;
-  }
 }
 
 /* Post overflow menu */

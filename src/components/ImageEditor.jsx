@@ -248,7 +248,7 @@ export default function ImageEditor({ file, onCancel, onDone }) {
       const edited = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg', lastModified: Date.now() });
       onDone(edited, previewUrl);
     } catch (err) {
-      setError(err.message || 'Could not save your edits.');
+      setError(err.message || "Your edits didn't save. Try again.");
     } finally {
       setBusy(false);
     }

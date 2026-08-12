@@ -77,7 +77,7 @@ export default function Groups() {
       const data = tab === 'mine' ? await GroupsAPI.mine() : await GroupsAPI.discover();
       setGroups(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Could not load groups.');
+      setError(err.message || "Groups aren't loading right now.");
     } finally {
       setLoading(false);
     }

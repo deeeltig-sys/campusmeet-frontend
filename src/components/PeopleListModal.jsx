@@ -19,7 +19,7 @@ export default function PeopleListModal({ title, fetcher, emptyText = 'No one he
     setError('');
     fetcher()
       .then((data) => { if (!cancelled) setPeople(Array.isArray(data) ? data : []); })
-      .catch((err) => { if (!cancelled) setError(err.message || 'Could not load this list.'); })
+      .catch((err) => { if (!cancelled) setError(err.message || "This list won't load right now."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [fetcher]);

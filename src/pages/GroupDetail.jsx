@@ -33,7 +33,7 @@ export default function GroupDetail() {
       setPosts(Array.isArray(postsData) ? postsData : []);
       setUpcomingCount(Array.isArray(eventsData) ? eventsData.length : 0);
     } catch (err) {
-      setError(err.message || 'Could not load this group.');
+      setError(err.message || "This group won't load right now.");
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function GroupDetail() {
       wasMember ? await GroupsAPI.leave(groupId) : await GroupsAPI.join(groupId);
     } catch (err) {
       setGroup((prev) => ({ ...prev, is_member: wasMember, member_count: prev.member_count + (wasMember ? 1 : -1) }));
-      setError(err.message || 'Could not update your membership.');
+      setError(err.message || "That didn't update. Try again.");
     } finally {
       setJoinBusy(false);
     }

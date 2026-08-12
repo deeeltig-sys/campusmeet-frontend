@@ -27,7 +27,7 @@ export default function ReactorsModal({ postId, onClose }) {
     setError('');
     PostsAPI.reactors(postId)
       .then((data) => { if (!cancelled) setReactors(Array.isArray(data) ? data : []); })
-      .catch((err) => { if (!cancelled) setError(err.message || 'Could not load reactions.'); })
+      .catch((err) => { if (!cancelled) setError(err.message || "Reactions aren't loading right now."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [postId]);

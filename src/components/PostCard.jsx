@@ -237,7 +237,7 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       await onEditSave?.(post.id, trimmed);
       setIsEditing(false);
     } catch (err) {
-      setEditError(err.message || 'Could not save your edit.');
+      setEditError(err.message || "That edit didn't save. Try again.");
     } finally {
       setSaving(false);
     }

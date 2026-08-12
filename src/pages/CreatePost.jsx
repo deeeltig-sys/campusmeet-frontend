@@ -261,7 +261,7 @@ export default function CreatePost() {
       await PostsAPI.create(payload);
       navigate(groupId ? `/groups/${groupId}` : '/feed');
     } catch (err) {
-      setError(err.message || 'Could not publish your post.');
+      setError(err.message || "Your post didn't publish. Try again.");
     } finally {
       setBusy(false);
       setUploadStage('');

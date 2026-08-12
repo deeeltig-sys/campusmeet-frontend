@@ -17,7 +17,7 @@ export default function FriendButton({ userId, initialStatus, initialRequestId, 
     } catch (err) {
       // A silently-ignored failure here is exactly what looks like
       // "tapping Add Friend does nothing" — surface it instead.
-      setError(err.message || 'Something went wrong. Try again.');
+      setError(err.message || "That didn't go through. Give it another shot.");
     } finally {
       setBusy(false);
     }

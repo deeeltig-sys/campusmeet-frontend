@@ -47,7 +47,7 @@ export default function Friends() {
         setSuggestions(Array.isArray(sugg) ? sugg : []);
       }
     } catch (err) {
-      setError(err.message || 'Could not load this.');
+      setError(err.message || "This won't load right now.");
     }
   }, []);
 
@@ -61,7 +61,7 @@ export default function Friends() {
       await FriendsAPI.accept(requestId);
       setIncoming((prev) => prev.filter((r) => r.id !== requestId));
     } catch (err) {
-      setError(err.message || 'Could not accept.');
+      setError(err.message || "That didn't go through.");
     }
   }
   async function handleDecline(requestId) {
@@ -69,7 +69,7 @@ export default function Friends() {
       await FriendsAPI.decline(requestId);
       setIncoming((prev) => prev.filter((r) => r.id !== requestId));
     } catch (err) {
-      setError(err.message || 'Could not decline.');
+      setError(err.message || "That didn't go through.");
     }
   }
   async function handleCancel(requestId) {
@@ -77,7 +77,7 @@ export default function Friends() {
       await FriendsAPI.cancel(requestId);
       setOutgoing((prev) => prev.filter((r) => r.id !== requestId));
     } catch (err) {
-      setError(err.message || 'Could not cancel.');
+      setError(err.message || "That didn't go through.");
     }
   }
   async function handleSendFromSuggestion(userId) {
@@ -85,7 +85,7 @@ export default function Friends() {
       await FriendsAPI.send(userId);
       setSuggestions((prev) => prev.filter((s) => s.id !== userId));
     } catch (err) {
-      setError(err.message || 'Could not send request.');
+      setError(err.message || "That request didn't send.");
     }
   }
   function handleDismissSuggestion(userId) {

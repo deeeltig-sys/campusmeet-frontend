@@ -24,7 +24,7 @@ export default function FollowButton({ userId, initialFollowing, onChange }) {
       // A tap that visibly does nothing is worse than a blunt error —
       // this is what actually would have surfaced the real cause the
       // first time this broke, instead of just quietly reverting.
-      setError(err.message || 'Could not update follow status.');
+      setError(err.message || "That follow didn't go through. Try again.");
     } finally {
       setBusy(false);
     }

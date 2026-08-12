@@ -80,7 +80,7 @@ export default function Profile() {
         setPushState('subscribed');
       }
     } catch (err) {
-      setError(err.message || 'Could not update notification settings.');
+      setError(err.message || "Those settings didn't save. Try again.");
       getPushSubscriptionState().then(setPushState).catch(() => {});
     } finally {
       setPushBusy(false);
@@ -119,7 +119,7 @@ export default function Profile() {
       await ProfileAPI.uploadAvatar(file);
       await refresh();
     } catch (err) {
-      setError(err.message || 'Could not update your profile picture.');
+      setError(err.message || "Your photo didn't update. Try again.");
     } finally {
       setUploading(false);
     }
@@ -132,7 +132,7 @@ export default function Profile() {
       await AuthAPI.deleteAccount();
       logout();
     } catch (err) {
-      setError(err.message || 'Could not delete your account. Please try again.');
+      setError(err.message || "Your account wasn't deleted. Try again, or reach out if this keeps happening.");
       setDeleting(false);
     }
   }

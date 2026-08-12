@@ -46,7 +46,7 @@ export default function Quests() {
   useEffect(() => {
     QuestsAPI.mine()
       .then((data) => setQuests(Array.isArray(data) ? data : []))
-      .catch((err) => setError(err.message || 'Could not load your quests.'))
+      .catch((err) => setError(err.message || "Your quests aren't loading right now."))
       .finally(() => setLoading(false));
   }, []);
 

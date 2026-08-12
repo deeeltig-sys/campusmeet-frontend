@@ -24,7 +24,7 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
       : FollowsAPI.followers;
     fetcher(userId)
       .then((data) => { if (!cancelled) setPeople(Array.isArray(data) ? data : []); })
-      .catch((err) => { if (!cancelled) setError(err.message || 'Could not load this list.'); })
+      .catch((err) => { if (!cancelled) setError(err.message || "This list won't load right now."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [userId, mode]);

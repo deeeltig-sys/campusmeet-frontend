@@ -75,7 +75,7 @@ export default function CreateStatusModal({ onClose, onPosted }) {
       await StatusesAPI.create({ content_type: 'image', image_url: url });
       onPosted();
     } catch (err) {
-      setError(err.message || 'Could not post status.');
+      setError(err.message || "Your status didn't post. Try again.");
       setPosting(false);
     }
   }
@@ -89,7 +89,7 @@ export default function CreateStatusModal({ onClose, onPosted }) {
       await StatusesAPI.create({ content_type: 'text', text_content: trimmed, background_color: bgColor });
       onPosted();
     } catch (err) {
-      setError(err.message || 'Could not post status.');
+      setError(err.message || "Your status didn't post. Try again.");
       setPosting(false);
     }
   }

@@ -14,7 +14,7 @@ export default function AddToHighlightModal({ statusId, onClose, onAdded }) {
   useEffect(() => {
     HighlightsAPI.listForUser(user.id)
       .then((data) => setHighlights(Array.isArray(data) ? data : []))
-      .catch((err) => setError(err.message || 'Could not load your highlights.'))
+      .catch((err) => setError(err.message || "Your highlights aren't loading right now."))
       .finally(() => setLoading(false));
   }, [user.id]);
 
@@ -26,7 +26,7 @@ export default function AddToHighlightModal({ statusId, onClose, onAdded }) {
       onAdded?.();
       onClose?.();
     } catch (err) {
-      setError(err.message || 'Could not add to that highlight.');
+      setError(err.message || "That didn't get added. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -44,7 +44,7 @@ export default function AddToHighlightModal({ statusId, onClose, onAdded }) {
       onAdded?.();
       onClose?.();
     } catch (err) {
-      setError(err.message || 'Could not create that highlight.');
+      setError(err.message || "That highlight didn't get created. Try again.");
     } finally {
       setCreating(false);
     }

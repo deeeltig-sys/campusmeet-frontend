@@ -38,7 +38,7 @@ export default function WallpaperModal({ conversationId, currentWallpaper, mode 
       onSaved?.({ wallpaper: key, custom_wallpaper_url: null });
       onClose();
     } catch (err) {
-      setError(err.message || 'Could not set wallpaper.');
+      setError(err.message || "That wallpaper didn't set. Try again.");
     } finally {
       setSaving(false);
     }
@@ -69,7 +69,7 @@ export default function WallpaperModal({ conversationId, currentWallpaper, mode 
           onSaved?.({ wallpaper: 'custom', custom_wallpaper_url: dataUrl });
           onClose();
         } catch (err) {
-          setError(err.message || 'Could not set wallpaper.');
+          setError(err.message || "That wallpaper didn't set. Try again.");
         } finally {
           setSaving(false);
         }

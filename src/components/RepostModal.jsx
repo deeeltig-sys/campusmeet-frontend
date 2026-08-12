@@ -14,7 +14,7 @@ export default function RepostModal({ post, onClose, onReposted }) {
       onReposted?.();
       onClose();
     } catch (err) {
-      setError(err.message || 'Could not repost.');
+      setError(err.message || "That repost didn't go through.");
       setPosting(false);
     }
   }

@@ -24,7 +24,7 @@ export default function EventDetail() {
     try {
       setEvent(await EventsAPI.get(eventId));
     } catch (err) {
-      setError(err.message || 'Could not load this event.');
+      setError(err.message || "This event won't load right now.");
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,7 @@ export default function HighlightViewer({ highlightId, onClose }) {
   useEffect(() => {
     HighlightsAPI.get(highlightId)
       .then(setHighlight)
-      .catch((err) => setError(err.message || 'Could not load this highlight.'))
+      .catch((err) => setError(err.message || "This highlight won't load right now."))
       .finally(() => setLoading(false));
   }, [highlightId]);
 

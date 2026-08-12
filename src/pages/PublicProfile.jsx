@@ -72,7 +72,7 @@ export default function PublicProfile() {
     setError('');
     UsersAPI.profile(userId)
       .then(setProfile)
-      .catch((err) => setError(err.message || 'Could not load this profile.'))
+      .catch((err) => setError(err.message || "This profile won't load right now."))
       .finally(() => setLoading(false));
     FriendsAPI.listOf(userId)
       .then((data) => setFriendCount(Array.isArray(data) ? data.length : 0))
@@ -85,7 +85,7 @@ export default function PublicProfile() {
       const res = await ConversationsAPI.start(userId);
       navigate(`/inbox/messages/${res.conversation_id}`);
     } catch (err) {
-      setError(err.message || 'Could not start a conversation.');
+      setError(err.message || "Couldn't start that conversation. Try again.");
     } finally {
       setMessaging(false);
     }
@@ -97,7 +97,7 @@ export default function PublicProfile() {
       await BlocksAPI.block(userId);
       setBlocked(true);
     } catch (err) {
-      setError(err.message || 'Could not block this user.');
+      setError(err.message || "That block didn't go through.");
     }
   }
 
@@ -175,7 +175,11 @@ export default function PublicProfile() {
                 initialRequestId={profile.friend_request_id}
                 onChange={() => UsersAPI.profile(userId).then(setProfile).catch(() => {})}
               />
-              <FollowButton userId={userId} initialFollowing={profile.is_following} />
+              <FollowButton
+                userId={userId}
+                initialFollowing={profile.is_following}
+                onChange={() => UsersAPI.profile(userId).then(setProfile).catch(() => {})}
+              />
               <button type="button" className="btn btn-ghost" style={{ padding: '8px 18px' }} onClick={handleMessage} disabled={messaging}>
                 {messaging ? 'Starting…' : 'Message'}
               </button>

@@ -158,7 +158,7 @@ export default function Conversation() {
 
       setConv(found || null);
     } catch (err) {
-      setError(err.message || 'Could not load this conversation.');
+      setError(err.message || "This conversation won't load right now.");
     } finally {
       setLoading(false);
     }
@@ -275,7 +275,7 @@ export default function Conversation() {
       await ConversationsAPI.accept(conversationId);
       setConv((c) => (c ? { ...c, status: 'accepted', is_request: false } : c));
     } catch (err) {
-      setError(err.message || 'Could not accept this conversation.');
+      setError(err.message || "That didn't go through. Try again.");
     }
   }
 
@@ -291,7 +291,7 @@ export default function Conversation() {
       wasTypingRef.current = false;
       ConversationsAPI.setTyping(conversationId, false).catch(() => {});
     } catch (err) {
-      setError(err.message || 'Could not send — you may need to accept this conversation first.');
+      setError(err.message || "That didn't send — you may need to accept this conversation first.");
     } finally {
       setSending(false);
     }
@@ -303,7 +303,7 @@ export default function Conversation() {
       const msg = await ConversationsAPI.sendSticker(conversationId, stickerId);
       setMessages((prev) => [...prev, msg]);
     } catch (err) {
-      setError(err.message || 'Could not send — you may need to accept this conversation first.');
+      setError(err.message || "That didn't send — you may need to accept this conversation first.");
     }
   }
 
@@ -364,7 +364,7 @@ export default function Conversation() {
       setMessages([]);
       setShowOptions(false);
     } catch (err) {
-      setError(err.message || 'Could not clear chat.');
+      setError(err.message || "The chat didn't clear. Try again.");
     }
   }
 
@@ -376,7 +376,7 @@ export default function Conversation() {
       setShowOptions(false);
       navigate('/inbox');
     } catch (err) {
-      setError(err.message || 'Could not block this person.');
+      setError(err.message || "That block didn't go through.");
     }
   }
 

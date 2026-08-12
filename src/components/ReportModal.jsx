@@ -25,7 +25,7 @@ export default function ReportModal({ targetType, targetId, onClose }) {
       await ReportsAPI.create(targetType, targetId, reason);
       setDone(true);
     } catch (err) {
-      setError(err.message || 'Could not submit your report.');
+      setError(err.message || "Your report didn't go through. Try again.");
     } finally {
       setSubmitting(false);
     }
