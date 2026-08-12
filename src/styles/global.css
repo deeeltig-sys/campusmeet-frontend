@@ -977,21 +977,24 @@ a { color: inherit; text-decoration: none; }
   .protected-main {
     display: flex;
     flex: 1;
-    justify-content: center;
-    /* Matches the rail's collapsed width, not its expanded width — the
-       rail overlays (position: fixed, higher z-index) when tapped open
-       instead of pushing this margin around, so the feed never reflows
-       just because someone opened the menu. */
+    /* Was `center` — on anything wider than a laptop that centers a
+       fixed 680px column inside a much wider leftover space, leaving
+       two big untouched voids on either side. Hugging the rail (like
+       Claude's own sidebar+content relationship — content starts
+       right where the menu ends, no dead gap) plus letting the
+       column's max-width grow with the viewport below removes both
+       gaps instead of just reshuffling them. */
+    justify-content: flex-start;
     margin-left: 76px;
     min-height: 0;
   }
   .protected-main .screen {
     width: 100%;
-    /* Was 600px — the fixed cap that made every desktop screen look
-       like a stretched phone view regardless of how much room was
-       actually available. Widened so posts (and their images) get
-       real breathing room. */
-    max-width: 680px;
+    /* Fluid instead of a flat 680px cap — grows with the viewport (up
+       to a readable ceiling) so wide screens actually get used
+       instead of leaving a hardcoded gap before the right rail. */
+    max-width: clamp(680px, 68vw, 1040px);
+    margin-left: var(--sp-5);
     padding-top: var(--sp-6);
   }
 }
