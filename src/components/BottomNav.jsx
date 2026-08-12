@@ -18,6 +18,10 @@ export default function BottomNav() {
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
+  // Desktop-only rail state — thin icon-only by default, expands to show
+  // labels when tapped. No effect below 768px (mobile keeps the fixed
+  // bottom bar it always had; see .bottom-nav-toggle's display:none there).
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,7 +84,17 @@ export default function BottomNav() {
   const badgeCounts = { notifications: unread, chats: unreadChats };
 
   return (
-    <nav className="bottom-nav">
+    <nav className={`bottom-nav${expanded ? ' bottom-nav--expanded' : ''}`}>
+      <button
+        type="button"
+        className="bottom-nav-toggle"
+        aria-label={expanded ? 'Collapse menu' : 'Expand menu'}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <MenuIcon />
+        <span className="bottom-nav-label">Menu</span>
+      </button>
       {tabs.map(({ to, label, icon: Icon, badge }) => {
         const count = badge ? badgeCounts[badge] : 0;
         return (
@@ -96,6 +110,10 @@ export default function BottomNav() {
               if (to === '/feed' && window.location.pathname === '/feed') {
                 window.dispatchEvent(new CustomEvent('campusmeet:refresh-feed'));
               }
+              // Collapse the rail back to icon-only after picking a
+              // destination — matches the "only bigger while tapped
+              // open" behaviour asked for, instead of staying expanded.
+              setExpanded(false);
             }}
             style={({ isActive }) => ({
               color: isActive ? 'var(--maroon-deep)' : 'var(--ink-soft)',
@@ -114,6 +132,14 @@ export default function BottomNav() {
         );
       })}
     </nav>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M3 6h18M3 12h18M3 18h18" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 
