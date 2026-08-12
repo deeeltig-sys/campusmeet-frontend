@@ -1,9 +1,9 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { NotificationsAPI, ConversationsAPI } from '../api/client';
+import { NotificationsAPI, ConversationsAPI, QuestsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
-import { Dawuro, Nkonsonkonson } from './AdinkraIcons';
+import { Dawuro, Nkonsonkonson, Aya } from './AdinkraIcons';
 
 const tabs = [
   { to: '/feed', label: 'Feed', icon: FeedIcon },
@@ -18,6 +18,8 @@ export default function BottomNav() {
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
+  const [quests, setQuests] = useState([]);
+  const navigate = useNavigate();
   // Desktop-only rail state — thin icon-only by default, expands to show
   // labels when tapped. No effect below 768px (mobile keeps the fixed
   // bottom bar it always had; see .bottom-nav-toggle's display:none there).
@@ -81,6 +83,23 @@ export default function BottomNav() {
       .catch(() => {});
   });
 
+  // Desktop-only quest card, fetched once — mobile never renders this
+  // (see .quest-nav-card's display:none below 768px), so there's no
+  // point polling it the way unread counts are polled. If the fetch
+  // fails, quests stays [] and the card below just doesn't render —
+  // no error state needed for something that's a nice-to-have summary,
+  // not a core screen.
+  useEffect(() => {
+    QuestsAPI.mine()
+      .then((data) => setQuests(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const questsDone = quests.filter((q) => q.completed).length;
+  const questsTotal = quests.length;
+  const nextQuest = quests.find((q) => !q.completed);
+  const questPct = questsTotal ? Math.round((questsDone / questsTotal) * 100) : 0;
+
   const badgeCounts = { notifications: unread, chats: unreadChats };
 
   return (
@@ -131,6 +150,34 @@ export default function BottomNav() {
           </NavLink>
         );
       })}
+
+      {/* Desktop-only — see .quest-nav-card in global.css for the
+          display:none that keeps this off mobile entirely, not just
+          visually collapsed. Reuses the rail's own expand/collapse
+          state instead of always rendering full-size, so it doesn't
+          look bolted on next to icon tabs that behave the same way. */}
+      {questsTotal > 0 && (
+        <button
+          type="button"
+          className={`quest-nav-card card${expanded ? ' quest-nav-card--expanded' : ''}`}
+          onClick={() => { navigate('/quests'); setExpanded(false); }}
+        >
+          <span className="quest-nav-card-icon">
+            <Aya size={20} strokeWidth={1.8} />
+          </span>
+          <span className="quest-nav-card-body">
+            <strong className="quest-nav-card-title">
+              {nextQuest ? nextQuest.title : 'All quests done'}
+            </strong>
+            <span className="quest-nav-card-progress">
+              <span className="quest-nav-card-bar">
+                <span className="quest-nav-card-fill" style={{ width: `${questPct}%` }} />
+              </span>
+              <span className="quest-nav-card-count">{questsDone}/{questsTotal}</span>
+            </span>
+          </span>
+        </button>
+      )}
     </nav>
   );
 }
