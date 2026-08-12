@@ -7,6 +7,7 @@ import InstallPrompt from './components/InstallPrompt';
 import useHardwareBackButton from './hooks/useHardwareBackButton';
 import { useEffect } from 'react';
 import { initPresence, teardownPresence } from './hooks/usePresence';
+import { useHeartbeat } from './hooks/useHeartbeat';
 
 import Splash from './pages/Splash';
 import Onboarding from './pages/Onboarding';
@@ -54,6 +55,11 @@ function ProtectedLayout({ children }) {
     }
     return () => { if (!user?.id) teardownPresence(); };
   }, [user?.id]);
+
+  // Powers the offline "Active Xm ago" fallback (see hooks/useHeartbeat.js)
+  // — separate concern from live presence above, kept as its own hook
+  // so it doesn't get lost inside initPresence's already-specific job.
+  useHeartbeat(user?.id);
 
   if (loading) {
     return <div className="screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading…</div>;

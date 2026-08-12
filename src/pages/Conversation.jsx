@@ -4,7 +4,29 @@ import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConversationMessages } from '../hooks/useIncomingMessages';
 import { useIsOnline } from '../hooks/usePresence';
+import { formatLastSeen } from '../utils/formatLastSeen';
+import { REACTION_EMOJI } from '../components/icons';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
+import VoiceRecorder from '../components/VoiceRecorder';
+import VoiceMessage from '../components/VoiceMessage';
+import StickerPicker, { stickerEmoji } from '../components/StickerPicker';
+
+// Quick-react bar on long-press — same vocabulary as post reactions
+// (REACTION_TYPES in api/client.js), not a separate emoji set.
+const QUICK_REACTIONS = ['like', 'fire', 'cosign', 'yawa'];
+const LONG_PRESS_MS = 420;
+
+// Cheap signature of everything that can change WITHOUT the message
+// count changing (delivered_at/read_at ticks, reactions) — the poll
+// fallback below compares this, not just messages.length, otherwise
+// a tick flip or a reaction from the other side would silently sit
+// unrendered for up to 4s even though the data already arrived.
+function receiptSignature(msgs) {
+  return msgs.map((m) => {
+    const reactions = (m.message_reactions || []).map((r) => `${r.user_id}:${r.emoji}`).sort().join(',');
+    return `${m.id}:${m.delivered_at || ''}:${m.read_at || ''}:${reactions}`;
+  }).join('|');
+}
 
 function timeLabel(iso) {
   const d = new Date(iso);
@@ -95,7 +117,12 @@ export default function Conversation() {
   const [sending, setSending] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showWallpaper, setShowWallpaper] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [reactingTo, setReactingTo] = useState(null); // message id with the quick-react bar open
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const bottomRef = useRef(null);
+  const reactPressTimer = useRef(null);
+  const reactLongPressFired = useRef(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -149,16 +176,20 @@ export default function Conversation() {
 
   // Fallback poll — kept even now that realtime (below) exists, since
   // some campus networks block websockets outright and this is the
-  // safety net for that case. Only touches state when the message
-  // count actually changed, so it doesn't fight the user's scroll
-  // position or flicker on every tick.
+  // safety net for that case. Compares a full receipt signature (ids +
+  // delivered_at + read_at + reactions), not just message COUNT — a
+  // tick flipping from delivered to read, or a reaction landing, never
+  // changes the count, so a length-only check would leave those stuck
+  // stale for up to 4s despite the data already being on the server.
+  // Still only replaces state when something actually changed, so it
+  // doesn't fight the user's scroll position or flicker every tick.
   useEffect(() => {
     if (!conversationId) return;
     const interval = setInterval(async () => {
       try {
         const msgs = await ConversationsAPI.messages(conversationId);
         if (Array.isArray(msgs)) {
-          setMessages((prev) => (msgs.length !== prev.length ? msgs : prev));
+          setMessages((prev) => (receiptSignature(msgs) !== receiptSignature(prev) ? msgs : prev));
         }
       } catch {
         // silent — this is a background refresh, not a user action
@@ -171,9 +202,21 @@ export default function Conversation() {
   // of waiting for the next 4s poll tick above. Safe to run alongside
   // the poll — both key off message id/count, so neither duplicates
   // what the other already added (see hooks/useIncomingMessages.js).
-  useConversationMessages(conversationId, (row) => {
-    setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
-  });
+  //
+  // The UPDATE side is what makes a sent message's tick flip to
+  // delivered/read (near-)instantly on THIS screen too, rather than
+  // waiting for the poll — e.g. the other person opening the thread
+  // fires a read_at UPDATE that reaches the sender's open chat right
+  // away instead of up to 4s later.
+  useConversationMessages(
+    conversationId,
+    (row) => {
+      setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+    },
+    (row) => {
+      setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)));
+    },
+  );
 
   // Polls whether the other participant is currently typing. Kept
   // separate from the message poll so a slow/failed typing check never
@@ -254,6 +297,66 @@ export default function Conversation() {
     }
   }
 
+  async function handleSendSticker(stickerId) {
+    setError('');
+    try {
+      const msg = await ConversationsAPI.sendSticker(conversationId, stickerId);
+      setMessages((prev) => [...prev, msg]);
+    } catch (err) {
+      setError(err.message || 'Could not send — you may need to accept this conversation first.');
+    }
+  }
+
+  function handleVoiceSent(msg) {
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  // Reactions propagate instantly on THIS screen (optimistic — applied
+  // to local state immediately, not held for the network round trip)
+  // since that's the reacting user's own action. On the OTHER
+  // person's screen it currently arrives via the 4s poll fallback,
+  // not realtime — message_reactions is a separate table from
+  // messages, and the realtime subscription above is scoped to
+  // messages only. Worth a follow-up if instant cross-device reaction
+  // delivery matters enough to add a second channel for it.
+  async function handleReact(message, emoji) {
+    setReactingTo(null);
+    const myExisting = (message.message_reactions || []).find((r) => r.user_id === user?.id);
+    const isRemoving = myExisting?.emoji === emoji;
+
+    setMessages((prev) => prev.map((m) => {
+      if (m.id !== message.id) return m;
+      const withoutMine = (m.message_reactions || []).filter((r) => r.user_id !== user?.id);
+      return {
+        ...m,
+        message_reactions: isRemoving ? withoutMine : [...withoutMine, { user_id: user?.id, emoji }],
+      };
+    }));
+
+    try {
+      if (isRemoving) {
+        await ConversationsAPI.unreact(conversationId, message.id);
+      } else {
+        await ConversationsAPI.react(conversationId, message.id, emoji);
+      }
+    } catch {
+      // Silent — the next poll (max 4s) reconciles local state with
+      // the server if this failed, no need to interrupt the user.
+    }
+  }
+
+  function handleBubblePressStart(message) {
+    reactLongPressFired.current = false;
+    reactPressTimer.current = setTimeout(() => {
+      reactLongPressFired.current = true;
+      setReactingTo(message.id);
+    }, LONG_PRESS_MS);
+  }
+
+  function handleBubblePressEnd() {
+    clearTimeout(reactPressTimer.current);
+  }
+
   async function handleClearChat() {
     if (!window.confirm('Clear this chat? This erases the messages from your view only, with no way to recover them.')) return;
     try {
@@ -320,9 +423,22 @@ export default function Conversation() {
                   />
                 )}
               </div>
-              <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
-                {conv.other_user.full_name || 'Conversation'}
-              </h1>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
+                  {conv.other_user.full_name || 'Conversation'}
+                </h1>
+                {/* Live "online now" is instant (Supabase Presence). Once
+                    they're no longer in that live set, fall back to the
+                    heartbeat-backed last_seen_at — same "Active now" /
+                    "Active Xm ago" pattern as Facebook/WhatsApp. */}
+                {isOtherOnline ? (
+                  <span style={{ fontSize: '0.6875rem', color: '#3ba55d', fontWeight: 600 }}>Active now</span>
+                ) : formatLastSeen(conv.other_user.last_seen_at) ? (
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--ink-soft)' }}>
+                    {formatLastSeen(conv.other_user.last_seen_at)}
+                  </span>
+                ) : null}
+              </div>
             </button>
           ) : (
             <h1 className="h-display" style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>
@@ -368,14 +484,29 @@ export default function Conversation() {
 
       <div
         style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--sp-2) var(--sp-4)', ...wallpaperStyle }}
-        onClick={() => setShowOptions(false)}
+        onClick={() => { setShowOptions(false); setReactingTo(null); setShowStickerPicker(false); }}
       >
         {loading ? (
           <p style={{ color: isDarkBg ? '#fff' : 'var(--ink-soft)' }}>Loading…</p>
         ) : messages.length === 0 ? (
-          <p style={{ color: isDarkBg ? '#fff' : 'var(--ink-soft)', textAlign: 'center' }}>
-            {isRecipientOfPendingRequest ? 'This is a message request.' : 'Say hello.'}
-          </p>
+          <div style={{ textAlign: 'center', paddingTop: 'var(--sp-4)' }}>
+            <p style={{ color: isDarkBg ? '#fff' : 'var(--ink-soft)' }}>
+              {isRecipientOfPendingRequest ? 'This is a message request.' : 'Say hello.'}
+            </p>
+            {!isRecipientOfPendingRequest && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleSendSticker('wave'); }}
+                style={{
+                  marginTop: 'var(--sp-2)', border: '1.5px solid var(--line)', background: isDarkBg ? 'rgba(255,255,255,0.9)' : '#fff',
+                  borderRadius: '999px', padding: '8px 18px', fontSize: '1.4rem', cursor: 'pointer',
+                }}
+                aria-label="Send a wave"
+              >
+                👋
+              </button>
+            )}
+          </div>
         ) : (
           buildClusters(messages).map((cluster, ci) => {
             const mine = cluster.sender_id === user?.id;
@@ -420,22 +551,92 @@ export default function Conversation() {
                       ? `${isFirst ? radius : flat} ${radius} ${isLast ? radius : flat} ${radius}`
                       : `${radius} ${isFirst ? radius : flat} ${radius} ${isLast ? radius : flat}`;
 
+                    const reactions = m.message_reactions || [];
+                    const reactionCounts = reactions.reduce((acc, r) => {
+                      acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                      return acc;
+                    }, {});
+                    const myReaction = reactions.find((r) => r.user_id === user?.id)?.emoji;
+
+                    const bubbleContent = m.type === 'voice' ? (
+                      <VoiceMessage message={m} conversationId={conversationId} mine={mine} isDarkBg={isDarkBg} />
+                    ) : m.type === 'sticker' ? (
+                      <div style={{ fontSize: '2.8rem', lineHeight: 1.1 }}>{stickerEmoji(m.sticker_id)}</div>
+                    ) : (
+                      m.content
+                    );
+
+                    const useBubbleChrome = m.type === 'voice' || (m.type !== 'sticker' && !emojiOnly);
+
                     return (
-                      <div key={m.id}>
-                        {emojiOnly ? (
-                          <div style={{ fontSize: '2.4rem', lineHeight: 1.1, textAlign: mine ? 'right' : 'left' }}>
-                            {m.content}
-                          </div>
-                        ) : (
+                      <div key={m.id} style={{ position: 'relative' }}>
+                        <div
+                          onMouseDown={() => handleBubblePressStart(m)}
+                          onMouseUp={handleBubblePressEnd}
+                          onMouseLeave={handleBubblePressEnd}
+                          onTouchStart={() => handleBubblePressStart(m)}
+                          onTouchEnd={handleBubblePressEnd}
+                          onClick={(e) => { if (reactLongPressFired.current) e.stopPropagation(); }}
+                          style={useBubbleChrome ? {
+                            padding: m.type === 'voice' ? '8px 10px' : '8px 12px', borderRadius,
+                            background: mine ? 'var(--maroon)' : (isDarkBg ? 'rgba(255,255,255,0.92)' : 'var(--ivory-dim)'),
+                            color: mine ? '#fff' : 'var(--ink)',
+                            fontSize: 'var(--fs-sm)', cursor: 'pointer',
+                          } : {
+                            fontSize: '2.4rem', lineHeight: 1.1, textAlign: mine ? 'right' : 'left', cursor: 'pointer',
+                          }}
+                        >
+                          {bubbleContent}
+                        </div>
+
+                        {/* Quick-react bar — opens on long-press, closed by
+                            tapping a reaction, tapping elsewhere, or tapping
+                            the same reaction again (which un-reacts). */}
+                        {reactingTo === m.id && (
                           <div
+                            className="card"
+                            onClick={(e) => e.stopPropagation()}
                             style={{
-                              padding: '8px 12px', borderRadius,
-                              background: mine ? 'var(--maroon)' : (isDarkBg ? 'rgba(255,255,255,0.92)' : 'var(--ivory-dim)'),
-                              color: mine ? '#fff' : 'var(--ink)',
-                              fontSize: 'var(--fs-sm)',
+                              position: 'absolute', bottom: '100%', marginBottom: 4, zIndex: 15,
+                              [mine ? 'right' : 'left']: 0,
+                              display: 'flex', gap: 4, padding: '4px 6px',
                             }}
                           >
-                            {m.content}
+                            {QUICK_REACTIONS.map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                aria-label={emoji}
+                                onClick={() => handleReact(m, emoji)}
+                                style={{
+                                  border: 'none', background: myReaction === emoji ? 'var(--ivory-dim)' : 'none',
+                                  borderRadius: '999px', fontSize: '1.2rem', cursor: 'pointer', padding: 4,
+                                }}
+                              >
+                                {REACTION_EMOJI[emoji]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reaction pills — aggregated per emoji, WhatsApp-
+                            style, sitting on the corner of the bubble. */}
+                        {Object.keys(reactionCounts).length > 0 && (
+                          <div style={{
+                            display: 'flex', gap: 2, marginTop: -6,
+                            justifyContent: mine ? 'flex-end' : 'flex-start', position: 'relative', zIndex: 1,
+                          }}>
+                            {Object.entries(reactionCounts).map(([emoji, count]) => (
+                              <span
+                                key={emoji}
+                                style={{
+                                  background: '#fff', border: '1px solid var(--line)', borderRadius: '999px',
+                                  fontSize: '0.6875rem', padding: '1px 5px', display: 'flex', alignItems: 'center', gap: 2,
+                                }}
+                              >
+                                {REACTION_EMOJI[emoji]}{count > 1 ? count : ''}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -451,14 +652,25 @@ export default function Conversation() {
                     <span style={{ fontSize: '0.625rem', color: isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)' }}>
                       {timeLabel(lastMsg.created_at)}
                     </span>
-                    {mine && (
-                      <span aria-label={lastMsg.read_at ? 'Read' : 'Sent'} title={lastMsg.read_at ? 'Read' : 'Sent'}>
-                        <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
-                          <path d="M1 5l3 3L9 2" stroke={lastMsg.read_at ? '#4fa8e8' : (isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)')} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                          {lastMsg.read_at && <path d="M6 5l3 3L15 2" stroke="#4fa8e8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
-                        </svg>
-                      </span>
-                    )}
+                    {mine && (() => {
+                      // Three real states: sent (row exists — always
+                      // true here) -> delivered (reached the other
+                      // device) -> read (they opened the thread).
+                      // Delivered fires the instant the recipient's
+                      // client receives it via realtime, wherever in
+                      // the app they are — not delayed until they open
+                      // this chat (see hooks/useIncomingMessages.js).
+                      const status = lastMsg.read_at ? 'read' : lastMsg.delivered_at ? 'delivered' : 'sent';
+                      const tickColor = status === 'read' ? '#4fa8e8' : (isDarkBg ? 'rgba(255,255,255,0.75)' : 'var(--ink-soft)');
+                      return (
+                        <span aria-label={status} title={status.charAt(0).toUpperCase() + status.slice(1)}>
+                          <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
+                            <path d="M1 5l3 3L9 2" stroke={tickColor} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            {status !== 'sent' && <path d="M6 5l3 3L15 2" stroke={tickColor} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
+                          </svg>
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -484,23 +696,49 @@ export default function Conversation() {
               {conv?.other_user?.full_name ? `${conv.other_user.full_name} is typing…` : 'Typing…'}
             </div>
           )}
-          <div className="message-composer">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Message…"
-            rows={1}
-            maxLength={2000}
-          />
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ padding: '10px 16px' }}
-            onClick={handleSend}
-            disabled={sending || !draft.trim()}
-          >
-            {sending ? '…' : 'Send'}
-          </button>
+          <div className="message-composer" style={{ position: 'relative', alignItems: 'center' }}>
+            {!isRecordingVoice && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Stickers"
+                  onClick={(e) => { e.stopPropagation(); setShowStickerPicker((v) => !v); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', padding: '4px 2px', flexShrink: 0, lineHeight: 1 }}
+                >
+                  😊
+                </button>
+                {showStickerPicker && (
+                  <StickerPicker onPick={handleSendSticker} onClose={() => setShowStickerPicker(false)} />
+                )}
+
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Message…"
+                  rows={1}
+                  maxLength={2000}
+                />
+              </>
+            )}
+
+            {draft.trim() ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '10px 16px' }}
+                onClick={handleSend}
+                disabled={sending}
+              >
+                {sending ? '…' : 'Send'}
+              </button>
+            ) : (
+              <VoiceRecorder
+                conversationId={conversationId}
+                onSent={handleVoiceSent}
+                onError={(msg) => setError(msg)}
+                onRecordingChange={setIsRecordingVoice}
+              />
+            )}
           </div>
         </>
       )}

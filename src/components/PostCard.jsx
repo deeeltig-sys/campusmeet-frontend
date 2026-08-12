@@ -4,6 +4,7 @@ import VerifiedBadge from './VerifiedBadge';
 import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI, StatusesAPI, SITE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useIsOnline } from '../hooks/usePresence';
 import { ReactionIcon, CommentIcon, ShareIcon, REACTION_EMOJI } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
@@ -43,6 +44,12 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   };
 
   const isOwn = user?.id === post.author_id;
+  // Live "online now" on the author's avatar — reads from the same
+  // global presence set the chat pages use (hooks/usePresence.js).
+  // Structurally inert (always false) on PublicPostView, since that
+  // logged-out share route never calls initPresence — no separate
+  // guard needed here to keep it out of that page.
+  const isAuthorOnline = useIsOnline(post.author_id);
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(content);
   const [saving, setSaving] = useState(false);
@@ -286,13 +293,24 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
   return (
     <article ref={cardRef} className="card post-card">
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-        <Link to={`/profile/${post.author_id}`} className="avatar-circle">
-          {author.avatar_url ? (
-            <img src={author.avatar_url} alt="" />
-          ) : (
-            author.full_name ? author.full_name.charAt(0) : '?'
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <Link to={`/profile/${post.author_id}`} className="avatar-circle">
+            {author.avatar_url ? (
+              <img src={author.avatar_url} alt="" />
+            ) : (
+              author.full_name ? author.full_name.charAt(0) : '?'
+            )}
+          </Link>
+          {isAuthorOnline && (
+            <span
+              aria-label="Online"
+              style={{
+                position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
+                borderRadius: '50%', background: '#4ade80', border: '2px solid var(--ivory)',
+              }}
+            />
           )}
-        </Link>
+        </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
           <Link to={`/profile/${post.author_id}`} style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
             {author.is_official ? (

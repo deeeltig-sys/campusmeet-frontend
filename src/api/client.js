@@ -202,6 +202,11 @@ export const PostsAPI = {
 export const ProfileAPI = {
   get: (userId) => request(`/api/profile/${userId}`),
   updateMe: (payload) => request('/api/profile/me', { method: 'PATCH', body: payload, auth: true }),
+  // Pinged periodically while the app is foregrounded (hooks/useHeartbeat.js)
+  // to power "Active Xm ago" — silently swallows failures at the call
+  // site since a missed heartbeat should never surface as a user-facing
+  // error, it just means last_seen_at is a little stale next time.
+  heartbeat: () => request('/api/profile/heartbeat', { method: 'POST', auth: true }),
 
   // Same multipart pattern as PostsAPI.uploadImage — bypasses the
   // generic JSON request() helper on purpose.
@@ -322,6 +327,75 @@ export const ConversationsAPI = {
     request(`/api/conversations/${conversationId}/typing`, { method: 'POST', body: { typing }, auth: true }),
   getTyping: (conversationId) =>
     request(`/api/conversations/${conversationId}/typing`, { auth: true }),
+
+  // Sends a first-time/greeting sticker — a normal message row under
+  // the hood (type: 'sticker'), same endpoint as sendMessage.
+  sendSticker: (conversationId, stickerId) =>
+    request(`/api/conversations/${conversationId}/messages`, {
+      method: 'POST', body: { type: 'sticker', sticker_id: stickerId }, auth: true,
+    }),
+
+  // Batch delivery ack — fired the instant a message reaches this
+  // client via realtime (see hooks/useIncomingMessages.js), so the
+  // sender's double tick appears immediately rather than waiting for
+  // the recipient to open the thread. Errors are swallowed at the
+  // call site on purpose: a missed delivery ping just means the read
+  // receipt (which always fires) catches it a little later instead.
+  markDelivered: (conversationId, messageIds) =>
+    request(`/api/conversations/${conversationId}/messages/delivered`, {
+      method: 'POST', body: { message_ids: messageIds }, auth: true,
+    }),
+
+  react: (conversationId, messageId, emoji) =>
+    request(`/api/conversations/${conversationId}/messages/${messageId}/react`, {
+      method: 'POST', body: { emoji }, auth: true,
+    }),
+  unreact: (conversationId, messageId) =>
+    request(`/api/conversations/${conversationId}/messages/${messageId}/react`, { method: 'DELETE', auth: true }),
+
+  // Fetches a short-lived signed playback URL — never cached long-term
+  // client-side beyond the current screen, since it expires server-side.
+  getVoiceUrl: (conversationId, messageId) =>
+    request(`/api/conversations/${conversationId}/messages/${messageId}/voice-url`, { auth: true }),
+
+  // Voice notes — multipart, same bypass-the-JSON-helper pattern as
+  // PostsAPI.uploadImage/ProfileAPI.uploadAvatar above. `blob` is the
+  // raw recording (audio/webm from MediaRecorder), waveform is a
+  // plain array of amplitude samples (JSON-stringified here).
+  sendVoice: async (conversationId, blob, durationMs, waveform) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('audio', blob, 'voice-note.webm');
+    form.append('duration_ms', String(Math.round(durationMs)));
+    if (Array.isArray(waveform) && waveform.length) {
+      form.append('waveform', JSON.stringify(waveform));
+    }
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/voice`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) {
+        return ConversationsAPI.sendVoice(conversationId, blob, durationMs, waveform);
+      }
+      announceSessionExpired();
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || 'Voice note failed to send. Try again.');
+    }
+    return data;
+  },
 };
 
 // ---- Blocks ----
