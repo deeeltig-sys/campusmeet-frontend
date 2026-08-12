@@ -35,6 +35,14 @@ export default function Inbox() {
   const [tab, setTab] = useState('active');
   const [conversations, setConversations] = useState([]);
   const [contacts, setContacts] = useState([]);
+  // Pending message requests aren't part of the 'active' list at all
+  // (list_conversations excludes is_request rows from that filter by
+  // design), and the Requests tab itself lives inside the … menu, not
+  // the main tab strip — so without a separate live signal, a brand
+  // new "someone messaged you for the first time" never appears
+  // anywhere on the Chats screen until someone thinks to go digging in
+  // the overflow menu. This count is what makes it show up on its own.
+  const [requestCount, setRequestCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -54,13 +62,37 @@ export default function Inbox() {
     }
   }, []);
 
+  const loadRequestCount = useCallback(async () => {
+    try {
+      const data = await ConversationsAPI.list('requests');
+      setRequestCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      // silent — background count, not a user action; the existing
+      // value just stays stale until the next successful check
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     setError('');
     setSelectMode(false);
     setSelected(new Set());
     loadConversations(tab).finally(() => setLoading(false));
-  }, [tab, loadConversations]);
+    // Coming back to the tab strip from a conversation (e.g. just
+    // accepted a request) should reconcile the banner count right
+    // away, not wait for the next 8s tick.
+    loadRequestCount();
+  }, [tab, loadConversations, loadRequestCount]);
+
+  // Same 8s cadence as the conversation-list background refresh below
+  // — keeps the count correct even if realtime isn't configured on
+  // this deploy (VITE_SUPABASE_URL/ANON_KEY missing), same fallback
+  // relationship as everywhere else realtime is layered over polling
+  // in this app.
+  useEffect(() => {
+    const interval = setInterval(loadRequestCount, 8000);
+    return () => clearInterval(interval);
+  }, [loadRequestCount]);
 
   // Realtime: a new message anywhere refreshes this list right away
   // (updates unread bold/badge and reorders by last_message_at)
@@ -68,7 +100,14 @@ export default function Inbox() {
   // back to nothing if realtime isn't configured — the list still
   // loads correctly on open/tab-change either way, just without the
   // live nudge.
-  useIncomingMessages(user?.id, () => loadConversations(tab));
+  //
+  // Also refreshes the request count on EVERY incoming message,
+  // regardless of which tab is currently open — a first message from
+  // someone new lands as a request, not into whatever tab is visible,
+  // so the count has to update independently of loadConversations(tab)
+  // above or a brand new request would sit invisible until the next
+  // 8s tick at best.
+  useIncomingMessages(user?.id, () => { loadConversations(tab); loadRequestCount(); });
 
   // Quiet background refresh so a new message bumps its conversation to
   // the top / updates the preview without the user pulling to refresh —
@@ -226,6 +265,40 @@ export default function Inbox() {
       {tab !== 'active' && (
         <button type="button" className="post-action-link" style={{ marginBottom: 'var(--sp-3)' }} onClick={() => setTab('active')}>
           ← Back to chats
+        </button>
+      )}
+
+      {/* This is the actual fix for "accept chat doesn't automatically
+          appear" — is_request conversations are deliberately excluded
+          from the 'active' list (see list_conversations' filter logic),
+          and the Requests tab itself only lives inside the ⋯ menu, so
+          without this banner a brand new message request was
+          invisible anywhere on this screen until someone thought to
+          go dig for it. Live via loadRequestCount's realtime hook +
+          8s poll above, not just on initial load. */}
+      {tab === 'active' && requestCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setTab('requests')}
+          className="card"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+            border: '1.5px solid var(--gold)', background: 'var(--maroon-light)', marginBottom: 'var(--sp-3)',
+            padding: 'var(--sp-3)', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              minWidth: 20, height: 20, padding: '0 6px', borderRadius: 10, background: 'var(--maroon)', color: '#fff',
+              fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+            }}>
+              {requestCount > 9 ? '9+' : requestCount}
+            </span>
+            <strong style={{ fontSize: 'var(--fs-sm)' }}>
+              {requestCount === 1 ? 'New message request' : 'New message requests'}
+            </strong>
+          </span>
+          <span style={{ color: 'var(--maroon-deep)', fontSize: 'var(--fs-sm)' }}>View →</span>
         </button>
       )}
 

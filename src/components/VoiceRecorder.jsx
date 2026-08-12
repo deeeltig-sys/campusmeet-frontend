@@ -78,6 +78,16 @@ export default function VoiceRecorder({ conversationId, onSent, onError, onRecor
   const startRecording = useCallback(async () => {
     if (disabled || recording || uploading) return;
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        // This is the "no prompt ever fired" case — either the page
+        // isn't in a secure context (getUserMedia requires https, or
+        // localhost) or a privacy extension (Brave shields, uBlock,
+        // Privacy Badger, etc.) has nulled out navigator.mediaDevices
+        // as an anti-fingerprinting measure. There's no OS-level
+        // permission to grant here — the API itself isn't there.
+        onError?.('Voice notes need microphone access, which your browser is blocking entirely (often a privacy extension or shield setting) — try disabling it for this site, or use a different browser.');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
@@ -131,7 +141,19 @@ export default function VoiceRecorder({ conversationId, onSent, onError, onRecor
         }
       }, 150);
     } catch (err) {
-      onError?.('Microphone access is needed to record a voice note.');
+      // eslint-disable-next-line no-console
+      console.error('Voice note recording failed to start:', err.name, err.message);
+      // NotAllowedError -> user (or a past session) actually denied
+      // the mic permission for this origin, or the browser blocked it
+      // by policy. NotFoundError -> no microphone device at all.
+      // Anything else -> surface the real name so it's diagnosable
+      // instead of hiding behind one generic sentence.
+      const messages = {
+        NotAllowedError: 'Microphone access was denied for this site. Check the padlock/site-info icon next to the address bar and allow microphone access, then try again.',
+        NotFoundError: 'No microphone was found on this device.',
+        NotReadableError: 'Your microphone is being used by another app right now.',
+      };
+      onError?.(messages[err.name] || `Could not access the microphone (${err.name || 'unknown error'}).`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled, recording, uploading]);
