@@ -896,10 +896,14 @@ a { color: inherit; text-decoration: none; }
 
 /* Once the feed column actually has room (see .protected-main .screen
    above), let images use it — 420px was tuned for a phone-width card
-   and looked cramped/thumbnail-sized once the column widened. */
+   and looked cramped/thumbnail-sized once the column widened. 620px
+   overshot it though, once combined with the wider column it made a
+   single image dominate the entire visible screen — pulled back to a
+   size that still reads as "bigger than mobile" without swallowing
+   the layout. */
 @media (min-width: 768px) {
   .post-image {
-    max-height: 620px;
+    max-height: 480px;
   }
 }
 
@@ -1041,15 +1045,17 @@ a { color: inherit; text-decoration: none; }
        column's max-width grow with the viewport below removes both
        gaps instead of just reshuffling them. */
     justify-content: flex-start;
-    margin-left: 76px;
+    margin-left: 88px;
     min-height: 0;
   }
   .protected-main .screen {
     width: 100%;
-    /* Fluid instead of a flat 680px cap — grows with the viewport (up
-       to a readable ceiling) so wide screens actually get used
-       instead of leaving a hardcoded gap before the right rail. */
-    max-width: clamp(680px, 68vw, 1040px);
+    /* Fluid, but pulled back down from clamp(680,68vw,1040) — that was
+       feeding a much bigger column into .post-image below, and with a
+       620px image cap on top it made single-image posts feel like
+       they were swallowing the whole screen. Lower ceiling keeps
+       images looking like feed posts, not full-bleed hero banners. */
+    max-width: clamp(600px, 56vw, 820px);
     margin-left: var(--sp-5);
     padding-top: var(--sp-6);
   }
@@ -1148,9 +1154,12 @@ a { color: inherit; text-decoration: none; }
     top: 0;
     left: 0;
     bottom: 0;
-    /* Thin icon-only rail by default — was a permanent 220px, which is
-       exactly the "options tab" bulk that was asked to shrink. */
-    width: 76px;
+    /* Was 76px with default-size icons — Prince flagged it as reading
+       small/cramped next to how big posts render on desktop now.
+       Widened a bit and icons scaled up in .bottom-nav-tab below to
+       match, without touching the actual SVG size (that's shared with
+       the mobile bottom bar and needs to stay as-is there). */
+    width: 88px;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
@@ -1175,7 +1184,7 @@ a { color: inherit; text-decoration: none; }
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    padding: 11px 14px;
+    padding: 13px 14px;
     margin-bottom: var(--sp-3);
     border: none;
     background: none;
@@ -1183,6 +1192,12 @@ a { color: inherit; text-decoration: none; }
     cursor: pointer;
     justify-content: center;
     transition: background 0.12s ease;
+  }
+  .bottom-nav-toggle svg, .bottom-nav-tab svg {
+    /* Scales the shared 22px icon up for the desktop rail only —
+       the mobile bottom bar uses these same icons at their original
+       size, so this can't be changed at the SVG's own width/height. */
+    transform: scale(1.2);
   }
   .bottom-nav-toggle:hover {
     background: var(--maroon-light);
@@ -1194,7 +1209,7 @@ a { color: inherit; text-decoration: none; }
     flex-direction: row;
     justify-content: center;
     gap: var(--sp-3);
-    padding: 11px 14px;
+    padding: 13px 14px;
     border-radius: 999px;
     transition: background 0.12s ease, justify-content 0.12s ease;
   }
