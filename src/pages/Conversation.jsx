@@ -4,6 +4,7 @@ import { ConversationsAPI, BlocksAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConversationMessages } from '../hooks/useIncomingMessages';
 import { useIsOnline } from '../hooks/usePresence';
+import { useKeyboardViewport } from '../hooks/useKeyboardViewport';
 import { formatLastSeen } from '../utils/formatLastSeen';
 import { REACTION_EMOJI } from '../components/icons';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
@@ -105,6 +106,10 @@ function useSampledBrightness(imageUrl) {
 }
 
 export default function Conversation() {
+  // Keeps `.app-shell` sized to the actually-visible viewport when the
+  // keyboard opens, instead of letting the browser scroll the whole
+  // page (header included) to make room — see the hook for the why.
+  useKeyboardViewport();
   const { conversationId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -382,7 +387,16 @@ export default function Conversation() {
 
   return (
     <div className="screen conversation-screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: 'var(--sp-5) var(--sp-4) 0', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+      <div
+        style={{
+          padding: 'var(--sp-5) var(--sp-4) 0', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)',
+          // Belt-and-suspenders on top of the flex-column ordering
+          // (which already keeps this out of the scrollable message
+          // area): pin it so it can never be the thing that scrolls
+          // when the keyboard opens, on any browser quirk.
+          position: 'sticky', top: 0, zIndex: 5, background: 'var(--ivory)', flexShrink: 0,
+        }}
+      >
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
           <button
             onClick={() => {
