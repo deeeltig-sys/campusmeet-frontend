@@ -1,5 +1,3 @@
-import { useRef, useState } from 'react';
-
 // The backend's images array (routes/posts.py _attach_post_images) is
 // a plain array of URL strings: ["https://...", "https://..."]. This
 // component was reading img.url on each entry — a string has no .url
@@ -11,44 +9,39 @@ function resolveUrl(img) {
   return typeof img === 'string' ? img : img?.url;
 }
 
+// Was a one-at-a-time swipe carousel for every multi-image post,
+// including 2- and 3-photo posts where swiping to see the rest meant
+// most people never saw past the first frame. Replaced with a tiled
+// grid (2/3/4-up, "+N" overlay past 4) — same tap-to-zoom, long-press,
+// and double-tap-to-like gestures per tile, just laid out at once
+// instead of hidden behind a swipe. See .post-image-grid* in
+// global.css for the layout rules.
 export default function PostImageCarousel({ images, onImageTap, onPressStart, onPressEnd, showHeartBurst }) {
-  const trackRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  function handleScroll() {
-    const el = trackRef.current;
-    if (!el) return;
-    const index = Math.round(el.scrollLeft / el.clientWidth);
-    setActiveIndex(Math.min(images.length - 1, Math.max(0, index)));
-  }
+  const shown = images.slice(0, 4);
+  const extra = images.length - 4;
 
   return (
     <div style={{ position: 'relative' }}>
-      <div
-        ref={trackRef}
-        onScroll={handleScroll}
-        style={{
-          display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch', borderRadius: 'var(--radius-md)',
-        }}
-      >
-        {images.map((img, i) => {
+      <div className={`post-image-grid post-image-grid-${shown.length}`}>
+        {shown.map((img, i) => {
           const url = resolveUrl(img);
+          const isOverlayTile = i === 3 && extra > 0;
           return (
             <button
               key={url || i}
               type="button"
+              className="post-image-grid-tile"
               onClick={() => url && onImageTap?.(url)}
               onPointerDown={onPressStart}
               onPointerUp={onPressEnd}
               onPointerLeave={onPressEnd}
               onPointerCancel={onPressEnd}
-              style={{
-                flex: '0 0 100%', scrollSnapAlign: 'start', border: 'none', padding: 0,
-                cursor: 'zoom-in', display: 'block', width: '100%',
-              }}
+              aria-label={isOverlayTile ? `View all ${images.length} photos` : `Open photo ${i + 1}`}
             >
-              <img className="post-image" src={url} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
+              <img src={url} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
+              {isOverlayTile && (
+                <span className="post-image-grid-overlay">+{extra}</span>
+              )}
             </button>
           );
         })}
@@ -56,28 +49,6 @@ export default function PostImageCarousel({ images, onImageTap, onPressStart, on
 
       {showHeartBurst && (
         <span className="heart-burst" aria-hidden="true">❤️</span>
-      )}
-
-      {images.length > 1 && (
-        <>
-          <div style={{
-            position: 'absolute', top: 8, right: 10, background: 'rgba(0,0,0,0.55)', color: '#fff',
-            fontSize: '0.7rem', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)',
-          }}>
-            {activeIndex + 1}/{images.length}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 6 }}>
-            {images.map((img, i) => (
-              <span
-                key={resolveUrl(img) || i}
-                style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: i === activeIndex ? 'var(--maroon)' : 'var(--line)',
-                }}
-              />
-            ))}
-          </div>
-        </>
       )}
     </div>
   );
