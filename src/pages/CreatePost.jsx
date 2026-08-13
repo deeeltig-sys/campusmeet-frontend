@@ -25,12 +25,33 @@ export default function CreatePost() {
   const [audience, setAudience] = useState('public'); // 'public' | 'friends'
   const [editingFile, setEditingFile] = useState(null); // raw File pending crop/filter/adjust
   const [editingIndex, setEditingIndex] = useState(null); // null = adding new photo; a number = re-editing that slot
+  // 'pick' = the image-first entry screen (IG's actual composer opens
+  // straight into your gallery, not a blank form) — 'share' = caption +
+  // audience + post, once there's something to share (a photo, or an
+  // explicit "write instead"/poll choice). Starts on 'pick' every time;
+  // nothing here persists across visits, same as before.
+  const [step, setStep] = useState('pick');
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const groupId = location.state?.groupId;
   const groupName = location.state?.groupName;
+
+  // Opens the OS photo picker the instant this page loads — "tap the
+  // + tab and your gallery opens" is exactly what this is, adapted to
+  // what a browser can actually do: there's no in-app gallery grid to
+  // render (that's native OS/device UI, outside a web app's reach),
+  // so the equivalent is triggering that native picker immediately
+  // rather than making someone tap a button first. The 'pick' screen
+  // underneath is what's visible for the brief moment before the OS
+  // dialog opens, and what's left if they cancel it.
+  const autoTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (autoTriggeredRef.current) return;
+    autoTriggeredRef.current = true;
+    fileInputRef.current?.click();
+  }, []);
 
   // ---- @mention autocomplete ----
   // No @username handle system in this schema — a mention is an
@@ -110,6 +131,17 @@ export default function CreatePost() {
     if (images.length > 0) clearAllImages();
   }
 
+  // The two explicit escapes off the 'pick' screen — matches the
+  // earlier decision to always keep a clear path to text-only, even
+  // though the picker now opens automatically.
+  function skipToText() {
+    setStep('share');
+  }
+  function skipToPoll() {
+    setShowPoll(true);
+    setStep('share');
+  }
+
   function updatePollOption(index, value) {
     setPollOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
   }
@@ -184,6 +216,13 @@ export default function CreatePost() {
     } finally {
       setOptimizing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      // A successful edit is what actually advances past the picker
+      // screen — cancelling the editor (see ImageEditor's onCancel
+      // below) intentionally does NOT touch step, so backing out of
+      // editing your very first photo correctly lands back on 'pick',
+      // while backing out of editing an ADDED photo (there's already
+      // at least one image) correctly stays on 'share'.
+      setStep('share');
     }
   }
 
@@ -276,9 +315,78 @@ export default function CreatePost() {
         fallback={groupId ? `/groups/${groupId}` : '/feed'}
       />
 
+      {/* Always mounted regardless of step — both the auto-trigger on
+          load and "Add another photo" further down the 'share' step
+          reuse this same input/ref rather than each needing their own. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
       {error && <div className="banner-error">{error}</div>}
 
+      {step === 'pick' ? (
+        // The composer's actual entry point now — this is what's
+        // visible for the moment before the OS picker opens (see the
+        // auto-trigger effect above) and what's left if it's
+        // cancelled. Image-first by design: picking a photo is the
+        // default path, not a field buried in a form.
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: 'var(--sp-8) var(--sp-4)', gap: 'var(--sp-4)' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%', background: 'var(--maroon-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" stroke="var(--maroon)" strokeWidth="1.6" />
+              <circle cx="8.5" cy="10" r="1.6" fill="var(--gold)" />
+              <path d="M4 17l5-5 4 4 3-3 4 4" stroke="var(--maroon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-lg)', fontWeight: 600, margin: '0 0 4px' }}>
+              Share a photo
+            </p>
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', margin: 0 }}>
+              Pick from your device to get started.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '10px 28px' }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Select photo
+          </button>
+          <div style={{ display: 'flex', gap: 'var(--sp-4)', marginTop: 'var(--sp-2)' }}>
+            <button type="button" onClick={skipToText} style={{ background: 'none', border: 'none', color: 'var(--maroon)', fontWeight: 600, fontSize: 'var(--fs-sm)', cursor: 'pointer', padding: 0 }}>
+              Write something instead
+            </button>
+            <button type="button" onClick={skipToPoll} style={{ background: 'none', border: 'none', color: 'var(--maroon)', fontWeight: 600, fontSize: 'var(--fs-sm)', cursor: 'pointer', padding: 0 }}>
+              Create a poll instead
+            </button>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit}>
+        {images.length > 0 && !showPoll && (
+          // The hero preview — real aspect ratio, no crop, same
+          // intrinsic-sizing + blurred-backdrop treatment as the
+          // feed's .post-image-wrap, so what's shown here is an
+          // honest preview of exactly how it'll actually post.
+          <div className="post-image-wrap" style={{ marginTop: 0, marginBottom: 'var(--sp-3)' }}>
+            <span
+              className="post-image-backdrop"
+              aria-hidden="true"
+              style={{ backgroundImage: `url(${images[0].previewUrl})` }}
+            />
+            <img className="post-image" src={images[0].previewUrl} alt="Selected photo 1" style={{ maxHeight: 480 }} />
+          </div>
+        )}
+
         <div className="field" style={{ position: 'relative' }}>
           <label htmlFor="content">What's on your mind?</label>
           <textarea
@@ -489,13 +597,6 @@ export default function CreatePost() {
               Maximum {MAX_IMAGES} photos per post.
             </p>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
         </div>
 
         <button
@@ -511,6 +612,7 @@ export default function CreatePost() {
           {busy ? uploadStage || 'Publishing…' : showPoll ? 'Publish poll' : 'Publish'}
         </button>
       </form>
+      )}
 
       {editingFile && (
         <ImageEditor

@@ -881,17 +881,44 @@ a { color: inherit; text-decoration: none; }
    ============================================================ */
 
 .post-image-wrap {
+  position: relative;
   margin-top: var(--sp-3);
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--ivory-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* A blurred, scaled-up copy of the SAME photo, sitting behind it.
+   This is what "auto-detects the perfect fit" without any per-image
+   measurement in JS: the real <img> below uses width:100% + height:
+   auto + a max-height ceiling, which means the browser itself decides
+   whether the photo needs to shrink to fit that ceiling — a normally-
+   proportioned photo just renders at its true size with zero gap
+   (this backdrop stays fully hidden behind it), and only a genuine
+   outlier (an extreme panorama/screenshot) ends up height-capped,
+   which is the only case where a letterbox gap opens up on the
+   sides — and only then does this backdrop become visible through
+   that gap. No hardcoded square/rectangle anywhere in this chain. */
+.post-image-backdrop {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.82) saturate(1.15);
+  transform: scale(1.15);
+  z-index: 0;
 }
 .post-image {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
+  height: auto;
   max-height: 420px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Once the feed column actually has room (see .protected-main .screen

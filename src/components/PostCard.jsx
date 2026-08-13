@@ -441,6 +441,11 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
               onPointerCancel={handleImagePressEnd}
               style={{ border: 'none', padding: 0, cursor: 'zoom-in', width: '100%', display: 'block' }}
             >
+              <span
+                className="post-image-backdrop"
+                aria-hidden="true"
+                style={{ backgroundImage: `url(${post.image_url})` }}
+              />
               <img className="post-image" src={post.image_url} alt="" loading="lazy" />
             </button>
             {showHeartBurst && (
