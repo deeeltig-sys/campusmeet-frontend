@@ -126,6 +126,7 @@ export default function Conversation() {
   const [reactingTo, setReactingTo] = useState(null); // message id with the quick-react bar open
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const bottomRef = useRef(null);
+  const headerRef = useRef(null);
   const reactPressTimer = useRef(null);
   const reactLongPressFired = useRef(false);
 
@@ -178,6 +179,31 @@ export default function Conversation() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Previous attempt made the header `position: sticky`, which only
+  // holds still as long as nothing above it in the DOM scrolls — that
+  // assumption broke in practice (mobile Safari/Chrome scroll the
+  // whole page to bring a focused input above the keyboard, sticky or
+  // not). `position: fixed` doesn't make that assumption: it's pinned
+  // to the visual viewport directly, immune to whatever the page
+  // underneath is doing. Since fixed pulls the header out of normal
+  // flow, this measures its real rendered height (varies — the
+  // "Active now" line isn't always present) and writes it to a CSS
+  // var so the spacer below can reserve the exact right amount of
+  // space, instead of guessing a fixed px number that drifts out of
+  // sync the next time this header's content changes.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty('--chat-header-h', `${entry.contentRect.height}px`);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--chat-header-h');
+    };
+  }, []);
 
   // Fallback poll — kept even now that realtime (below) exists, since
   // some campus networks block websockets outright and this is the
@@ -388,13 +414,21 @@ export default function Conversation() {
   return (
     <div className="screen conversation-screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
       <div
+        ref={headerRef}
         style={{
-          padding: 'var(--sp-5) var(--sp-4) 0', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)',
-          // Belt-and-suspenders on top of the flex-column ordering
-          // (which already keeps this out of the scrollable message
-          // area): pin it so it can never be the thing that scrolls
-          // when the keyboard opens, on any browser quirk.
-          position: 'sticky', top: 0, zIndex: 5, background: 'var(--ivory)', flexShrink: 0,
+          padding: 'var(--sp-5) var(--sp-4) var(--sp-3)', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)',
+          // True `position: fixed`, not sticky/flex-order — pinned to
+          // the visual viewport itself, so it holds its position no
+          // matter what the page/keyboard does underneath it. Centered
+          // to match .app-shell's own max-width so it lines up with
+          // the rest of the UI instead of stretching edge-to-edge on
+          // wider screens.
+          position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
+          width: '100%', maxWidth: 480, zIndex: 30, background: 'var(--ivory)',
+          // Clears the phone's notch/status bar on native + fullscreen
+          // PWA — a no-op extra 0px on browsers that don't need it.
+          paddingTop: 'max(var(--sp-5), env(safe-area-inset-top, 0px))',
+          boxShadow: '0 1px 0 var(--line)',
         }}
       >
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
@@ -493,6 +527,11 @@ export default function Conversation() {
           )}
         </button>
       </div>
+
+      {/* Reserves the header's real height in the flex flow — the
+          header itself is `position: fixed` (out of flow, see above),
+          so without this the message list would render up under it. */}
+      <div style={{ height: 'var(--chat-header-h, 64px)', flexShrink: 0 }} />
 
       {error && <div className="banner-error" style={{ margin: '0 var(--sp-4)' }}>{error}</div>}
 
