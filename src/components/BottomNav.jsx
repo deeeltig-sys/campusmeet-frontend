@@ -83,12 +83,12 @@ export default function BottomNav() {
       .catch(() => {});
   });
 
-  // Desktop-only quest card, fetched once — mobile never renders this
-  // (see .quest-nav-card's display:none below 768px), so there's no
-  // point polling it the way unread counts are polled. If the fetch
-  // fails, quests stays [] and the card below just doesn't render —
-  // no error state needed for something that's a nice-to-have summary,
-  // not a core screen.
+  // Desktop-only quest section, fetched once — mobile never renders
+  // this (see .nav-quest-section / .nav-quest-collapsed's display:none
+  // below 768px), so there's no point polling it the way unread counts
+  // are polled. If the fetch fails, quests stays [] and the section
+  // below just doesn't render — no error state needed for something
+  // that's a nice-to-have, not a core screen.
   useEffect(() => {
     QuestsAPI.mine()
       .then((data) => setQuests(Array.isArray(data) ? data : []))
@@ -97,8 +97,11 @@ export default function BottomNav() {
 
   const questsDone = quests.filter((q) => q.completed).length;
   const questsTotal = quests.length;
-  const nextQuest = quests.find((q) => !q.completed);
-  const questPct = questsTotal ? Math.round((questsDone / questsTotal) * 100) : 0;
+  // Grouped the same way Quests.jsx groups its own list (cadence:
+  // weekly/monthly) — reused here so the two screens read as the same
+  // system rather than the nav inventing its own grouping.
+  const weeklyQuests = quests.filter((q) => q.cadence === 'weekly');
+  const monthlyQuests = quests.filter((q) => q.cadence === 'monthly');
 
   const badgeCounts = { notifications: unread, chats: unreadChats };
 
@@ -151,34 +154,65 @@ export default function BottomNav() {
         );
       })}
 
-      {/* Desktop-only — see .quest-nav-card in global.css for the
-          display:none that keeps this off mobile entirely, not just
-          visually collapsed. Reuses the rail's own expand/collapse
-          state instead of always rendering full-size, so it doesn't
-          look bolted on next to icon tabs that behave the same way. */}
+      {/* Desktop-only — see .nav-quest-section / .nav-quest-collapsed in
+          global.css for the display:none that keeps both off mobile
+          entirely. Modeled on Claude's sidebar: a labeled "Recents"-
+          style section instead of one summary card, so the rail
+          surfaces actual quest tasks (grouped This week / This month,
+          same grouping Quests.jsx itself uses) once it's open, and
+          falls back to a single icon + dot while collapsed. */}
       {questsTotal > 0 && (
-        <button
-          type="button"
-          className={`quest-nav-card card${expanded ? ' quest-nav-card--expanded' : ''}`}
-          onClick={() => { navigate('/quests'); setExpanded(false); }}
-        >
-          <span className="quest-nav-card-icon">
+        expanded ? (
+          <div className="nav-quest-section">
+            {weeklyQuests.length > 0 && (
+              <>
+                <p className="eyebrow nav-quest-label">This week</p>
+                {weeklyQuests.map((q) => (
+                  <QuestRow key={q.id} q={q} onOpen={() => { navigate('/quests'); setExpanded(false); }} />
+                ))}
+              </>
+            )}
+            {monthlyQuests.length > 0 && (
+              <>
+                <p className="eyebrow nav-quest-label">This month</p>
+                {monthlyQuests.map((q) => (
+                  <QuestRow key={q.id} q={q} onOpen={() => { navigate('/quests'); setExpanded(false); }} />
+                ))}
+              </>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="nav-quest-collapsed"
+            onClick={() => navigate('/quests')}
+            aria-label={`Quests — ${questsDone} of ${questsTotal} complete`}
+            title="Quests"
+          >
             <Aya size={20} strokeWidth={1.8} />
-          </span>
-          <span className="quest-nav-card-body">
-            <strong className="quest-nav-card-title">
-              {nextQuest ? nextQuest.title : 'All quests done'}
-            </strong>
-            <span className="quest-nav-card-progress">
-              <span className="quest-nav-card-bar">
-                <span className="quest-nav-card-fill" style={{ width: `${questPct}%` }} />
-              </span>
-              <span className="quest-nav-card-count">{questsDone}/{questsTotal}</span>
-            </span>
-          </span>
-        </button>
+            {questsDone < questsTotal && <span className="nav-quest-dot" aria-hidden="true" />}
+          </button>
+        )
       )}
     </nav>
+  );
+}
+
+function QuestRow({ q, onOpen }) {
+  const pct = Math.min(100, Math.round((q.progress_count / q.target_count) * 100));
+  return (
+    <button type="button" className="nav-quest-row" onClick={onOpen}>
+      <span className="nav-quest-row-top">
+        <span className="nav-quest-row-title">{q.completed && '✓ '}{q.title}</span>
+        <span className="nav-quest-row-points">+{q.points_reward}</span>
+      </span>
+      <span className="nav-quest-row-bar">
+        <span
+          className="nav-quest-row-fill"
+          style={{ width: `${pct}%`, background: q.completed ? 'var(--gold-bright)' : 'var(--maroon)' }}
+        />
+      </span>
+    </button>
   );
 }
 
