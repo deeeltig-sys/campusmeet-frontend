@@ -60,27 +60,36 @@
 
 /* Dark mode — every component already reads color through these
    variables (never a hardcoded hex), which is exactly what makes this
-   a single override block instead of a per-component rewrite. Keeps
-   the maroon/gold brand identity; only the base surfaces flip. */
+   a single override block instead of a per-component rewrite. True
+   black (not dark brown/grey) is the base here on purpose — that's
+   what makes gold read as gold instead of muddy, and is what actually
+   sells "luxury" instead of just "dimmed light mode." Surfaces are
+   built up in small steps off that black (card → dim → hairline) so
+   content still separates cleanly even with no bottom light to shadow
+   against. */
 [data-theme="dark"] {
-  --maroon: #A63A5C;
-  --maroon-deep: #D4899E;
-  --maroon-light: rgba(166, 58, 92, 0.18);
+  --maroon: #B8446A;
+  --maroon-deep: #E0A2B8;
+  --maroon-light: rgba(184, 68, 106, 0.16);
   --gold: #D4AF37;
-  --gold-bright: #F0D080;
+  --gold-bright: #F2D48A;
   --bronze: #C99A46;
-  --ivory: #16100E;
-  --ivory-dim: #201714;
-  --ink: #F3ECE6;
-  --ink-soft: #B8ACA5;
-  --line: rgba(255, 255, 255, 0.12);
+  --ivory: #000000;
+  --ivory-dim: #0B0808;
+  --ink: #F5EFE8;
+  --ink-soft: #A99C93;
+  --line: rgba(212, 175, 55, 0.14);
   --success: #4CA870;
   --danger: #E0666B;
 
-  --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.35);
-  --shadow-raised: 0 8px 28px rgba(0, 0, 0, 0.5);
-  --surface: #241A17;
-  --danger-bg: rgba(224, 102, 107, 0.15);
+  /* Pure black gives box-shadow nothing to sit against, so depth here
+     comes from a soft gold-tinted glow (the "lit from a warm bulb"
+     feel a black+gold palette wants) layered under a plain black drop
+     shadow for actual separation, rather than shadow alone. */
+  --shadow-card: 0 1px 0 rgba(212, 175, 55, 0.06), 0 10px 24px rgba(0, 0, 0, 0.6);
+  --shadow-raised: 0 1px 0 rgba(212, 175, 55, 0.08), 0 16px 40px rgba(0, 0, 0, 0.7);
+  --surface: #120D0B;
+  --danger-bg: rgba(224, 102, 107, 0.14);
 
   /* Diamond name treatment — dark mode only. Cool icy-white/blue facet
      gradient for display names, distinct from the warm --gold family
