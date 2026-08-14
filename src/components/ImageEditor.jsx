@@ -254,6 +254,20 @@ export default function ImageEditor({ file, onCancel, onDone }) {
     }
   }
 
+  // Safety net for when the photo can't be decoded/previewed at all
+  // (unsupported format, corrupt file, etc.) — rather than leaving the
+  // person stuck with a dead Done button and no way forward, this posts
+  // the original file untouched, same as if they'd chosen not to edit.
+  function handleUseOriginal() {
+    setBusy(true);
+    try {
+      const previewUrl = URL.createObjectURL(file);
+      onDone(file, previewUrl);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const frameInteractive = tab === 'crop' || tab === 'draw';
 
   return (
@@ -285,8 +299,17 @@ export default function ImageEditor({ file, onCancel, onDone }) {
                 </div>
               )}
               {!loading && error && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-4)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-4)' }}>
                   <p style={{ color: '#fff', fontSize: 'var(--fs-sm)', textAlign: 'center', margin: 0 }}>{error}</p>
+                  <button
+                    type="button"
+                    className="studio-done-btn"
+                    style={{ width: 'auto', padding: '10px 22px' }}
+                    onClick={handleUseOriginal}
+                    disabled={busy}
+                  >
+                    {busy ? 'Preparing…' : 'Use original photo'}
+                  </button>
                 </div>
               )}
               {image && (

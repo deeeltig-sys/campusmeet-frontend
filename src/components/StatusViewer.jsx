@@ -113,12 +113,10 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   const isPostStatus = current.content_type === 'post';
 
   return (
+    <div className="story-viewer-overlay">
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100, background: '#000',
-        display: 'flex', flexDirection: 'column',
-        transform: `translateX(${dragging ? dragOffset * 0.3 : 0}px)`,
-      }}
+      className="story-viewer-panel"
+      style={{ transform: `translateX(${dragging ? dragOffset * 0.3 : 0}px)` }}
       {...handlers}
     >
       <div style={{ display: 'flex', gap: 4, padding: 'var(--sp-3) var(--sp-3) 0' }}>
@@ -247,6 +245,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           onClose={() => setShowHighlightPicker(false)}
         />
       )}
+    </div>
     </div>
   );
 }

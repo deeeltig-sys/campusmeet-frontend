@@ -72,12 +72,14 @@ export default function HighlightViewer({ highlightId, onClose }) {
   if (loading) return null;
   if (error || !current) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#fff', textAlign: 'center' }}>
-          <p>{error || 'Nothing to show.'}</p>
-          <button type="button" onClick={onClose} style={{ color: '#fff', background: 'none', border: '1px solid #fff', borderRadius: 999, padding: '6px 16px', marginTop: 12, cursor: 'pointer' }}>
-            Close
-          </button>
+      <div className="story-viewer-overlay">
+        <div className="story-viewer-panel" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#fff', textAlign: 'center' }}>
+            <p>{error || 'Nothing to show.'}</p>
+            <button type="button" onClick={onClose} style={{ color: '#fff', background: 'none', border: '1px solid #fff', borderRadius: 999, padding: '6px 16px', marginTop: 12, cursor: 'pointer' }}>
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -86,7 +88,8 @@ export default function HighlightViewer({ highlightId, onClose }) {
   const isTextItem = current.content_type === 'text';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', flexDirection: 'column' }}>
+    <div className="story-viewer-overlay">
+    <div className="story-viewer-panel">
       <div style={{ display: 'flex', gap: 4, padding: 'var(--sp-3) var(--sp-3) 0' }}>
         {items.map((it, i) => (
           <div key={it.id} style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.35)', overflow: 'hidden' }}>
@@ -129,6 +132,7 @@ export default function HighlightViewer({ highlightId, onClose }) {
           <img src={current.image_url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} draggable={false} />
         )}
       </div>
+    </div>
     </div>
   );
 }

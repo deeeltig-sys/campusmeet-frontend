@@ -137,11 +137,51 @@ export async function renderEditedImage(image, transform, aspect, presetId, adju
   return blob;
 }
 
-export function loadImageFromFile(file) {
+const HEIC_MIME_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
+
+// iPhones default to saving photos as HEIC. Chrome, Firefox, and most
+// Android webviews can't decode HEIC in an <img>/canvas at all — the
+// image just silently fails to load, which from the editor's point of
+// view looks like "nothing previews and Done stays disabled." Some
+// devices/browsers also don't set a MIME type for HEIC files at all,
+// so the extension is checked as a fallback.
+function looksLikeHeic(file) {
+  if (HEIC_MIME_TYPES.includes((file.type || '').toLowerCase())) return true;
+  return /\.hei[cf]$/i.test(file.name || '');
+}
+
+// Converts a HEIC/HEIF file to a JPEG File client-side. Dynamically
+// imported so the ~50kb decoder only loads for the people who actually
+// need it (iPhone users sending unconverted photos), not on every page
+// load. If conversion itself fails for any reason, the original file is
+// returned as-is and loadImageElement below will surface a clear error
+// rather than the app silently hanging.
+async function convertHeicToJpeg(file) {
+  try {
+    const { default: heic2any } = await import('heic2any');
+    const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const blob = Array.isArray(result) ? result[0] : result;
+    return new File([blob], file.name.replace(/\.\w+$/i, '.jpg'), {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
+function loadImageElement(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Could not read this image.'));
+    img.onerror = () => reject(new Error(
+      "Could not open this image — your browser may not support this photo format (common with iPhone HEIC photos). Try 'Use original photo' below, or pick a different photo."
+    ));
     img.src = URL.createObjectURL(file);
   });
+}
+
+export async function loadImageFromFile(file) {
+  const source = looksLikeHeic(file) ? await convertHeicToJpeg(file) : file;
+  return loadImageElement(source);
 }

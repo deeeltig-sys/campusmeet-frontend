@@ -85,7 +85,7 @@ export default function Signup() {
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor="full_name">Full name</label>
-          <input id="full_name" required value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Prince Osei Owusu" />
+          <input id="full_name" required value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Name: eg. Makaveli X" />
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
