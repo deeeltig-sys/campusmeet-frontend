@@ -145,7 +145,7 @@ const HEIC_MIME_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'ima
 // view looks like "nothing previews and Done stays disabled." Some
 // devices/browsers also don't set a MIME type for HEIC files at all,
 // so the extension is checked as a fallback.
-function looksLikeHeic(file) {
+export function looksLikeHeic(file) {
   if (HEIC_MIME_TYPES.includes((file.type || '').toLowerCase())) return true;
   return /\.hei[cf]$/i.test(file.name || '');
 }
@@ -156,7 +156,7 @@ function looksLikeHeic(file) {
 // load. If conversion itself fails for any reason, the original file is
 // returned as-is and loadImageElement below will surface a clear error
 // rather than the app silently hanging.
-async function convertHeicToJpeg(file) {
+export async function convertHeicToJpeg(file) {
   try {
     const { default: heic2any } = await import('heic2any');
     const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });

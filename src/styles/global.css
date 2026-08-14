@@ -1051,6 +1051,13 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Without this, the browser's own native double-tap-to-zoom gesture
+     competes with the double-tap-to-like JS logic in PostCard —  it
+     either eats the second tap outright or delays it past the
+     DOUBLE_TAP_WINDOW_MS check, so the like/heart-burst silently never
+     fires on real touch devices. This disables native double-tap-zoom
+     on the image specifically while leaving normal page scroll intact. */
+  touch-action: manipulation;
 }
 /* A blurred, scaled-up copy of the SAME photo, sitting behind it.
    This is what "auto-detects the perfect fit" without any per-image
@@ -1136,6 +1143,10 @@ a { color: inherit; text-decoration: none; }
   cursor: zoom-in;
   overflow: hidden;
   background: var(--ivory-dim);
+  /* Same double-tap-zoom conflict as .post-image-wrap above — each grid
+     tile is independently double-tappable-to-like, so it needs the same
+     fix. */
+  touch-action: manipulation;
 }
 .post-image-grid-tile img {
   display: block;

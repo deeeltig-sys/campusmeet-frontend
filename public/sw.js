@@ -93,7 +93,12 @@ self.addEventListener('push', (event) => {
   }
   const title = data.title || 'CampusMEET';
   const options = {
-    body: data.body || '',
+    // Falls back to a generic line instead of an empty string — an
+    // empty body renders as a blank notification (easy to mistake for
+    // "notifications are broken"), which is exactly what happens if a
+    // payload (e.g. for a voice note) ever reaches here without a
+    // body set server-side.
+    body: data.body || 'New message',
     icon: '/app-icon-512.png',
     badge: '/favicon.png',
     data: { url: data.url || '/' },

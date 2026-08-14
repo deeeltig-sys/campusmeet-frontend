@@ -12,6 +12,7 @@ import VoiceRecorder from '../components/VoiceRecorder';
 import VoiceMessage from '../components/VoiceMessage';
 import AttachmentMessage from '../components/AttachmentMessage';
 import StickerPicker, { stickerEmoji } from '../components/StickerPicker';
+import { prepareOutgoingAttachment } from '../utils/prepareAttachment';
 
 const DOCUMENT_ACCEPT = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/zip';
 
@@ -370,7 +371,8 @@ export default function Conversation() {
     setUploadingAttachment(true);
     setError('');
     try {
-      const msg = await ConversationsAPI.sendAttachment(conversationId, file);
+      const toSend = await prepareOutgoingAttachment(file);
+      const msg = await ConversationsAPI.sendAttachment(conversationId, toSend);
       setMessages((prev) => [...prev, msg]);
     } catch (err) {
       setError(err.message || "That file didn't send. Try again.");
