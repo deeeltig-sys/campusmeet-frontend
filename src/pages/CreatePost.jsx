@@ -33,6 +33,12 @@ export default function CreatePost() {
   const [step, setStep] = useState('pick');
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
+  // IG lets you multi-select several photos in one gallery tap, then
+  // chains you through editing each one in turn. handleFileChange
+  // reads everything picked into this queue; handleEditorDone pulls
+  // the next one off it automatically once the current edit is done,
+  // instead of requiring a separate "Add another photo" tap per image.
+  const queuedFilesRef = useRef([]);
   const navigate = useNavigate();
   const location = useLocation();
   const groupId = location.state?.groupId;
@@ -155,24 +161,45 @@ export default function CreatePost() {
   }
 
   function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const fileList = Array.from(e.target.files || []);
+    if (fileList.length === 0) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please pick an image file.');
+    // Same per-file checks as before, just run across every file picked
+    // in one multi-select action instead of just one.
+    const validFiles = [];
+    let message = '';
+    for (const file of fileList) {
+      if (!file.type.startsWith('image/')) {
+        message = 'Only image files can be added — the rest were skipped.';
+        continue;
+      }
+      if (file.size > MAX_RAW_IMAGE_BYTES) {
+        message = 'One or more photos were too large and were skipped.';
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    const room = MAX_IMAGES - images.length;
+    if (validFiles.length > room) {
+      message = room > 0
+        ? `You can add up to ${MAX_IMAGES} photos per post — only the first ${room} were kept.`
+        : `You've already reached the ${MAX_IMAGES}-photo limit for this post.`;
+    }
+    const filesToUse = validFiles.slice(0, room);
+
+    if (filesToUse.length === 0) {
+      setError(message || 'Please pick an image file.');
       return;
     }
-    if (file.size > MAX_RAW_IMAGE_BYTES) {
-      setError('Image is too large. Please pick a smaller photo.');
-      return;
-    }
 
-    setError('');
-    setEditingIndex(null); // adding a new slot, not re-editing one
-    // Opens the crop/filter/adjust editor before anything gets
-    // uploaded — matches FB/IG, where the edit stack runs BEFORE
-    // compression/upload, not after.
-    setEditingFile(file);
+    setError(message);
+    setEditingIndex(null); // adding new slots, not re-editing one
+    // First file opens the editor immediately; the rest wait in the
+    // queue and get pulled in one at a time as each edit is finished
+    // (see handleEditorDone).
+    queuedFilesRef.current = filesToUse.slice(1);
+    setEditingFile(filesToUse[0]);
   }
 
   function openEditFor(index) {
@@ -216,13 +243,22 @@ export default function CreatePost() {
     } finally {
       setOptimizing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      // A successful edit is what actually advances past the picker
-      // screen — cancelling the editor (see ImageEditor's onCancel
-      // below) intentionally does NOT touch step, so backing out of
-      // editing your very first photo correctly lands back on 'pick',
-      // while backing out of editing an ADDED photo (there's already
-      // at least one image) correctly stays on 'share'.
-      setStep('share');
+      // IG-style chaining: if this was one of several photos picked in
+      // the same multi-select action, move straight into editing the
+      // next one instead of dropping back to the caption screen and
+      // making them tap "Add another photo" for each remaining image.
+      if (queuedFilesRef.current.length > 0) {
+        const next = queuedFilesRef.current.shift();
+        setEditingFile(next);
+      } else {
+        // A successful edit is what actually advances past the picker
+        // screen — cancelling the editor (see ImageEditor's onCancel
+        // below) intentionally does NOT touch step, so backing out of
+        // editing your very first photo correctly lands back on 'pick',
+        // while backing out of editing an ADDED photo (there's already
+        // at least one image) correctly stays on 'share'.
+        setStep('share');
+      }
     }
   }
 
@@ -322,6 +358,7 @@ export default function CreatePost() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
@@ -350,7 +387,7 @@ export default function CreatePost() {
               Share a photo
             </p>
             <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-soft)', margin: 0 }}>
-              Pick from your device to get started.
+              Pick one or more from your device to get started.
             </p>
           </div>
           <button
@@ -359,7 +396,7 @@ export default function CreatePost() {
             style={{ padding: '10px 28px' }}
             onClick={() => fileInputRef.current?.click()}
           >
-            Select photo
+            Select photos
           </button>
           <div style={{ display: 'flex', gap: 'var(--sp-4)', marginTop: 'var(--sp-2)' }}>
             <button type="button" onClick={skipToText} style={{ background: 'none', border: 'none', color: 'var(--maroon)', fontWeight: 600, fontSize: 'var(--fs-sm)', cursor: 'pointer', padding: 0 }}>
@@ -617,7 +654,14 @@ export default function CreatePost() {
       {editingFile && (
         <ImageEditor
           file={editingFile}
-          onCancel={() => { setEditingFile(null); setEditingIndex(null); }}
+          onCancel={() => {
+            // Cancelling anywhere mid-batch drops the rest of the queue
+            // too — backing out of one photo shouldn't immediately pop
+            // the next one in front of you.
+            queuedFilesRef.current = [];
+            setEditingFile(null);
+            setEditingIndex(null);
+          }}
           onDone={handleEditorDone}
         />
       )}
