@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { NotificationsAPI, ConversationsAPI, QuestsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
-import { Dawuro, Nkonsonkonson, Aya } from './AdinkraIcons';
+import { Nkonsonkonson, Aya } from './AdinkraIcons';
 
 const tabs = [
-  { to: '/feed', label: 'Feed', icon: FeedIcon },
+  { to: '/feed', label: 'Home', icon: FeedIcon },
   { to: '/friends', label: 'Friends', icon: FriendsIcon },
   { to: '/create', label: 'Post', icon: PlusIcon },
   { to: '/notifications', label: 'Alerts', icon: BellIcon, badge: 'notifications' },
@@ -259,13 +259,25 @@ function PlusIcon({ active }) {
   );
 }
 function BellIcon({ active }) {
-  // Dawuro — the gong-gong used by town criers to announce news,
-  // meaning vigilance and the spreading of information. Swapped in
-  // for the generic bell.
+  // A literal bell, Facebook-style — sized up a bit from the other nav
+  // icons (24 vs 22) since a bell reads small/fussy at the same size a
+  // simpler shape like the chain-link or gong does.
   return (
-    <span style={{ display: 'inline-flex', color: active ? 'var(--maroon)' : 'var(--ink-soft)' }}>
-      <Dawuro size={22} strokeWidth={1.8} />
-    </span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3.5c-3 0-5 2.2-5 5v3.2c0 .6-.2 1.2-.6 1.7L5 15.5c-.6.7-.1 1.8.8 1.8h12.4c.9 0 1.4-1.1.8-1.8l-1.4-2.1c-.4-.5-.6-1.1-.6-1.7V8.5c0-2.8-2-5-5-5z"
+        stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <path
+        d="M9.8 19.5a2.3 2.3 0 004.4 0"
+        stroke={active ? 'var(--maroon)' : 'var(--ink-soft)'}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 function InboxIcon({ active }) {

@@ -5,7 +5,7 @@ import ReportModal from './ReportModal';
 import { REACTION_TYPES, PostsAPI, StatusesAPI, SITE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useIsOnline } from '../hooks/usePresence';
-import { ReactionIcon, CommentIcon, ShareIcon, REACTION_EMOJI } from './icons';
+import { ReactionIcon, CommentIcon, ShareIcon, EyeIcon, REACTION_EMOJI } from './icons';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import HashtagText from './HashtagText';
 import PollBlock from './PollBlock';
@@ -341,11 +341,6 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
                   </svg>
                 </span>
               )}
-              {typeof post.view_count === 'number' && post.view_count > 0 && (
-                <span style={{ color: 'var(--ink-soft)', flexShrink: 0 }}>
-                  · {formatCount(post.view_count)} {post.view_count === 1 ? 'view' : 'views'}
-                </span>
-              )}
             </time>
           )}
         </div>
@@ -458,6 +453,22 @@ export default function PostCard({ post, onReact, onEditSave, onDeletePost, onSh
       <footer className="reaction-footer">
         {renderReactionBar()}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+          {typeof post.view_count === 'number' && post.view_count > 0 && (
+            // Views moved down here next to reactions/comments/share —
+            // buried up in the small timestamp line it was easy to
+            // miss, and knowing "who's actually seen this" is exactly
+            // the kind of thing people look for right alongside the
+            // engagement counts, not off to the side. Not a button:
+            // there's no reactors-style list of viewers to open, so it
+            // reads as a plain stat, not a dead click.
+            <span
+              className="reaction-count-btn"
+              style={{ cursor: 'default' }}
+              aria-label={`${post.view_count} ${post.view_count === 1 ? 'view' : 'views'}`}
+            >
+              <EyeIcon size={15} /> {formatCount(post.view_count)}
+            </span>
+          )}
           <button
             type="button"
             className="reaction-count-btn"

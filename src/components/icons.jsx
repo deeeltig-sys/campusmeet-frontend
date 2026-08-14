@@ -92,6 +92,20 @@ export function CommentIcon({ size = 15, color = 'var(--ink-soft)' }) {
   );
 }
 
+// View count icon — sits next to reactions/comments/share in the
+// post footer, matching their same size/stroke conventions.
+export function EyeIcon({ size = 15, color = 'var(--ink-soft)' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"
+        stroke={color} strokeWidth="1.6" strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.6" stroke={color} strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 // WhatsApp/Facebook-status-composer style paper plane — used on the
 // circular send button when posting a status.
 export function SendIcon({ size = 20, color = '#fff' }) {

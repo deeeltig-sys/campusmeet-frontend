@@ -1194,14 +1194,18 @@ a { color: inherit; text-decoration: none; }
   /* Below this breakpoint the right rail doesn't render at all, so the
      768px rule's clamp() cap is the right call (a centered column with
      room to breathe). At 1100px+ the right rail becomes its own fixed
-     300px column (see .desktop-right-rail above) — the feed column
-     still needs its own cap here too, otherwise it stretches to fill
-     whatever's left between the two fixed rails, which on a wide
-     monitor can be 900px+ and flattens post images into wide
-     rectangles instead of the tighter, closer-to-square card the
-     reference design uses. */
+     300px column (see .desktop-right-rail above) — every cap tried
+     here so far (640px fixed, then a 640-780px clamp) still left a
+     visible dead strip of plain background between the card's right
+     edge and the rail's left edge, because a cap by definition stops
+     short of "fill the space." Removing the cap and giving the column
+     matching small gutters on both sides instead closes that gap
+     completely — the feed now fills the entire space between the two
+     fixed rails, edge to edge apart from the small breathing margin. */
   .protected-main .screen {
-    max-width: 640px;
+    max-width: none;
+    margin-left: var(--sp-5);
+    margin-right: var(--sp-5);
   }
 }
 
