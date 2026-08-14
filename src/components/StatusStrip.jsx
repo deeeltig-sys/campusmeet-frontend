@@ -6,6 +6,19 @@ import StatusViewer from './StatusViewer';
 
 const CARD_WIDTH = 108;
 const CARD_HEIGHT = 176;
+const DESKTOP_CARD_SIZE = 150; // square card size once we hit desktop widths
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+  );
+  useEffect(() => {
+    function onResize() { setIsDesktop(window.innerWidth >= 1024); }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return isDesktop;
+}
 
 // Facebook's actual story bar is wide rectangular cards showing a real
 // preview of the content — not small circular avatar rings the way
@@ -15,6 +28,9 @@ const CARD_HEIGHT = 176;
 // previews what's actually in each story before you tap it.
 export default function StatusStrip() {
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
+  const cardWidth = isDesktop ? DESKTOP_CARD_SIZE : CARD_WIDTH;
+  const cardHeight = isDesktop ? DESKTOP_CARD_SIZE : CARD_HEIGHT;
   const [groups, setGroups] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [viewingIndex, setViewingIndex] = useState(null); // index into groups, or null
@@ -40,7 +56,7 @@ export default function StatusStrip() {
         type="button"
         onClick={onClick}
         style={{
-          flex: '0 0 auto', width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 14,
+          flex: '0 0 auto', width: cardWidth, height: cardHeight, borderRadius: 14,
           position: 'relative', overflow: 'hidden', border: ring ? `3px solid ${ring}` : '1px solid var(--line)',
           padding: 0, cursor: 'pointer', background: 'var(--ivory-dim)',
         }}
