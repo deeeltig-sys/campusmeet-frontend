@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { NotificationsAPI, ConversationsAPI, QuestsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
-import { Nkonsonkonson, Aya } from './AdinkraIcons';
+import { Aya } from './AdinkraIcons';
 
 const tabs = [
   { to: '/feed', label: 'Home', icon: FeedIcon },
@@ -225,11 +225,32 @@ function MenuIcon() {
 }
 
 function FeedIcon({ active }) {
+  // A literal house — roof + walls + door — matching the direct,
+  // recognizable-at-a-glance treatment the Bell/Inbox icons already
+  // use (stroke-based, not a filled abstract shape like the old
+  // three-stacked-bars "list" glyph this replaces).
+  const color = active ? 'var(--maroon)' : 'var(--ink-soft)';
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} />
-      <rect x="3" y="10" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} opacity="0.7" />
-      <rect x="3" y="16" width="18" height="4" rx="1.5" fill={active ? 'var(--maroon)' : 'var(--ink-soft)'} opacity="0.45" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 11.5L12 4l8 7.5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v9h12v-9"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 19v-5h4v5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -242,12 +263,18 @@ function SearchIcon({ active }) {
   );
 }
 function FriendsIcon({ active }) {
-  // Nkonsonkonson — the chain-link symbol, meaning unity and human
-  // relations. Swapped in for the generic two-circle icon.
+  // Two overlapping people — reads as "friends" at a glance the way
+  // the chain-link Adinkra symbol (Nkonsonkonson, kept elsewhere for
+  // its unity/relations meaning) doesn't for anyone unfamiliar with
+  // the symbol itself. Same stroke-based style as Bell/Inbox above.
+  const color = active ? 'var(--maroon)' : 'var(--ink-soft)';
   return (
-    <span style={{ display: 'inline-flex', color: active ? 'var(--maroon)' : 'var(--ink-soft)' }}>
-      <Nkonsonkonson size={22} strokeWidth={2} />
-    </span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="8.5" cy="8" r="3" stroke={color} strokeWidth="1.8" />
+      <path d="M3 19c0-3.3 2.5-5.5 5.5-5.5S14 15.7 14 19" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="16" cy="9" r="2.5" stroke={color} strokeWidth="1.8" opacity="0.75" />
+      <path d="M14.5 13.2c2.7.2 4.5 2.3 4.5 5.8" stroke={color} strokeWidth="1.8" strokeLinecap="round" opacity="0.75" />
+    </svg>
   );
 }
 function PlusIcon({ active }) {
