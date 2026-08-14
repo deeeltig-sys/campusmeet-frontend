@@ -579,22 +579,132 @@ a { color: inherit; text-decoration: none; }
 .message-composer {
   display: flex;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4);
   border-top: 1px solid var(--line);
   background: var(--ivory);
   flex-shrink: 0;
+  min-height: 64px;
 }
 .message-composer textarea {
   flex: 1;
   resize: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
   font-family: var(--font-body);
-  font-size: var(--fs-sm);
-  max-height: 90px;
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  /* Auto-grows via JS (see Conversation.jsx's textarea ref, which sets
+     height to scrollHeight on every keystroke) — min-height keeps the
+     resting state noticeably roomier than the old single 90px-capped
+     line, max-height stops a wall of pasted text from swallowing the
+     whole thread view. */
+  min-height: 48px;
+  max-height: 160px;
 }
 .message-composer textarea:focus { outline: none; border-color: var(--gold); }
+
+/* Attach button — same footprint/behavior as the emoji/sticker
+   trigger it sits next to, so the two read as one icon row rather
+   than mismatched controls. */
+.composer-attach-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  color: var(--ink-soft);
+}
+.composer-attach-btn:hover { color: var(--maroon); }
+.composer-attach-menu {
+  position: absolute;
+  bottom: 100%;
+  left: var(--sp-4);
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,0.12));
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 20;
+  min-width: 160px;
+}
+.composer-attach-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--sp-2) var(--sp-2);
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  text-align: left;
+}
+.composer-attach-menu button:hover { background: var(--ivory-dim); }
+
+/* Attachment bubble — image, document, or audio-file (not the
+   hold-to-record voice note, which keeps its own VoiceMessage UI). */
+.attachment-file-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 180px;
+  max-width: 240px;
+}
+.attachment-file-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(122,45,45,0.12);
+}
+.attachment-file-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.attachment-file-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attachment-file-size {
+  font-size: 0.6875rem;
+  opacity: 0.75;
+}
+.attachment-image {
+  display: block;
+  max-width: 260px;
+  max-height: 320px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  cursor: pointer;
+}
+.attachment-image-loading {
+  width: 200px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ivory-dim);
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
 
 /* ---- New posts pill (FB/IG/X pattern) ---- */
 .new-posts-pill {
@@ -1191,22 +1301,15 @@ a { color: inherit; text-decoration: none; }
   .protected-main {
     margin-right: 300px;
   }
-  /* Below this breakpoint the right rail doesn't render at all, so the
-     768px rule's clamp() cap is the right call (a centered column with
-     room to breathe). At 1100px+ the right rail becomes its own fixed
-     300px column (see .desktop-right-rail above) — every cap tried
-     here so far (640px fixed, then a 640-780px clamp) still left a
-     visible dead strip of plain background between the card's right
-     edge and the rail's left edge, because a cap by definition stops
-     short of "fill the space." Removing the cap and giving the column
-     matching small gutters on both sides instead closes that gap
-     completely — the feed now fills the entire space between the two
-     fixed rails, edge to edge apart from the small breathing margin. */
-  .protected-main .screen {
-    max-width: none;
-    margin-left: var(--sp-5);
-    margin-right: var(--sp-5);
-  }
+  /* Feed used to stretch edge-to-edge in the gap next to the right
+     rail (max-width: none). That's the wrong shape for this layout —
+     a full-bleed feed column reads like a broken/unstyled page
+     between two fixed rails, not an intentional 3-column FB/IG
+     shell. Feed now keeps the exact same contained-column treatment
+     every other screen already gets from `.protected-main .screen`
+     above (clamp(600px, 56vw, 820px), centered in the space between
+     the left sidebar and the right rail) — no per-page override
+     needed, so this block is intentionally empty of one. */
 }
 
 .bottom-nav {

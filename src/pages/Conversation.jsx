@@ -10,7 +10,10 @@ import { REACTION_EMOJI } from '../components/icons';
 import WallpaperModal, { WALLPAPER_PRESETS } from '../components/WallpaperModal';
 import VoiceRecorder from '../components/VoiceRecorder';
 import VoiceMessage from '../components/VoiceMessage';
+import AttachmentMessage from '../components/AttachmentMessage';
 import StickerPicker, { stickerEmoji } from '../components/StickerPicker';
+
+const DOCUMENT_ACCEPT = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/zip';
 
 // Quick-react bar on long-press — same vocabulary as post reactions
 // (REACTION_TYPES in api/client.js), not a separate emoji set.
@@ -125,10 +128,14 @@ export default function Conversation() {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [reactingTo, setReactingTo] = useState(null); // message id with the quick-react bar open
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const bottomRef = useRef(null);
   const headerRef = useRef(null);
   const reactPressTimer = useRef(null);
   const reactLongPressFired = useRef(false);
+  const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -319,6 +326,7 @@ export default function Conversation() {
       const msg = await ConversationsAPI.sendMessage(conversationId, content);
       setMessages((prev) => [...prev, msg]);
       setDraft('');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       wasTypingRef.current = false;
       ConversationsAPI.setTyping(conversationId, false).catch(() => {});
     } catch (err) {
@@ -340,6 +348,35 @@ export default function Conversation() {
 
   function handleVoiceSent(msg) {
     setMessages((prev) => [...prev, msg]);
+  }
+
+  // Opens the OS file picker filtered to the chosen kind — set
+  // directly on the input's DOM attribute rather than routed through
+  // React state, since the click has to fire in the same tick as this
+  // call (a state-driven `accept` wouldn't be committed to the DOM
+  // before .click() runs).
+  function openAttachPicker(accept) {
+    setShowAttachMenu(false);
+    const input = fileInputRef.current;
+    if (!input) return;
+    input.accept = accept;
+    input.click();
+  }
+
+  async function handleFileChosen(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // clears the input so picking the same file twice in a row still fires onChange
+    if (!file) return;
+    setUploadingAttachment(true);
+    setError('');
+    try {
+      const msg = await ConversationsAPI.sendAttachment(conversationId, file);
+      setMessages((prev) => [...prev, msg]);
+    } catch (err) {
+      setError(err.message || "That file didn't send. Try again.");
+    } finally {
+      setUploadingAttachment(false);
+    }
   }
 
   // Reactions propagate instantly on THIS screen (optimistic — applied
@@ -613,13 +650,21 @@ export default function Conversation() {
 
                     const bubbleContent = m.type === 'voice' ? (
                       <VoiceMessage message={m} conversationId={conversationId} mine={mine} isDarkBg={isDarkBg} />
+                    ) : m.type === 'image' || m.type === 'file' ? (
+                      <AttachmentMessage message={m} conversationId={conversationId} mine={mine} />
                     ) : m.type === 'sticker' ? (
                       <div style={{ fontSize: '2.8rem', lineHeight: 1.1 }}>{stickerEmoji(m.sticker_id)}</div>
                     ) : (
                       m.content
                     );
 
-                    const useBubbleChrome = m.type === 'voice' || (m.type !== 'sticker' && !emojiOnly);
+                    // Images sit borderless (own rounded corners via
+                    // .attachment-image), same "no bubble chrome"
+                    // treatment as stickers/emoji-only text. Files get
+                    // chrome like voice notes, so the download chip
+                    // reads as its own message bubble.
+                    const useBubbleChrome = m.type === 'voice' || m.type === 'file'
+                      || (m.type !== 'sticker' && m.type !== 'image' && !emojiOnly);
 
                     return (
                       <div key={m.id} style={{ position: 'relative' }}>
@@ -631,7 +676,7 @@ export default function Conversation() {
                           onTouchEnd={handleBubblePressEnd}
                           onClick={(e) => { if (reactLongPressFired.current) e.stopPropagation(); }}
                           style={useBubbleChrome ? {
-                            padding: m.type === 'voice' ? '8px 10px' : '8px 12px', borderRadius,
+                            padding: (m.type === 'voice' || m.type === 'file') ? '8px 10px' : '8px 12px', borderRadius,
                             background: mine ? 'var(--maroon)' : (isDarkBg ? 'rgba(255,255,255,0.92)' : 'var(--ivory-dim)'),
                             color: mine ? '#fff' : 'var(--ink)',
                             fontSize: 'var(--fs-sm)', cursor: 'pointer',
@@ -749,9 +794,47 @@ export default function Conversation() {
               {conv?.other_user?.full_name ? `${conv.other_user.full_name} is typing…` : 'Typing…'}
             </div>
           )}
-          <div className="message-composer" style={{ position: 'relative', alignItems: 'center' }}>
+          <div className="message-composer" style={{ position: 'relative', alignItems: 'flex-end' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={handleFileChosen}
+            />
             {!isRecordingVoice && (
               <>
+                <button
+                  type="button"
+                  className="composer-attach-btn"
+                  aria-label="Attach a file"
+                  disabled={uploadingAttachment}
+                  onClick={(e) => { e.stopPropagation(); setShowAttachMenu((v) => !v); }}
+                >
+                  {uploadingAttachment ? (
+                    <span style={{ fontSize: '0.7rem' }}>…</span>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 11.5L12.5 20a4.5 4.5 0 01-6.36-6.36L14.5 5.28a3 3 0 014.24 4.24L10.4 17.86a1.5 1.5 0 01-2.12-2.12l7.07-7.07" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+                {showAttachMenu && (
+                  <div className="composer-attach-menu" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => openAttachPicker('image/*')}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" /><circle cx="8.5" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.6" /><path d="M21 16l-5.5-5.5L4 21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      Photo
+                    </button>
+                    <button type="button" onClick={() => openAttachPicker(DOCUMENT_ACCEPT)}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v15H6V2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M15 2v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+                      Document
+                    </button>
+                    <button type="button" onClick={() => openAttachPicker('audio/*')}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l12-2v13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /><circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="1.6" /><circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="1.6" /></svg>
+                      Audio file
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   aria-label="Stickers"
@@ -765,8 +848,17 @@ export default function Conversation() {
                 )}
 
                 <textarea
+                  ref={textareaRef}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    // Auto-grow: reset first so shrinking (e.g. after
+                    // deleting a pasted block) isn't stuck at the
+                    // tallest height it ever reached this session.
+                    const el = e.target;
+                    el.style.height = 'auto';
+                    el.style.height = `${el.scrollHeight}px`;
+                  }}
                   placeholder="Message…"
                   rows={1}
                   maxLength={2000}

@@ -253,7 +253,7 @@ export default function Feed() {
 
   return (
     <div
-      className="screen"
+      className="screen feed-screen"
       ref={scrollRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

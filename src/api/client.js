@@ -396,6 +396,45 @@ export const ConversationsAPI = {
     }
     return data;
   },
+
+  // Fetches a short-lived signed view/download URL for an image or
+  // file attachment — mirrors getVoiceUrl above.
+  getAttachmentUrl: (conversationId, messageId) =>
+    request(`/api/conversations/${conversationId}/messages/${messageId}/attachment-url`, { auth: true }),
+
+  // Image/document/audio-file attachments — multipart, same
+  // bypass-the-JSON-helper pattern as sendVoice above. `file` is the
+  // raw File object picked from the composer's attach menu.
+  sendAttachment: async (conversationId, file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/attachment`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (res.status === 401) {
+      const renewed = await renewSession();
+      if (renewed) {
+        return ConversationsAPI.sendAttachment(conversationId, file);
+      }
+      announceSessionExpired();
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || "That file didn't send. Try again.");
+    }
+    return data;
+  },
 };
 
 // ---- Blocks ----
