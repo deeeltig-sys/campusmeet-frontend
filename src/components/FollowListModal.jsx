@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FollowsAPI, FriendsAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import VerifiedBadge from './VerifiedBadge';
 
 // Shows followers, following, or friends for a given user. Followers/
@@ -11,9 +12,34 @@ import VerifiedBadge from './VerifiedBadge';
 // the app pointing at it, on either your own profile or someone else's.
 export default function FollowListModal({ userId, mode = 'followers', onClose }) {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [unfollowingId, setUnfollowingId] = useState(null);
+
+  // Unfollowing was possible from a person's own profile, but nowhere
+  // in the one place people actually go looking for it — the list of
+  // everyone you follow. Everyone shown here IS someone you follow
+  // (that's what this list is), so no per-row lookup is needed: only
+  // gate it to YOUR OWN following list, since someone else's list
+  // isn't something you have any control over.
+  const isOwnFollowingList = mode === 'following' && userId === authUser?.id;
+
+  async function handleUnfollow(personId) {
+    if (unfollowingId) return;
+    setUnfollowingId(personId);
+    const prev = people;
+    setPeople((list) => list.filter((p) => p.id !== personId)); // optimistic
+    try {
+      await FollowsAPI.unfollow(personId);
+    } catch (err) {
+      setPeople(prev); // revert on failure
+      setError(err.message || "That unfollow didn't go through. Try again.");
+    } finally {
+      setUnfollowingId(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -58,21 +84,32 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
             <p style={{ color: 'var(--ink-soft)' }}>{emptyText}</p>
           ) : (
             people.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => goToProfile(p.id)}
-                className="reactor-row"
-                style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
-              >
-                <div className="avatar-circle" style={{ width: 30, height: 30, fontSize: '0.8rem' }}>
-                  {p.avatar_url ? <img src={p.avatar_url} alt="" /> : (p.full_name ? p.full_name.charAt(0) : '?')}
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{p.full_name || 'Student'}</span>
-                  <VerifiedBadge verified={p.verified} size={13} />
-                </div>
-              </button>
+              <div key={p.id} className="reactor-row" style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={() => goToProfile(p.id)}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', padding: 0, minWidth: 0 }}
+                >
+                  <div className="avatar-circle" style={{ width: 30, height: 30, fontSize: '0.8rem', flexShrink: 0 }}>
+                    {p.avatar_url ? <img src={p.avatar_url} alt="" /> : (p.full_name ? p.full_name.charAt(0) : '?')}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <span className="name-shine" style={{ fontSize: 'var(--fs-sm)' }}>{p.full_name || 'Student'}</span>
+                    <VerifiedBadge verified={p.verified} size={13} />
+                  </div>
+                </button>
+                {isOwnFollowingList && (
+                  <button
+                    type="button"
+                    onClick={() => handleUnfollow(p.id)}
+                    disabled={unfollowingId === p.id}
+                    className="btn btn-ghost"
+                    style={{ padding: '5px 12px', fontSize: 'var(--fs-xs)', flexShrink: 0 }}
+                  >
+                    {unfollowingId === p.id ? '…' : 'Unfollow'}
+                  </button>
+                )}
+              </div>
             ))
           )}
         </div>

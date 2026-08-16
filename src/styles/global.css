@@ -576,6 +576,54 @@ a { color: inherit; text-decoration: none; }
    resized the message box too (not requested, and working against
    the mobile visibility fix below — a bigger box makes more of it
    sit behind the fixed bottom nav, not less). */
+/* Chat header — true `position: fixed`, not sticky/flex-order, so it
+   holds its position no matter what the page/keyboard does underneath
+   it (see useKeyboardViewport). Below 768px this is unchanged: pinned
+   to viewport center at the same 480px the phone-frame .app-shell
+   uses, exactly as before.
+   At 768px+ .app-shell stops being a centered 480px card — the nav
+   becomes a fixed sidebar and .protected-main .screen becomes an
+   offset, clamped column (see the RESPONSIVE SHELL block above) — but
+   this header was never updated to match, so it kept floating
+   centered on the raw browser viewport, detached from the message
+   list/composer actually rendering underneath it in that shifted
+   column. That's the "chat page isn't measured" bug. Fixing it means
+   giving the header the exact same left-offset + width math
+   `.protected-main .screen` already uses, instead of viewport-center. */
+.conversation-header {
+  padding: var(--sp-5) var(--sp-4) var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 30;
+  background: var(--ivory);
+  /* Clears the phone's notch/status bar on native + fullscreen PWA —
+     a no-op extra 0px on browsers that don't need it. */
+  padding-top: max(var(--sp-5), env(safe-area-inset-top, 0px));
+  box-shadow: 0 1px 0 var(--line);
+}
+
+@media (min-width: 768px) {
+  .conversation-header {
+    /* Same left offset as .protected-main .screen: sidebar width
+       (88px, or 220px expanded — see .bottom-nav--expanded override
+       below) plus that column's own margin-left. */
+    left: calc(88px + var(--sp-5));
+    transform: none;
+    width: clamp(600px, 56vw, 820px);
+    max-width: clamp(600px, 56vw, 820px);
+  }
+  .bottom-nav--expanded ~ .protected-main .conversation-header {
+    left: calc(220px + var(--sp-5));
+  }
+}
+
 .message-composer {
   display: flex;
   gap: var(--sp-2);

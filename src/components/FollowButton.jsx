@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { FollowsAPI } from '../api/client';
 
-export default function FollowButton({ userId, initialFollowing, onChange }) {
+export default function FollowButton({ userId, initialFollowing, onChange, compact = false }) {
   const [following, setFollowing] = useState(!!initialFollowing);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const buttonStyle = compact
+    ? { padding: '7px 4px', fontSize: 'var(--fs-xs)', width: '100%', whiteSpace: 'nowrap' }
+    : { padding: '8px 18px' };
+  const wrapperStyle = { display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, ...(compact ? { flex: 1, minWidth: 0 } : {}) };
 
   async function toggle() {
     if (busy) return;
@@ -31,13 +35,13 @@ export default function FollowButton({ userId, initialFollowing, onChange }) {
   }
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+    <div style={wrapperStyle}>
       <button
         type="button"
         className={following ? 'btn btn-ghost' : 'btn btn-primary'}
         onClick={toggle}
         disabled={busy}
-        style={{ padding: '8px 18px' }}
+        style={buttonStyle}
       >
         {following ? 'Following' : 'Follow'}
       </button>

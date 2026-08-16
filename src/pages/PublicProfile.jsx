@@ -168,20 +168,31 @@ export default function PublicProfile() {
           <BadgesRow userId={userId} />
 
           {!blocked && (
-            <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
+            // Three small tabs in one row instead of full-size pills that
+            // wrapped to a second line on phone-width screens — same
+            // three actions, just trimmed to fit together.
+            <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-4)', flexWrap: 'nowrap' }}>
               <FriendButton
                 userId={userId}
                 initialStatus={profile.friend_status}
                 initialRequestId={profile.friend_request_id}
                 onChange={() => UsersAPI.profile(userId).then(setProfile).catch(() => {})}
+                compact
               />
               <FollowButton
                 userId={userId}
                 initialFollowing={profile.is_following}
                 onChange={() => UsersAPI.profile(userId).then(setProfile).catch(() => {})}
+                compact
               />
-              <button type="button" className="btn btn-ghost" style={{ padding: '8px 18px' }} onClick={handleMessage} disabled={messaging}>
-                {messaging ? 'Starting…' : 'Message'}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ padding: '7px 4px', fontSize: 'var(--fs-xs)', flex: 1, whiteSpace: 'nowrap' }}
+                onClick={handleMessage}
+                disabled={messaging}
+              >
+                {messaging ? '…' : 'Message'}
               </button>
             </div>
           )}

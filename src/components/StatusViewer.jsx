@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { StatusesAPI } from '../api/client';
+import { StatusesAPI, ConversationsAPI } from '../api/client';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
+import { REACTION_EMOJI } from './icons';
 import AddToHighlightModal from './AddToHighlightModal';
 import StatusViewersModal from './StatusViewersModal';
 import HashtagText from './HashtagText';
 
 const SLIDE_DURATION_MS = 5000;
+
+// Same vocabulary as post/message reactions (REACTION_TYPES in
+// api/client.js) — not a separate emoji set.
+const QUICK_REACTIONS = ['like', 'fire', 'cosign', 'yawa'];
 
 export default function StatusViewer({ groups, startIndex, onClose }) {
   const { user } = useAuth();
@@ -20,10 +25,21 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   const startRef = useRef(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replySent, setReplySent] = useState(false);
+  const [reactBusy, setReactBusy] = useState(false);
 
   const group = groups[groupIndex];
   const current = group?.statuses?.[statusIndex];
   const isOwn = group?.author?.id === user?.id;
+
+  // Reply/reaction UI resets per status, not carried over as you move
+  // through someone's statuses.
+  useEffect(() => {
+    setReplyText('');
+    setReplySent(false);
+  }, [current?.id]);
 
   useEffect(() => {
     if (!current) return;
@@ -33,7 +49,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
   // Auto-advance — a per-status progress bar that fills over
   // SLIDE_DURATION_MS, same visual language as IG/Snapchat stories.
   useEffect(() => {
-    if (!current || paused || showHighlightPicker || showViewers) return;
+    if (!current || paused || showHighlightPicker || showViewers || replyText) return;
     setProgress(0);
     startRef.current = performance.now();
     function tick(now) {
@@ -49,7 +65,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupIndex, statusIndex, paused, showHighlightPicker, showViewers]);
+  }, [groupIndex, statusIndex, paused, showHighlightPicker, showViewers, !!replyText]);
 
   function goNextStatus() {
     if (!group) return;
@@ -104,6 +120,51 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
       }
     } catch {
       // silently ignore — worst case the status just stays visible
+    }
+  }
+
+  // Optimistic, same "reacting user's own action" pattern as message
+  // reactions in Conversation.jsx — applied to local state immediately,
+  // reconciled from the server on the next status list refresh if it
+  // ever falls out of sync.
+  async function handleReact(emoji) {
+    if (!current || reactBusy) return;
+    setReactBusy(true);
+    const wasSame = current.user_reaction === emoji;
+    const hadAny = current.user_reaction != null;
+    const nextReaction = wasSame ? null : emoji;
+    const countDelta = wasSame ? -1 : hadAny ? 0 : 1;
+    current.user_reaction = nextReaction;
+    current.reaction_count = Math.max(0, (current.reaction_count || 0) + countDelta);
+    setProgress((p) => p); // nudge a re-render since we mutated in place
+    try {
+      if (wasSame) {
+        await StatusesAPI.unreact(current.id);
+      } else {
+        await StatusesAPI.react(current.id, emoji);
+      }
+    } catch {
+      // silent — worst case it reconciles next time statuses reload
+    } finally {
+      setReactBusy(false);
+    }
+  }
+
+  async function handleSendReply() {
+    const content = replyText.trim();
+    if (!content || sendingReply || !group?.author?.id) return;
+    setSendingReply(true);
+    try {
+      const conv = await ConversationsAPI.start(group.author.id);
+      await ConversationsAPI.sendMessage(conv.id, content);
+      setReplyText('');
+      setReplySent(true);
+      setTimeout(() => setReplySent(false), 2000);
+    } catch {
+      // Reply box stays filled so the person can just hit send again
+      // rather than losing what they typed.
+    } finally {
+      setSendingReply(false);
     }
   }
 
@@ -215,7 +276,7 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
         )}
       </div>
 
-      {isOwn && (
+      {isOwn ? (
         <button
           type="button"
           onClick={() => setShowViewers(true)}
@@ -230,6 +291,85 @@ export default function StatusViewer({ groups, startIndex, onClose }) {
           </svg>
           {current.view_count || 0} {current.view_count === 1 ? 'view' : 'views'}
         </button>
+      ) : (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => { e.stopPropagation(); setPaused(true); }}
+          onPointerUp={(e) => e.stopPropagation()}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)', padding: 'var(--sp-2) var(--sp-3) var(--sp-3)' }}
+        >
+          {/* Quick-react row — same 4 reactions used on posts/messages,
+              tap to react, tap again to un-react. */}
+          <div style={{ display: 'flex', gap: 'var(--sp-2)', alignItems: 'center' }}>
+            {QUICK_REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleReact(emoji)}
+                aria-label={emoji}
+                aria-pressed={current.user_reaction === emoji}
+                disabled={reactBusy}
+                style={{
+                  background: current.user_reaction === emoji ? 'rgba(255,255,255,0.22)' : 'none',
+                  border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '1.3rem',
+                  padding: '4px 8px', lineHeight: 1,
+                }}
+              >
+                {REACTION_EMOJI[emoji]}
+              </button>
+            ))}
+            {current.reaction_count > 0 && (
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 'var(--fs-xs)' }}>
+                {current.reaction_count}
+              </span>
+            )}
+          </div>
+
+          {/* Reply — sends straight into a DM with the status author,
+              same as tapping "Message" on their profile would. */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSendReply(); }}
+            style={{ display: 'flex', gap: 'var(--sp-2)', alignItems: 'center' }}
+          >
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onFocus={() => setPaused(true)}
+              onBlur={() => { if (!replyText.trim()) setPaused(false); }}
+              placeholder={`Reply to ${group?.author?.full_name?.split(' ')[0] || 'them'}…`}
+              maxLength={500}
+              style={{
+                flex: 1, borderRadius: '999px', border: '1.5px solid rgba(255,255,255,0.4)',
+                background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '9px 16px',
+                fontSize: 'var(--fs-sm)', outline: 'none',
+              }}
+            />
+            {replyText.trim() && (
+              <button
+                type="submit"
+                disabled={sendingReply}
+                aria-label="Send reply"
+                style={{
+                  background: 'none', border: 'none', color: '#fff', cursor: 'pointer',
+                  padding: 6, display: 'flex', alignItems: 'center',
+                }}
+              >
+                {sendingReply ? (
+                  <span style={{ fontSize: '0.75rem' }}>…</span>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </form>
+          {replySent && (
+            <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 'var(--fs-xs)' }}>Sent.</span>
+          )}
+        </div>
       )}
 
       {showViewers && (

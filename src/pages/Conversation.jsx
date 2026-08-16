@@ -454,21 +454,7 @@ export default function Conversation() {
     <div className="screen conversation-screen" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
       <div
         ref={headerRef}
-        style={{
-          padding: 'var(--sp-5) var(--sp-4) var(--sp-3)', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)',
-          // True `position: fixed`, not sticky/flex-order — pinned to
-          // the visual viewport itself, so it holds its position no
-          // matter what the page/keyboard does underneath it. Centered
-          // to match .app-shell's own max-width so it lines up with
-          // the rest of the UI instead of stretching edge-to-edge on
-          // wider screens.
-          position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 480, zIndex: 30, background: 'var(--ivory)',
-          // Clears the phone's notch/status bar on native + fullscreen
-          // PWA — a no-op extra 0px on browsers that don't need it.
-          paddingTop: 'max(var(--sp-5), env(safe-area-inset-top, 0px))',
-          boxShadow: '0 1px 0 var(--line)',
-        }}
+        className="conversation-header"
       >
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
           <button
