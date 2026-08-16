@@ -469,6 +469,7 @@ export const AdminAPI = {
   staffList: () => request('/api/admin/staff', { auth: true }),
   setRole: (userId, role) =>
     request(`/api/admin/users/${userId}/role`, { method: 'POST', body: { role }, auth: true }),
+  activity: () => request('/api/admin/activity', { auth: true }),
 };
 
 // ---- Okyeame (owner-only platform announcements) ----

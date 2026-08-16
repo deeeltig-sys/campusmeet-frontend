@@ -56,6 +56,13 @@ export default function Admin() {
         )}
         <button
           type="button"
+          className={`tab-btn${tab === 'activity' ? ' active' : ''}`}
+          onClick={() => setTab('activity')}
+        >
+          Activity
+        </button>
+        <button
+          type="button"
           className={`tab-btn${tab === 'velocity' ? ' active' : ''}`}
           onClick={() => setTab('velocity')}
         >
@@ -67,6 +74,7 @@ export default function Admin() {
         : tab === 'verify' ? <VerifyPanel />
         : tab === 'reports' ? <ReportsPanel />
         : tab === 'team' ? <TeamPanel currentUserId={user?.id} isAdmin={isAdmin} />
+        : tab === 'activity' ? <ActivityPanel />
         : <VelocityPanel />}
     </div>
   );
@@ -815,6 +823,81 @@ function SpotlightsPanel() {
               <p style={{ fontSize: 'var(--fs-sm)', margin: '4px 0 0' }}>{s.body}</p>
             </div>
             <button type="button" className="btn btn-ghost" onClick={() => handleDelete(s.id)}>Remove</button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// Chronological record of every role change, report resolution, and
+// student verification. Visible to any staff member, not just the
+// owner — the point is team-wide accountability, not one-way
+// surveillance. Nothing here can be edited or deleted once written
+// (no update/delete RLS policy on admin_actions at all).
+function ActivityPanel() {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    AdminAPI.activity()
+      .then((data) => setEntries(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err.message || 'Could not load activity.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function timeAgo(iso) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  function describe(entry) {
+    const actorName = entry.actor?.full_name || 'Someone';
+    switch (entry.action_type) {
+      case 'role_change': {
+        const { from_role, to_role } = entry.detail || {};
+        return `${actorName} changed a team member's role from ${from_role || '?'} to ${to_role || '?'}`;
+      }
+      case 'report_resolved':
+        return `${actorName} marked a report as ${entry.detail?.status || 'updated'}`;
+      case 'student_verified':
+        return `${actorName} verified a student`;
+      case 'student_unverified':
+        return `${actorName} removed a student's verification`;
+      default:
+        return `${actorName} performed ${entry.action_type}`;
+    }
+  }
+
+  return (
+    <div>
+      <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-4)' }}>
+        Every role change, report resolution, and student verification — most recent first. Nothing here can be edited or removed after the fact.
+      </p>
+      {error && <div className="banner-error">{error}</div>}
+
+      {loading ? (
+        <p style={{ color: 'var(--ink-soft)' }}>Loading…</p>
+      ) : entries.length === 0 ? (
+        <p style={{ color: 'var(--ink-soft)' }}>No activity recorded yet.</p>
+      ) : (
+        entries.map((entry) => (
+          <div key={entry.id} className="card" style={{ marginBottom: 'var(--sp-2)', display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+            <div className="avatar-circle" style={{ width: 32, height: 32, flexShrink: 0 }}>
+              {entry.actor?.avatar_url ? <img src={entry.actor.avatar_url} alt="" /> : (entry.actor?.full_name?.charAt(0) || '?')}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 'var(--fs-sm)', margin: 0 }}>{describe(entry)}</p>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)' }}>
+                {timeAgo(entry.created_at)}
+              </span>
+            </div>
           </div>
         ))
       )}
