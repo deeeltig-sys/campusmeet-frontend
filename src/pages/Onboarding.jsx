@@ -46,7 +46,15 @@ export default function Onboarding() {
   });
 
   return (
-    <div className="screen" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    // The new medallion logo was shot on a clean white backdrop — its
+    // metallic bevel and fine border etching read as intended against
+    // white/light neutrals, and go muddy against dark or warm-tinted
+    // surfaces. Onboarding is a first-impression brand moment (same
+    // reasoning Splash.jsx already applies by forcing var(--maroon-deep)
+    // regardless of theme), so this forces a true white here too,
+    // rather than inheriting --ivory or flipping to near-black in dark
+    // mode.
+    <div className="screen" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#FFFFFF' }}>
       <div style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }} {...handlers}>
         <div
           style={{
@@ -68,7 +76,7 @@ export default function Onboarding() {
                   textAlign: 'center', gap: 'var(--sp-5)', padding: '0 var(--sp-4)',
                 }}
               >
-                <div style={{ position: 'relative', width: isSeal ? 140 : 200, height: isSeal ? 140 : 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'relative', width: isSeal ? 140 : 220, height: isSeal ? 140 : 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {isSeal ? (
                     <>
                       <GoldSparkle count={4} />
@@ -82,7 +90,26 @@ export default function Onboarding() {
                       </svg>
                     </>
                   ) : (
-                    <img src={campmeetLogo} alt={slide.title} draggable={false} style={{ width: 200 }} />
+                    <>
+                      {/* A soft radial glow standing in for the medallion's
+                          own studio-shot backdrop — echoes how the source
+                          artwork actually presents it, rather than dropping
+                          the coin flat onto a plain white square. */}
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          position: 'absolute', width: 260, height: 260, borderRadius: '50%',
+                          background: 'radial-gradient(circle, rgba(212,175,55,0.16) 0%, rgba(212,175,55,0) 70%)',
+                        }}
+                      />
+                      <GoldSparkle count={5} />
+                      <img
+                        src={campmeetLogo}
+                        alt={slide.title}
+                        draggable={false}
+                        style={{ width: 220, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 8px 20px rgba(74, 14, 33, 0.18))' }}
+                      />
+                    </>
                   )}
                 </div>
                 <div>
@@ -122,3 +149,4 @@ export default function Onboarding() {
     </div>
   );
 }
+
